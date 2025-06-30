@@ -1,0 +1,100 @@
+import admin from '../config/firebase.js';
+import { logger } from '../utils/logger.js';
+
+/**
+ * Authenticate Firebase token
+ */
+export const authenticateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
+    }
+
+    const token = authHeader.substring(7);
+    
+    // Verify the token with Firebase Admin
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    
+    // Get user data from Firestore
+    const userDoc = await admin.firestore()
+      .collection('users')
+      .doc(decodedToken.uid)
+      .get();
+    
+    if (!userDoc.exists) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const userData = userDoc.data();
+    
+    // Attach user info to request
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      ...userData
+    };
+
+    next();
+  } catch (error) {
+    logger.error('Authentication error:', error);
+    
+    if (error.code === 'auth/id-token-expired') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token expired'
+      });
+    }
+    
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid token'
+    });
+  }
+};
+
+/**
+ * Check if user is admin
+ */
+export const requireAdmin = (req, res, next) => {
+  if (req.user.userType !== 'admin' && req.user.email !== 'hungrysaver198@gmail.com') {
+    return res.status(403).json({
+      success: false,
+      message: 'Admin access required'
+    });
+  }
+  next();
+};
+
+/**
+ * Check if user is volunteer
+ */
+export const requireVolunteer = (req, res, next) => {
+  if (req.user.userType !== 'volunteer' && req.user.userType !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Volunteer access required'
+    });
+  }
+  next();
+};
+
+/**
+ * Check if user is approved
+ */
+export const requireApproved = (req, res, next) => {
+  if (req.user.status !== 'approved' && req.user.userType !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Account not approved'
+    });
+  }
+  next();
+};

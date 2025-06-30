@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection
+    match /users/{userId} {
+      // Allow users to create their own document during registration
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // Allow users to read and update their own data
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      // Allow admins to read all user documents
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'admin';
+      // Allow admins to update user status (for approvals)
+      allow update: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'admin';
+    }
+    
+    // Tasks collection (for volunteer tasks)
+    match /tasks/{taskId} {
+      // Allow community users to create tasks
+      allow create: if request.auth != null;
+      // Allow volunteers to read tasks in their location
+      allow read: if request.auth != null;
+      // Allow volunteers to update tasks they're assigned to
+      allow update: if request.auth != null && 
+        (resource.data.assignedTo == request.auth.uid || 
+         request.data.assignedTo == request.auth.uid);
+    }
+    
+    // Community requests collection
+    match /community_requests/{requestId} {
+      // Allow authenticated users to create requests
+      allow create: if request.auth != null && request.auth.uid == request.data.userId;
+      // Allow users to read their own requests
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Allow volunteers to read requests in their location
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'volunteer';
+      // Allow volunteers to update requests they're assigned to
+      allow update: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'volunteer';
+      // Allow admins to read all requests
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'admin';
+    }
+    
+    // Donations collection (for donor offerings)
+    match /donations/{donationId} {
+      // Allow donors to create donations
+      allow create: if request.auth != null && request.auth.uid == request.data.userId;
+      // Allow donors to read their own donations
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Allow volunteers to read donations in their location
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'volunteer';
+      // Allow volunteers to update donations they're assigned to
+      allow update: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'volunteer';
+      // Allow admins to read all donations
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'admin';
+    }
+  }
+}
