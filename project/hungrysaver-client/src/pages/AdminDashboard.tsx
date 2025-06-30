@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, orderBy, Timestamp, deleteDoc } from 'firebase/firestore';
 import { Check, X, Clock, MapPin, GraduationCap, Mail, User, Crown, Heart, Users, Package, TrendingUp, Calendar, Activity } from 'lucide-react';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -243,10 +243,13 @@ const AdminDashboard: React.FC = () => {
       };
 
       await updateDoc(doc(db, 'users', uid), updateData);
-      
+
+      // Remove from volunteer_pending collection
+      await deleteDoc(doc(db, 'volunteer_pending', uid));
+
       // Remove from pending list
       setPendingVolunteers(prev => prev.filter(vol => vol.uid !== uid));
-      
+
       // Update stats
       setStats(prev => ({
         ...prev,
@@ -259,7 +262,7 @@ const AdminDashboard: React.FC = () => {
         setShowSuccessModal(volunteerName);
         setTimeout(() => setShowSuccessModal(null), 4000);
       }
-      
+
     } catch (error) {
       console.error('Error updating volunteer status:', error);
     } finally {

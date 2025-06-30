@@ -15,24 +15,11 @@ router.post('/send-confirmation-email',
   ],
   validateRequest,
   async (req, res) => {
-    try {
-      const userData = req.body;
-      
-      await emailService.sendUserRegistrationConfirmation(userData);
-      
-      logger.info(`Registration confirmation email sent to ${userData.email}`);
-      
-      res.json({
-        success: true,
-        message: 'Confirmation email sent successfully'
-      });
-    } catch (error) {
-      logger.error('Error sending confirmation email:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to send confirmation email'
-      });
-    }
+    const { email, firstName, userType } = req.body;
+    // TODO: Use your email service to send the email here
+    // For now, just log and return success
+    console.log('Send confirmation email to:', email, firstName, userType);
+    res.json({ success: true, message: 'Confirmation email sent (mock).' });
   }
 );
 

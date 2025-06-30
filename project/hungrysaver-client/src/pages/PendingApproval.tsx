@@ -6,9 +6,18 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
 const PendingApproval: React.FC = () => {
+  console.log("PendingApproval component mounted");
   const { userData, currentUser } = useAuth();
   const navigate = useNavigate();
   const [status, setStatus] = useState<'pending' | 'approved' | 'rejected' | 'loading'>('loading');
+  const [currentQuote, setCurrentQuote] = React.useState(0);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentQuote((prev) => (prev + 1) % motivationalQuotes.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Real-time status monitoring
   useEffect(() => {
@@ -138,18 +147,21 @@ const PendingApproval: React.FC = () => {
     "In helping others, we discover the best version of ourselves."
   ];
 
-  const [currentQuote, setCurrentQuote] = React.useState(0);
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentQuote((prev) => (prev + 1) % motivationalQuotes.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+  // Debug panel
+  const debugPanel = (
+    <div style={{ background: '#222', color: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '2px solid #fbbf24' }}>
+      <strong>Debug Info:</strong>
+      <div><b>userData:</b> <pre style={{ display: 'inline', color: '#fbbf24' }}>{JSON.stringify(userData, null, 2)}</pre></div>
+      <div><b>status:</b> <span style={{ color: '#fbbf24' }}>{status}</span></div>
+      <div><b>userType:</b> <span style={{ color: '#fbbf24' }}>{userData?.userType || 'N/A'}</span></div>
+      <div><b>currentUser.uid:</b> <span style={{ color: '#fbbf24' }}>{currentUser?.uid || 'N/A'}</span></div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-900 pt-20 pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {debugPanel}
         {/* Header Section */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center mb-6">

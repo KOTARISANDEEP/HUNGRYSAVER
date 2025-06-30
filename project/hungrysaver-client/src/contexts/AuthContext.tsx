@@ -182,6 +182,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // CRITICAL: Create Firestore document for the user
       await setDoc(doc(db, 'users', userCredential.user.uid), userDocData);
       
+      // If the user is a pending volunteer, also add to 'volunteer_pending'
+      if (userDocData.userType === 'volunteer' && userDocData.status === 'pending') {
+        await setDoc(doc(db, 'volunteer_pending', userCredential.user.uid), userDocData);
+      }
+      
       // Set user data in context
       setUserData(userDocData);
       
@@ -203,7 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await signOut(auth);
       setUserData(null);
       setIsAdmin(false);
-    } catch (error) {
+    } catch {
       throw new Error('Failed to log out. Please try again.');
     }
   };
