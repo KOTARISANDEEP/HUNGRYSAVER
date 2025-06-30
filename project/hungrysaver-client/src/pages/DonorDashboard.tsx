@@ -33,11 +33,13 @@ interface CommunityRequest {
 
 const DonorDashboard: React.FC = () => {
   const [selectedInitiative, setSelectedInitiative] = useState('annamitra-seva');
-  const [activeTab, setActiveTab] = useState<'donate' | 'requests' | 'impact'>('donate');
+  const [activeTab, setActiveTab] = useState<'donate' | 'requests' | 'impact' | 'history'>('donate');
   const [communityRequests, setCommunityRequests] = useState<CommunityRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(true);
   const { submitForm, loading, error, success, resetForm } = useFormSubmission('donor');
   const { userData } = useAuth();
+  const [donationHistory, setDonationHistory] = useState<any[]>([]);
+  const [donationHistoryLoading, setDonationHistoryLoading] = useState(false);
 
   const initiatives = [
     {
@@ -106,7 +108,10 @@ const DonorDashboard: React.FC = () => {
     if (activeTab === 'requests') {
       fetchCommunityRequests();
     }
-  }, [activeTab]);
+    if (activeTab === 'history' && userData?.uid) {
+      fetchDonationHistory();
+    }
+  }, [activeTab, userData?.uid]);
 
   const fetchCommunityRequests = async () => {
     try {
@@ -140,6 +145,23 @@ const DonorDashboard: React.FC = () => {
       console.error('Error fetching community requests:', error);
     } finally {
       setRequestsLoading(false);
+    }
+  };
+
+  const fetchDonationHistory = async () => {
+    setDonationHistoryLoading(true);
+    try {
+      const q = query(
+        collection(db, 'donations'),
+        where('userId', '==', userData.uid)
+      );
+      const snapshot = await getDocs(q);
+      const donations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDonationHistory(donations);
+    } catch (error) {
+      console.error('Error fetching donation history:', error);
+    } finally {
+      setDonationHistoryLoading(false);
     }
   };
 
@@ -288,7 +310,8 @@ const DonorDashboard: React.FC = () => {
           {[
             { key: 'donate', label: 'Make Donation', icon: Heart },
             { key: 'requests', label: 'Community Requests', icon: Users },
-            { key: 'impact', label: 'Your Impact', icon: TrendingUp }
+            { key: 'impact', label: 'Your Impact', icon: TrendingUp },
+            { key: 'history', label: 'Donation History', icon: Calendar }
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -521,6 +544,65 @@ const DonorDashboard: React.FC = () => {
                 "Your small step today can become someone's reason to survive tomorrow."
               </p>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'history' && (
+          <div>
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-white mb-4">Your Donation History</h2>
+              <p className="text-gray-300 max-w-2xl mx-auto">
+                Track all your donations and see their current status.
+              </p>
+            </div>
+            {donationHistoryLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading your donation history...</p>
+              </div>
+            ) : donationHistory.length === 0 ? (
+              <AnimatedEmptyState
+                type="donations"
+                title="No donations yet"
+                description="Your donations will appear here once you make them."
+                actionText="Make a Donation"
+                onAction={() => setActiveTab('donate')}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-gray-800 rounded-lg overflow-hidden">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-2 text-left text-gray-400">Initiative</th>
+                      <th className="px-4 py-2 text-left text-gray-400">Location</th>
+                      <th className="px-4 py-2 text-left text-gray-400">Status</th>
+                      <th className="px-4 py-2 text-left text-gray-400">Created At</th>
+                      <th className="px-4 py-2 text-left text-gray-400">Assigned Volunteer</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {donationHistory.map((donation: any) => (
+                      <tr key={donation.id} className="border-b border-gray-700">
+                        <td className="px-4 py-2 text-white">{donation.initiative?.replace('-', ' ')}</td>
+                        <td className="px-4 py-2 text-white">{donation.location || donation.location_lowercase}</td>
+                        <td className="px-4 py-2">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            donation.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500' :
+                            donation.status === 'picked' ? 'bg-blue-500/20 text-blue-400 border border-blue-500' :
+                            donation.status === 'delivered' ? 'bg-green-500/20 text-green-400 border border-green-500' :
+                            'bg-gray-500/20 text-gray-400 border border-gray-500'
+                          }`}>
+                            {donation.status?.charAt(0).toUpperCase() + donation.status?.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-gray-300">{donation.createdAt?.toDate?.()?.toLocaleString() || ''}</td>
+                        <td className="px-4 py-2 text-gray-300">{donation.assignedVolunteer || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>
