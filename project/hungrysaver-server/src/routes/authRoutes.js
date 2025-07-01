@@ -6,20 +6,23 @@ import { logger } from '../utils/logger.js';
 
 const router = express.Router();
 
-// Send registration confirmation email
+// On User Registration: Send a welcome email
 router.post('/send-confirmation-email',
-  [
-    body('email').isEmail().normalizeEmail(),
-    body('firstName').isLength({ min: 1 }).trim(),
-    body('userType').isIn(['volunteer', 'donor', 'community', 'admin'])
-  ],
-  validateRequest,
+  // [
+  //   body('email').isEmail().normalizeEmail(),
+  //   body('firstName').isLength({ min: 1 }).trim(),
+  //   body('userType').isIn(['volunteer', 'donor', 'community', 'admin'])
+  // ],
+  // validateRequest,
   async (req, res) => {
-    const { email, firstName, userType } = req.body;
-    // TODO: Use your email service to send the email here
-    // For now, just log and return success
-    console.log('Send confirmation email to:', email, firstName, userType);
-    res.json({ success: true, message: 'Confirmation email sent (mock).' });
+    try {
+      logger.info('Received request for /send-confirmation-email with body:', req.body);
+      await emailService.sendUserRegistrationConfirmation(req.body);
+      res.json({ success: true, message: 'Confirmation email sent successfully.' });
+    } catch (error) {
+      logger.error('Failed to send confirmation email:', error);
+      res.status(500).json({ success: false, message: 'Failed to send confirmation email.' });
+    }
   }
 );
 

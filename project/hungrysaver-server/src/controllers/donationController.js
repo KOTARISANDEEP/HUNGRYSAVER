@@ -41,6 +41,7 @@ class DonationController {
     try {
       const { initiative, location, address, donorName, donorContact, description, details } = req.body;
       const userId = req.user.uid;
+      const donorEmail = req.user.email;
 
       // Validate and standardize location
       const standardizedLocation = locationService.validateLocation(location);
@@ -48,6 +49,7 @@ class DonationController {
       // Create donation document
       const donationData = {
         userId,
+        donorEmail,
         initiative,
         location: standardizedLocation,
         location_lowercase: standardizedLocation,
@@ -76,7 +78,7 @@ class DonationController {
       
       if (volunteers.length > 0) {
         // Send email notifications to volunteers
-        await emailService.sendDonationNotificationToVolunteers(
+        await emailService.sendNewDonationAlert(
           { id: donationId, ...donationData },
           volunteers
         );
@@ -250,55 +252,57 @@ class DonationController {
       const { status, volunteerId } = req.body;
       const userId = req.user.uid;
 
-      // Get donation to verify permissions
-      const donationDoc = await this.getDb().collection(COLLECTIONS.DONATIONS).doc(id).get();
+      // Ensure status is valid
+      if (!Object.values(STATUS_STAGES).includes(status)) {
+        return res.status(400).json({ success: false, message: 'Invalid status provided.' });
+      }
       
+      const donationRef = this.getDb().collection(COLLECTIONS.DONATIONS).doc(id);
+      const donationDoc = await donationRef.get();
+
       if (!donationDoc.exists) {
-        return res.status(404).json({
-          success: false,
-          message: 'Donation not found'
-        });
+        return res.status(404).json({ success: false, message: 'Donation not found' });
       }
 
       const donation = donationDoc.data();
 
-      // Check permissions
-      if (status === STATUS_STAGES.ACCEPTED) {
-        // Any volunteer can accept
-        if (req.user.userType !== 'volunteer') {
-          return res.status(403).json({
-            success: false,
-            message: 'Only volunteers can accept donations'
-          });
-        }
-      } else {
-        // Only assigned volunteer can update other statuses
-        if (donation.assignedTo !== userId && req.user.role !== 'admin') {
-          return res.status(403).json({
-            success: false,
-            message: 'Only assigned volunteer can update this donation'
-          });
-        }
-      }
+      // Update the donation document
+      const updateData = {
+        status,
+        updatedAt: new Date(),
+        assignedTo: volunteerId || donation.assignedTo || null,
+      };
 
-      // Update status using status service
-      const result = await statusService.updateDonationStatus(
-        id, 
-        status, 
-        volunteerId || userId,
-        { updatedBy: userId }
-      );
+      await donationRef.update(updateData);
+
+      // Create a status update entry
+      await statusService.addStatusUpdate(id, status, userId, `Status changed to ${status}`);
+
+      // Log the action
+      await auditService.logUserAction(userId, 'donation_status_updated', {
+        donationId: id,
+        newStatus: status
+      });
+
+      // Send email notifications based on status change
+      if (status === STATUS_STAGES.ACCEPTED && donation.donorEmail) {
+        await emailService.sendRequestAcceptedEmail(donation.donorEmail);
+      } else if (status === STATUS_STAGES.DELIVERED && donation.donorEmail) {
+        await emailService.sendDeliveryCompletionEmail(donation.donorEmail);
+      }
+      
+      logger.info(`Donation ${id} status updated to ${status} by user ${userId}`);
 
       res.json({
         success: true,
-        data: result,
-        message: `Donation status updated to ${status}`
+        message: 'Donation status updated successfully',
+        data: { id, ...updateData }
       });
     } catch (error) {
       logger.error('Error updating donation status:', error);
-      res.status(400).json({
+      res.status(500).json({
         success: false,
-        message: error.message
+        message: 'Internal server error'
       });
     }
   };

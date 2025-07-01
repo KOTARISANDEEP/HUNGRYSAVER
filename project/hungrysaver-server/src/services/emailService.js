@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 class EmailService {
   constructor() {
@@ -9,10 +12,10 @@ class EmailService {
     // Only initialize if email credentials are provided
     if (this.hasEmailConfig()) {
       try {
-        this.transporter = nodemailer.createTransporter({
+        this.transporter = nodemailer.createTransport({
           host: process.env.EMAIL_HOST,
-          port: parseInt(process.env.EMAIL_PORT) || 587,
-          secure: false,
+          port: parseInt(process.env.EMAIL_PORT, 10) || 587,
+          secure: process.env.EMAIL_PORT === '465', // Common for port 465
           auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
@@ -46,19 +49,19 @@ class EmailService {
    */
   async sendEmail(mailOptions) {
     if (!this.isConfigured) {
-      logger.info('Email would be sent (service disabled):', {
-        to: mailOptions.to,
-        subject: mailOptions.subject
-      });
+      logger.info(`Email not sent (service disabled): To: ${mailOptions.to}, Subject: ${mailOptions.subject}`);
       return { messageId: 'disabled' };
     }
 
     try {
-      const result = await this.transporter.sendMail(mailOptions);
+      const result = await this.transporter.sendMail({
+        ...mailOptions,
+        from: `"Hungry Saver" <${process.env.EMAIL_USER}>`
+      });
       logger.info(`Email sent successfully to ${mailOptions.to}`);
       return result;
     } catch (error) {
-      logger.error('Error sending email:', error);
+      logger.error(`Error sending email to ${mailOptions.to}:`, error);
       throw error;
     }
   }
@@ -110,7 +113,6 @@ class EmailService {
       const userMessage = userTypeMessages[user.userType] || userTypeMessages.community;
 
       const mailOptions = {
-        from: process.env.EMAIL_USER || 'noreply@hungrysaver.com',
         to: user.email,
         subject: userMessage.title,
         html: `
@@ -280,7 +282,6 @@ class EmailService {
       // Send email to each volunteer
       const emailPromises = volunteers.map(async (volunteer) => {
         const mailOptions = {
-          from: process.env.EMAIL_USER || 'noreply@hungrysaver.com',
           to: volunteer.email,
           subject: `🚨 New Donation Alert in ${donation.location.charAt(0).toUpperCase() + donation.location.slice(1)}!`,
           html: `
@@ -392,7 +393,6 @@ class EmailService {
   async sendDonationAcceptedEmail(donation, volunteer) {
     try {
       const mailOptions = {
-        from: process.env.EMAIL_USER || 'noreply@hungrysaver.com',
         to: donation.donorEmail || donation.donorContact,
         subject: 'Your Donation Has Been Accepted! 🎉',
         html: `
@@ -444,7 +444,6 @@ class EmailService {
   async sendDonationDeliveredEmail(donation, volunteer, motivationalMessage) {
     try {
       const mailOptions = {
-        from: process.env.EMAIL_USER || 'noreply@hungrysaver.com',
         to: donation.donorEmail || donation.donorContact,
         subject: 'Delivery Complete - You Made a Difference! 🌟',
         html: `
@@ -500,7 +499,6 @@ class EmailService {
   async sendVolunteerWelcomeEmail(volunteer) {
     try {
       const mailOptions = {
-        from: process.env.EMAIL_USER || 'noreply@hungrysaver.com',
         to: volunteer.email,
         subject: 'Welcome to Hungry Saver - You\'re Approved! 🎉',
         html: `

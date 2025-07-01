@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Heart, Menu, X, Crown } from 'lucide-react';
+import { Menu, X, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navbar: React.FC = () => {
@@ -54,8 +54,13 @@ const Navbar: React.FC = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <div className="bg-green-500 p-2 rounded-lg group-hover:bg-green-400 transition-colors">
-              <Heart className="h-6 w-6 text-white" fill="currentColor" />
+            <div className="p-2 rounded-full group-hover:bg-green-100 transition-colors">
+              <img
+                src="https://res-console.cloudinary.com/dlvc4lbod/thumbnails/v1/image/upload/v1751363493/QWx0cnVpc3RpY19QYXJ0bmVyc2hpcF9Mb2dvX25uY3F5Zg==/drilldown"
+                alt="Hungry Saver Logo"
+                className="h-16 w-16 rounded-full object-cover"
+                style={{ background: "transparent" }}
+              />
             </div>
             <span className="text-xl font-bold text-white">Hungry Saver</span>
           </Link>

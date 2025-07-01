@@ -90,10 +90,19 @@ const PendingApproval: React.FC = () => {
     );
   }
 
-  // Don't show pending approval page if user is already approved or rejected
+  // Show a message for unexpected status
   if (status !== 'pending') {
-    return null;
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-white text-lg">You do not have a pending application.</p>
+          <p className="text-gray-400 text-sm mt-2">Status: {String(status)}</p>
+        </div>
+      </div>
+    );
   }
+
+  console.log("PendingApproval status:", status);
 
   const initiatives = [
     {
