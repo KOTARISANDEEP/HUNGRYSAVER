@@ -19,6 +19,26 @@ const PendingApproval: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Initialize status from userData if available
+  useEffect(() => {
+    console.log('🔍 Initial userData check:', userData);
+    if (userData) {
+      console.log('📊 Setting initial status from userData:', userData.status);
+      setStatus(userData.status);
+      
+      // Auto-redirect if already approved
+      if (userData.status === 'approved' && userData.location) {
+        console.log('✅ User already approved, redirecting to dashboard');
+        navigate(`/dashboard/${userData.location}`, { replace: true });
+      } else if (userData.status === 'rejected') {
+        console.log('❌ User rejected, redirecting to login');
+        navigate('/login', { replace: true });
+      }
+    } else {
+      console.log('❌ No userData available');
+    }
+  }, [userData, navigate]);
+
   // Real-time status monitoring
   useEffect(() => {
     if (!currentUser?.uid) {
@@ -34,52 +54,43 @@ const PendingApproval: React.FC = () => {
         if (doc.exists()) {
           const userData = doc.data();
           const currentStatus = userData.status;
-          console.log('📊 User status updated:', currentStatus, userData);
+          console.log('📊 User status updated via listener:', currentStatus, userData);
           setStatus(currentStatus);
 
           // Auto-redirect based on status
           if (currentStatus === 'approved' && userData.location) {
-            console.log('✅ User approved, redirecting to dashboard');
+            console.log('✅ User approved via listener, redirecting to dashboard');
             navigate(`/dashboard/${userData.location}`, { replace: true });
           } else if (currentStatus === 'rejected') {
-            console.log('❌ User rejected, redirecting to login');
+            console.log('❌ User rejected via listener, redirecting to login');
             navigate('/login', { replace: true });
           }
         } else {
           console.log('❌ User document does not exist');
-          setStatus('pending'); // Fallback to pending
+          // If document doesn't exist but we have userData from context, use that
+          if (userData?.status) {
+            setStatus(userData.status);
+          } else {
+            setStatus('pending'); // Fallback to pending
+          }
         }
       },
       (error) => {
         console.error('❌ Error listening to user status:', error);
-        setStatus('pending'); // Fallback to pending
+        // Fallback to userData from context if listener fails
+        if (userData?.status) {
+          setStatus(userData.status);
+        } else {
+          setStatus('pending'); // Fallback to pending
+        }
       }
     );
 
     return () => unsubscribe();
-  }, [currentUser?.uid, navigate]);
+  }, [currentUser?.uid, navigate, userData]);
 
-  // Check initial status from context
-  useEffect(() => {
-    console.log('🔍 Checking initial status from context:', userData);
-    if (userData) {
-      setStatus(userData.status);
-      
-      // Auto-redirect based on status
-      if (userData.status === 'approved' && userData.location) {
-        console.log('✅ User approved from context, redirecting to dashboard');
-        navigate(`/dashboard/${userData.location}`, { replace: true });
-      } else if (userData.status === 'rejected') {
-        console.log('❌ User rejected from context, redirecting to login');
-        navigate('/login', { replace: true });
-      }
-    } else {
-      console.log('❌ No user data in context');
-    }
-  }, [userData, navigate]);
-
-  // Show loading while checking status
-  if (status === 'loading') {
+  // Show loading only briefly while checking status
+  if (status === 'loading' && !userData) {
     return (
       <div className="min-h-screen bg-gray-900 pt-20 pb-12 flex items-center justify-center">
         <div className="text-center">
@@ -90,19 +101,37 @@ const PendingApproval: React.FC = () => {
     );
   }
 
-  // Show a message for unexpected status
-  if (status !== 'pending') {
+  // If we have userData but status is not pending, show appropriate message
+  if (userData && status !== 'pending') {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 pt-20 pb-12 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-white text-lg">You do not have a pending application.</p>
+          <p className="text-white text-lg">
+            {status === 'approved' ? 'Your application has been approved!' : 
+             status === 'rejected' ? 'Your application was not approved.' :
+             'You do not have a pending application.'}
+          </p>
           <p className="text-gray-400 text-sm mt-2">Status: {String(status)}</p>
+          {status === 'approved' && userData.location && (
+            <button
+              onClick={() => navigate(`/dashboard/${userData.location}`)}
+              className="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
+            >
+              Go to Dashboard
+            </button>
+          )}
         </div>
       </div>
     );
   }
 
-  console.log("PendingApproval status:", status);
+  // If no userData and not loading, redirect to login
+  if (!userData && status !== 'loading') {
+    navigate('/login', { replace: true });
+    return null;
+  }
+
+  console.log("PendingApproval rendering main content, status:", status);
 
   const initiatives = [
     {
@@ -156,21 +185,20 @@ const PendingApproval: React.FC = () => {
     "In helping others, we discover the best version of ourselves."
   ];
 
-  // Debug panel
-  const debugPanel = (
-    <div style={{ background: '#222', color: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '2px solid #fbbf24' }}>
-      <strong>Debug Info:</strong>
-      <div><b>userData:</b> <pre style={{ display: 'inline', color: '#fbbf24' }}>{JSON.stringify(userData, null, 2)}</pre></div>
-      <div><b>status:</b> <span style={{ color: '#fbbf24' }}>{status}</span></div>
-      <div><b>userType:</b> <span style={{ color: '#fbbf24' }}>{userData?.userType || 'N/A'}</span></div>
-      <div><b>currentUser.uid:</b> <span style={{ color: '#fbbf24' }}>{currentUser?.uid || 'N/A'}</span></div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-gray-900 pt-20 pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {debugPanel}
+        {/* Debug panel - remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{ background: '#222', color: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '2px solid #fbbf24' }}>
+            <strong>Debug Info:</strong>
+            <div><b>userData:</b> <pre style={{ display: 'inline', color: '#fbbf24' }}>{JSON.stringify(userData, null, 2)}</pre></div>
+            <div><b>status:</b> <span style={{ color: '#fbbf24' }}>{status}</span></div>
+            <div><b>userType:</b> <span style={{ color: '#fbbf24' }}>{userData?.userType || 'N/A'}</span></div>
+            <div><b>currentUser.uid:</b> <span style={{ color: '#fbbf24' }}>{currentUser?.uid || 'N/A'}</span></div>
+          </div>
+        )}
+
         {/* Header Section */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center mb-6">
