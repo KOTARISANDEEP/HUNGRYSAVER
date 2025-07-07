@@ -259,6 +259,13 @@ const HomePage: React.FC = () => {
             Whether you're a volunteer ready to serve, a donor wanting to give, or someone in need of support, 
             our platform connects you with the right resources in your city.
           </p>
+
+          {/* Transparent contact info */}
+          <div className="mb-8 flex justify-center">
+            <span className="bg-transparent text-green-400 text-lg font-semibold px-4 py-2 rounded-full border border-green-400/40">
+              If any queries, email us at: <a href="mailto:hungrysaver198@gmail.com" className="underline hover:text-green-300">hungrysaver198@gmail.com</a>
+            </span>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             <div className="bg-gray-700 p-6 rounded-lg hover:bg-gray-600 transition-colors">
