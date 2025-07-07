@@ -5,6 +5,13 @@ import { Clock, CheckCircle, Users, Heart, BookOpen, Shield, Home, Zap, Building
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
+const motivationalQuotes = [
+  "Every small act of kindness creates ripples of change in our community.",
+  "Your compassion today will be someone's hope tomorrow.",
+  "Together, we're not just changing lives—we're building a better future.",
+  "In helping others, we discover the best version of ourselves."
+];
+
 const PendingApproval: React.FC = () => {
   const { userData, currentUser } = useAuth();
   const [status, setStatus] = useState<'pending' | 'approved' | 'rejected' | 'loading'>('loading');
@@ -178,13 +185,6 @@ const PendingApproval: React.FC = () => {
       impact: "Support 10+ shelters",
       image: "https://images.pexels.com/photos/5029851/pexels-photo-5029851.jpeg"
     }
-  ];
-
-  const motivationalQuotes = [
-    "Every small act of kindness creates ripples of change in our community.",
-    "Your compassion today will be someone's hope tomorrow.",
-    "Together, we're not just changing lives—we're building a better future.",
-    "In helping others, we discover the best version of ourselves."
   ];
 
   return (
