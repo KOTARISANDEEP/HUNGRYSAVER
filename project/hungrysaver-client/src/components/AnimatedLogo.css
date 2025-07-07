@@ -1,0 +1,55 @@
+.animated-logo-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  position: absolute;
+  top: 40px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.logo-hero-container {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.rotating-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  animation: spin 30s linear infinite;
+  z-index: 1;
+}
+
+.center-logo {
+  position: absolute;
+  top: 15%;
+  left: 15%;
+  width: 70%;
+  z-index: 2;
+  animation: none;
+}
+
+.impact-text {
+  margin-top: 20px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2ecc71;
+  text-shadow: 0 2px 8px #fff, 0 1px 2px #0002;
+  pointer-events: auto;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+} 

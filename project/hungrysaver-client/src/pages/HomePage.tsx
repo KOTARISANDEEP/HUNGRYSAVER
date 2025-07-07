@@ -5,6 +5,7 @@ import { LiveImpactDashboard } from '../components/ImpactCounter';
 import SuccessStories from '../components/SuccessStories';
 import MotivationalBanner from '../components/MotivationalBanner';
 import CommunityMap from '../components/CommunityMap';
+import AnimatedLogo from '../components/AnimatedLogo';
 
 const HomePage: React.FC = () => {
   const [visibleCards, setVisibleCards] = useState<number[]>([]);
@@ -93,6 +94,9 @@ const HomePage: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70" />
         </div>
 
+        {/* Animated Logo Overlay */}
+        <AnimatedLogo />
+
         {/* Floating elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
@@ -101,24 +105,13 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
-          <div className="mb-6">
-            <div className="inline-flex items-center space-x-2 bg-green-600/20 backdrop-blur-sm border border-green-500/30 rounded-full px-4 py-2 mb-6">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-green-300 text-sm font-medium">Live Impact: 2,847 meals served today</span>
-            </div>
-          </div>
-
+        <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto" style={{marginTop: '320px'}}>
           <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
             Connecting Surplus Resources with{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
               Those in Need
             </span>
           </h1>
-          
-          <p className="text-xl sm:text-2xl text-gray-300 mb-8 leading-relaxed max-w-3xl mx-auto">
-            Every login feeds hope. Every action creates impact. Join our mission to build a compassionate community across India.
-          </p>
 
           {/* Impact stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 max-w-2xl mx-auto">

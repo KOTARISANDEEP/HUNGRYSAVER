@@ -56,7 +56,7 @@ const Navbar: React.FC = () => {
           <Link to="/" className="flex items-center space-x-2 group">
             <div className="p-2 rounded-full group-hover:bg-green-100 transition-colors">
               <img
-                src="https://res-console.cloudinary.com/dlvc4lbod/thumbnails/v1/image/upload/v1751363493/QWx0cnVpc3RpY19QYXJ0bmVyc2hpcF9Mb2dvX25uY3F5Zg==/drilldown"
+                src="/assets/images/logo.png"
                 alt="Hungry Saver Logo"
                 className="h-16 w-16 rounded-full object-cover"
                 style={{ background: "transparent" }}
