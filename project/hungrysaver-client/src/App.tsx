@@ -1,9 +1,17 @@
+import './config/firebase';
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
+import { getAuth } from 'firebase/auth';
+
+declare global {
+  interface Window {
+    getFirebaseToken: () => void;
+  }
+}
 
 // Lazy load components for better performance
 const HomePage = React.lazy(() => import('./pages/HomePage'));
@@ -17,6 +25,20 @@ const DonorDashboard = React.lazy(() => import('./pages/DonorDashboard'));
 const PendingApproval = React.lazy(() => import('./pages/PendingApproval'));
 
 function App() {
+  // Removed unused token and error state
+  // Removed unused handleGetToken function
+
+  window.getFirebaseToken = () => {
+    const auth = getAuth();
+    if (auth.currentUser) {
+      auth.currentUser.getIdToken(true).then(token => {
+        console.log("Firebase ID Token:", token);
+      });
+    } else {
+      console.log("No user is signed in.");
+    }
+  };
+
   return (
     <AuthProvider>
       <Router
@@ -26,6 +48,7 @@ function App() {
         }}
       >
         <div className="min-h-screen bg-gray-900">
+          {/* Removed token fetch UI for debugging */}
           <Navbar />
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
@@ -35,7 +58,7 @@ function App() {
               <Route 
                 path="/pending-approval" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requireApproved={false}>
                     <PendingApproval />
                   </ProtectedRoute>
                 } 

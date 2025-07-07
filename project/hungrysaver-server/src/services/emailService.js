@@ -281,6 +281,11 @@ class EmailService {
 
       // Send email to each volunteer
       const emailPromises = volunteers.map(async (volunteer) => {
+        if (!volunteer.email) {
+          logger.warn(`Volunteer ${volunteer.id} has no email, skipping.`);
+          return;
+        }
+
         const mailOptions = {
           to: volunteer.email,
           subject: `🚨 New Donation Alert in ${donation.location.charAt(0).toUpperCase() + donation.location.slice(1)}!`,
@@ -541,6 +546,10 @@ class EmailService {
       logger.error('Error sending volunteer welcome email:', error);
       // Don't throw error to avoid breaking the main flow
     }
+  }
+
+  async sendNewDonationAlert(...args) {
+    return this.sendDonationNotificationToVolunteers(...args);
   }
 }
 

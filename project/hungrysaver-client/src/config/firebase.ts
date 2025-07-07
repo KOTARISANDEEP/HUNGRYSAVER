@@ -53,16 +53,19 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true'
           connectFirestoreEmulator(db, 'localhost', 8080);
           connectStorageEmulator(storage, 'localhost', 9199);
           console.log('Connected to Firebase emulators');
-        } catch (error) {
+        } catch {
           console.log('Failed to connect to emulators, using production Firebase');
         }
       } else {
         console.log('Using production Firebase services');
       }
     });
-  } catch (error) {
+  } catch {
     console.log('Using production Firebase services');
   }
 }
+
+// @ts-expect-error: Exposing auth on window for debugging in browser console
+window.auth = auth;
 
 export default app;

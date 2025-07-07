@@ -244,9 +244,6 @@ const AdminDashboard: React.FC = () => {
 
       await updateDoc(doc(db, 'users', uid), updateData);
 
-      // Remove from volunteer_pending collection
-      await deleteDoc(doc(db, 'volunteer_pending', uid));
-
       // Remove from pending list
       setPendingVolunteers(prev => prev.filter(vol => vol.uid !== uid));
 

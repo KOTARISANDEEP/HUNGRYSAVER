@@ -189,8 +189,12 @@ const RegisterPage: React.FC = () => {
       } else {
         navigate('/');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (error instanceof Error) {
       setError(error.message);
+      } else {
+        setError(String(error));
+      }
     } finally {
       setLoading(false);
     }

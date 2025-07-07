@@ -117,7 +117,7 @@ const HomePage: React.FC = () => {
           </h1>
           
           <p className="text-xl sm:text-2xl text-gray-300 mb-8 leading-relaxed max-w-3xl mx-auto">
-            Every login feeds hope. Every action creates impact. Join our mission to build a compassionate community across Andhra Pradesh.
+            Every login feeds hope. Every action creates impact. Join our mission to build a compassionate community across India.
           </p>
 
           {/* Impact stats */}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
   User, 
   onAuthStateChanged, 
@@ -7,10 +7,12 @@ import {
   signOut, 
   signInWithPopup,
   sendPasswordResetEmail,
-  AuthError
+  AuthError,
+  getAuth
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../config/firebase';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 interface UserData {
   uid: string;
@@ -36,71 +38,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-// Helper function to get user-friendly error messages
-const getErrorMessage = (error: AuthError): string => {
-  switch (error.code) {
-    case 'auth/email-already-in-use':
-      return 'An account with this email already exists. Please try logging in instead.';
-    case 'auth/weak-password':
-      return 'Password should be at least 6 characters long.';
-    case 'auth/invalid-email':
-      return 'Please enter a valid email address.';
-    case 'auth/user-not-found':
-      return 'No account found with this email address.';
-    case 'auth/wrong-password':
-      return 'Incorrect password. Please try again.';
-    case 'auth/too-many-requests':
-      return 'Too many failed attempts. Please try again later.';
-    case 'auth/network-request-failed':
-      return 'Network error. Please check your connection and try again.';
-    case 'auth/popup-closed-by-user':
-      return 'Sign-in was cancelled. Please try again.';
-    case 'auth/cancelled-popup-request':
-      return 'Only one sign-in popup is allowed at a time.';
-    case 'auth/unavailable':
-      return 'Service temporarily unavailable. Please try again later.';
-    default:
-      return error.message || 'An unexpected error occurred. Please try again.';
-  }
-};
-
-// Check if user is admin
-const checkIsAdmin = (email: string | null): boolean => {
-  const adminEmail = 'hungrysaver198@gmail.com'; // Hardcoded admin email
-  const isAdminByEmail = email === adminEmail;
-  console.log('🔍 Admin check:', { email, isAdminByEmail });
-  return isAdminByEmail;
-};
-
-// Send registration confirmation email
-const sendRegistrationConfirmationEmail = async (userData: UserData) => {
-  try {
-    const response = await fetch('/api/auth/send-confirmation-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-      console.warn('Failed to send confirmation email:', response.statusText);
-    }
-  } catch (error) {
-    console.warn('Error sending confirmation email:', error);
-    // Don't throw error to avoid breaking registration
-  }
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -182,11 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // CRITICAL: Create Firestore document for the user
       await setDoc(doc(db, 'users', userCredential.user.uid), userDocData);
       
-      // If the user is a pending volunteer, also add to 'volunteer_pending'
-      if (userDocData.userType === 'volunteer' && userDocData.status === 'pending') {
-        await setDoc(doc(db, 'volunteer_pending', userCredential.user.uid), userDocData);
-      }
-      
       // Set user data in context
       setUserData(userDocData);
       
@@ -254,6 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       
@@ -301,10 +235,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
-  const value = {
+  const value: AuthContextType = {
     currentUser,
     userData,
     login,
@@ -318,7 +252,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading ? <LoadingSpinner /> : children}
     </AuthContext.Provider>
   );
+};
+
+// ✅ Correct export
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+// Helper function to get user-friendly error messages
+const getErrorMessage = (error: AuthError): string => {
+  switch (error.code) {
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists. Please try logging in instead.';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters long.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/user-not-found':
+      return 'No account found with this email address.';
+    case 'auth/wrong-password':
+      return 'Incorrect password. Please try again.';
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Please try again later.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection and try again.';
+    case 'auth/popup-closed-by-user':
+      return 'Sign-in was cancelled. Please try again.';
+    case 'auth/cancelled-popup-request':
+      return 'Only one sign-in popup is allowed at a time.';
+    case 'auth/unavailable':
+      return 'Service temporarily unavailable. Please try again later.';
+    default:
+      return error.message || 'An unexpected error occurred. Please try again.';
+  }
+};
+
+// Check if user is admin
+const checkIsAdmin = (email: string | null): boolean => {
+  const adminEmail = 'hungrysaver198@gmail.com'; // Hardcoded admin email
+  const isAdminByEmail = email === adminEmail;
+  console.log('🔍 Admin check:', { email, isAdminByEmail });
+  return isAdminByEmail;
+};
+
+// Send registration confirmation email
+const sendRegistrationConfirmationEmail = async (userData: UserData) => {
+  try {
+    const response = await fetch('/api/auth/send-confirmation-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      console.warn('Failed to send confirmation email:', response.statusText);
+    }
+  } catch (error) {
+    console.warn('Error sending confirmation email:', error);
+    // Don't throw error to avoid breaking registration
+  }
 };

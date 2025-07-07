@@ -183,12 +183,21 @@ const DonorDashboard: React.FC = () => {
 
   const handleAcceptRequest = async (requestId: string, requestData: CommunityRequest) => {
     try {
-      // Create a donation based on the community request
+      // Get the current user's ID token for authentication
+      const { getAuth } = await import('firebase/auth');
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const idToken = await user.getIdToken();
+      
+      // Create a donation based on the community request using the API
       const donationData = {
-        userId: userData?.uid,
         initiative: requestData.initiative,
         location: requestData.location_lowercase,
-        location_lowercase: requestData.location_lowercase,
         address: requestData.address,
         donorName: userData?.firstName || 'Anonymous Donor',
         donorContact: userData?.email || '',
@@ -198,14 +207,23 @@ const DonorDashboard: React.FC = () => {
           beneficiaryName: requestData.beneficiaryName,
           beneficiaryContact: requestData.beneficiaryContact,
           urgency: requestData.urgency
-        },
-        status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        }
       };
 
-      // Add the donation
-      await addDoc(collection(db, 'donations'), donationData);
+      // Submit donation via API to trigger volunteer notifications
+      const response = await fetch('/api/donations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify(donationData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit donation');
+      }
 
       // Update the community request status
       await updateDoc(doc(db, 'community_requests', requestId), {

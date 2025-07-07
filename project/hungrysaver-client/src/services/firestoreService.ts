@@ -9,14 +9,35 @@ export const requestsCollection = collection(db, 'community_requests');
 // Donation operations
 export const submitDonation = async (data: DonationData): Promise<string> => {
   try {
-    const docRef = await addDoc(donationsCollection, {
-      ...data,
-      createdAt: new Date(),
-      status: 'pending',
-      updatedAt: new Date()
+    // Get the current user's ID token for authentication
+    const { getAuth } = await import('firebase/auth');
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    const idToken = await user.getIdToken();
+    
+    // Call the backend API instead of writing directly to Firestore
+    const response = await fetch('/api/donations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify(data)
     });
-    console.log('✅ Donation submitted successfully:', docRef.id);
-    return docRef.id;
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to submit donation');
+    }
+    
+    const result = await response.json();
+    console.log('✅ Donation submitted successfully via API:', result.data.id);
+    return result.data.id;
   } catch (error) {
     console.error('❌ Error submitting donation:', error);
     throw new Error('Failed to submit donation. Please try again.');
@@ -26,14 +47,35 @@ export const submitDonation = async (data: DonationData): Promise<string> => {
 // Request operations
 export const submitRequest = async (data: RequestData): Promise<string> => {
   try {
-    const docRef = await addDoc(requestsCollection, {
-      ...data,
-      createdAt: new Date(),
-      status: 'pending',
-      updatedAt: new Date()
+    // Get the current user's ID token for authentication
+    const { getAuth } = await import('firebase/auth');
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    const idToken = await user.getIdToken();
+    
+    // Call the backend API instead of writing directly to Firestore
+    const response = await fetch('/api/requests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify(data)
     });
-    console.log('✅ Request submitted successfully:', docRef.id);
-    return docRef.id;
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to submit request');
+    }
+    
+    const result = await response.json();
+    console.log('✅ Request submitted successfully via API:', result.data.id);
+    return result.data.id;
   } catch (error) {
     console.error('❌ Error submitting request:', error);
     throw new Error('Failed to submit request. Please try again.');
