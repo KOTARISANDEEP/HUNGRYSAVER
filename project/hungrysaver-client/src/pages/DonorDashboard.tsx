@@ -487,7 +487,7 @@ const DonorDashboard: React.FC = () => {
                             {request.initiative.replace('-', ' ')}
                           </h3>
                           <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getUrgencyColor(request.urgency)}`}>
-                            {request.urgency.toUpperCase()} PRIORITY
+                            {request.urgency ? request.urgency.toUpperCase() : ''} PRIORITY
                           </span>
                         </div>
                       </div>
@@ -506,7 +506,7 @@ const DonorDashboard: React.FC = () => {
                       </div>
                       <div className="flex items-center space-x-2 text-sm text-gray-400">
                         <Clock className="h-4 w-4" />
-                        <span>{request.createdAt?.toLocaleDateString() || 'Recently'}</span>
+                        <span>{formatCreatedAt(request.createdAt) || 'Recently'}</span>
                       </div>
                     </div>
 

@@ -359,7 +359,7 @@ const CommunitySupportDashboard: React.FC = () => {
                               <span className="capitalize">{request.status}</span>
                             </span>
                             <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getUrgencyColor(request.urgency)}`}>
-                              {request.urgency.toUpperCase()}
+                              {request.urgency ? request.urgency.toUpperCase() : ''}
                             </span>
                           </div>
                         </div>
