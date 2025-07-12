@@ -5,7 +5,7 @@ import { LiveImpactDashboard } from '../components/ImpactCounter';
 import SuccessStories from '../components/SuccessStories';
 import MotivationalBanner from '../components/MotivationalBanner';
 import CommunityMap from '../components/CommunityMap';
-import AnimatedLogo from '../components/AnimatedLogo';
+import '../index.css'; // Ensure global styles are loaded
 
 const HomePage: React.FC = () => {
   const [visibleCards, setVisibleCards] = useState<number[]>([]);
@@ -34,7 +34,7 @@ const HomePage: React.FC = () => {
       icon: Heart,
       title: "🍛 Annamitra Seva",
       description: "Connecting surplus food with hungry families. Every meal counts in our mission to eliminate hunger and food waste.",
-      image: "https://images.pexels.com/photos/6646917/pexels-photo-6646917.jpeg",
+      image: "/assets/images/Annamitra.png",
       impact: "2,847 meals served today",
       color: "from-green-500 to-green-600"
     },
@@ -42,7 +42,7 @@ const HomePage: React.FC = () => {
       icon: BookOpen,
       title: "📚 Vidya Jyothi",
       description: "Illuminating young minds through education support. Providing books, fees, and resources to deserving students.",
-      image: "https://images.pexels.com/photos/8535230/pexels-photo-8535230.jpeg",
+      image: "/assets/images/VidyaJyothi.png",
       impact: "156 students supported",
       color: "from-blue-500 to-blue-600"
     },
@@ -50,7 +50,7 @@ const HomePage: React.FC = () => {
       icon: Shield,
       title: "🛡️ Suraksha Setu",
       description: "Building bridges of safety for vulnerable communities. Emergency support when it matters most.",
-      image: "https://images.pexels.com/photos/6646918/pexels-photo-6646918.jpeg",
+      image: "/assets/images/surakshasethu.png",
       impact: "89 families protected",
       color: "from-purple-500 to-purple-600"
     },
@@ -58,7 +58,7 @@ const HomePage: React.FC = () => {
       icon: Home,
       title: "🏠 PunarAsha",
       description: "Restoring hope through rehabilitation. Supporting families in rebuilding their lives with dignity.",
-      image: "https://images.pexels.com/photos/5029857/pexels-photo-5029857.jpeg",
+      image: "/assets/images/punarasha1.png",
       impact: "45 lives rebuilt",
       color: "from-pink-500 to-pink-600"
     },
@@ -66,7 +66,7 @@ const HomePage: React.FC = () => {
       icon: Zap,
       title: "⚡ Raksha Jyothi",
       description: "Emergency response for humans and animals. Rapid assistance during critical situations.",
-      image: "https://images.pexels.com/photos/6646919/pexels-photo-6646919.jpeg",
+      image: "/assets/images/RakshaJyothi.png",
       impact: "24/7 emergency response",
       color: "from-red-500 to-red-600"
     },
@@ -74,7 +74,7 @@ const HomePage: React.FC = () => {
       icon: Building,
       title: "🏛️ Jyothi Nilayam",
       description: "Creating sanctuaries of hope. Supporting shelters for both humans and animals in need.",
-      image: "https://images.pexels.com/photos/5029851/pexels-photo-5029851.jpeg",
+      image: "/assets/images/Jyothi Nilayam.png",
       impact: "12 shelters supported",
       color: "from-orange-500 to-orange-600"
     }
@@ -83,7 +83,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section id="home" className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden px-4">
         {/* Background with overlay */}
         <div className="absolute inset-0 z-0">
           <img
@@ -94,62 +94,62 @@ const HomePage: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70" />
         </div>
 
-        {/* Animated Logo Overlay */}
-        <AnimatedLogo />
+        {/* Centered Hero Content: rotation+logo, then headline, then stats, then buttons */}
+        <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-3xl mx-auto text-white py-12">
+          {/* Rotating ring with logo overlay */}
+          <div className="relative flex items-center justify-center mb-6" style={{ minHeight: '320px' }}>
+            <img
+              src="/assets/images/circle_rotation-removebg-preview.png"
+              alt="Rotating ring"
+              className="w-64 h-64 animate-spin-slow select-none pointer-events-none"
+              style={{ zIndex: 1 }}
+            />
+            <img
+              src="/assets/images/logo.png"
+              alt="Hungry Saver Logo"
+              className="absolute left-1/2 top-1/2 w-60 h-60 -translate-x-1/2 -translate-y-1/2 rounded-full object-contain shadow-xl"
+              style={{ zIndex: 2 }}
+            />
+          </div>
 
-        {/* Floating elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
-          <div className="absolute top-3/4 right-1/4 w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-          <div className="absolute bottom-1/4 left-1/3 w-2 h-2 bg-yellow-400 rounded-full animate-bounce"></div>
-        </div>
-
-        {/* Hero Content */}
-        <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto" style={{marginTop: '320px'}}>
-          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+          {/* Headline */}
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-8 leading-tight text-center">
             Connecting Surplus Resources with{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
               Those in Need
             </span>
           </h1>
 
-          {/* Impact stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 max-w-2xl mx-auto">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-              <div className="text-2xl font-bold text-green-400">2,847</div>
-              <div className="text-gray-300 text-sm">Lives Touched Today</div>
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center mb-8 w-full">
+            <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg p-6">
+              <p className="text-2xl font-bold text-green-400">2,847</p>
+              <p className="text-sm">Lives Touched Today</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-              <div className="text-2xl font-bold text-blue-400">156</div>
-              <div className="text-gray-300 text-sm">Families Helped</div>
+            <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg p-6">
+              <p className="text-2xl font-bold text-blue-400">156</p>
+              <p className="text-sm">Families Helped</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-              <div className="text-2xl font-bold text-purple-400">89</div>
-              <div className="text-gray-300 text-sm">Active Volunteers</div>
+            <div className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg p-6">
+              <p className="text-2xl font-bold text-purple-400">89</p>
+              <p className="text-sm">Active Volunteers</p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {/* Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
             <Link
               to="/register"
-              className="inline-flex items-center bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full font-semibold flex items-center justify-center transition-colors text-base w-full sm:w-auto text-center"
             >
-              Join Our Mission
-              <ArrowRight className="ml-2 h-5 w-5" />
+              Join Our Mission <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             <Link
               to="/login"
-              className="inline-flex items-center border-2 border-green-400 text-green-400 hover:bg-green-400 hover:text-gray-900 px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300"
+              className="border border-white text-white hover:bg-white hover:text-green-700 px-6 py-2 rounded-full font-semibold flex items-center justify-center transition-colors text-base w-full sm:w-auto text-center"
             >
               Already a Member? Login
             </Link>
-          </div>
-        </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white animate-bounce">
-          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white rounded-full mt-2 animate-pulse" />
           </div>
         </div>
       </section>

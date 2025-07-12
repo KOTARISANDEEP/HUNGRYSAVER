@@ -8,8 +8,8 @@ const AnimatedLogo: React.FC = () => {
     >
       <div className="relative flex items-center justify-center" style={{ width: 220, height: 220, background: 'transparent' }}>
         <img
-          src="https://res-console.cloudinary.com/dlvc4lbod/thumbnails/v1/image/upload/v1751870126/Y2lyY2xlX3JvdGF0aW9uX3Jnb3pyaw==/template_primary/ZV9iYWNrZ3JvdW5kX3JlbW92YWwvZl9wbmc="
-          alt="Rotating Ring"
+          src="/assets/images/circle_rotation-removebg-preview.png"
+          alt="Animated circle rotation"
           className="absolute w-full h-full rounded-full"
           style={{ animation: 'spin 20s linear infinite', background: 'transparent', pointerEvents: 'auto', borderRadius: '50%' }}
         />

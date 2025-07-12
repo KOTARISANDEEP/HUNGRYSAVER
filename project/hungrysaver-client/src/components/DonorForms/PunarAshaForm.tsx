@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, User, Phone, Home, DollarSign } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 
-interface PunarAshaFormData {
+export interface PunarAshaFormData {
   location: string;
   address: string;
   donorName: string;

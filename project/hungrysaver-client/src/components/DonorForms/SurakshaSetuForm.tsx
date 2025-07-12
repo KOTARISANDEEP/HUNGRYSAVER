@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, User, Phone, Package, Shield } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 
-interface SurakshaSetuFormData {
+export interface SurakshaSetuFormData {
   location: string;
   address: string;
   donorName: string;

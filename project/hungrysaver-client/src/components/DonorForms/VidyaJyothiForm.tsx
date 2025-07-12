@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, User, Phone, DollarSign, BookOpen } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 
-interface VidyaJyothiFormData {
+export interface VidyaJyothiFormData {
   location: string;
   address: string;
   donorName: string;

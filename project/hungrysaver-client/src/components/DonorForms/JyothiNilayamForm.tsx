@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, User, Phone, Building, DollarSign } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 
-interface JyothiNilayamFormData {
+export interface JyothiNilayamFormData {
   location: string;
   address: string;
   donorName: string;

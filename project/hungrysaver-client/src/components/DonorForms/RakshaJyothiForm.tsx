@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, User, Phone, Zap, AlertTriangle } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 
-interface RakshaJyothiFormData {
+export interface RakshaJyothiFormData {
   location: string;
   address: string;
   donorName: string;

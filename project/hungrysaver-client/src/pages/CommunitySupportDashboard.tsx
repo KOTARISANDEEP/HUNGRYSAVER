@@ -29,7 +29,7 @@ interface CommunityRequest {
 }
 
 const CommunitySupportDashboard: React.FC = () => {
-  const [selectedInitiative, setSelectedInitiative] = useState('annamitra-seva');
+  const [selectedInitiative, setSelectedInitiative] = useState('');
   const [activeTab, setActiveTab] = useState<'request' | 'history'>('request');
   const { submitForm, loading, error, success, resetForm } = useFormSubmission('community');
   const [requestHistory, setRequestHistory] = useState<CommunityRequest[]>([]);
@@ -251,55 +251,68 @@ const CommunitySupportDashboard: React.FC = () => {
 
         {/* Tab Content */}
         {activeTab === 'request' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Initiative Selection */}
-            <div className="lg:col-span-1">
-              <h2 className="text-2xl font-bold text-white mb-6">Select Initiative</h2>
-              <div className="space-y-3">
-                {initiatives.map((initiative) => {
-                  const Icon = initiative.icon;
-                  return (
-                    <label
-                      key={initiative.id}
-                      className={`cursor-pointer block p-4 rounded-lg border-2 transition-all ${
-                        selectedInitiative === initiative.id
-                          ? 'border-green-500 bg-green-500/20'
-                          : 'border-gray-600 bg-gray-800 hover:border-gray-500'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="initiative"
-                        value={initiative.id}
-                        checked={selectedInitiative === initiative.id}
-                        onChange={() => setSelectedInitiative(initiative.id)}
-                        className="sr-only"
-                      />
-                      <div className="flex items-start space-x-3">
-                        <Icon className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
-                        <div>
-                          <h3 className="text-white font-medium text-lg">{initiative.title}</h3>
-                          <p className="text-gray-300 text-sm mt-1">{initiative.description}</p>
-                        </div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Request Form */}
-            <div className="lg:col-span-2">
-              {FormComponent && (
-                <FormComponent onSubmit={handleFormSubmit} loading={loading} />
-              )}
-              
-              {error && (
-                <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
-                  <p className="text-sm">{error}</p>
+          <div>
+            {selectedInitiative === '' ? (
+              // Show only initiative cards when no initiative is selected
+              <div>
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-white mb-4">Choose Your Initiative</h2>
+                  <p className="text-gray-300 max-w-2xl mx-auto">
+                    Select an initiative to submit a support request. Each initiative addresses specific community needs.
+                  </p>
                 </div>
-              )}
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {initiatives.map((initiative) => {
+                    const Icon = initiative.icon;
+                    return (
+                      <button
+                        key={initiative.id}
+                        onClick={() => setSelectedInitiative(initiative.id)}
+                        className="w-full text-left p-6 rounded-lg border-2 border-gray-600 bg-gray-800 hover:border-green-500 hover:bg-gray-700 transition-all hover:scale-105 shadow-lg"
+                      >
+                        <div className="flex items-start space-x-3">
+                          <Icon className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
+                          <div>
+                            <h3 className="text-white font-medium text-xl mb-2">{initiative.title}</h3>
+                            <p className="text-gray-300 text-sm">{initiative.description}</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              // Show only the selected initiative form (no sidebar/cards)
+              <div className="max-w-2xl mx-auto">
+                {FormComponent && (
+                  <>
+                    <FormComponent
+                      onSubmit={async (data) => {
+                        const result = await handleFormSubmit(data);
+                        if (result) {
+                          setTimeout(() => setSelectedInitiative(''), 3000); // Return to cards after success message
+                        }
+                      }}
+                      loading={loading}
+                    />
+                    <button
+                      type="button"
+                      className="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                      onClick={() => setSelectedInitiative('')}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
+                {error && (
+                  <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, BookOpen, Shield, Home, Zap, Building, Users, Calendar, MapPin, Clock, CheckCircle, TrendingUp, Award, Star } from 'lucide-react';
-import { collection, query, getDocs, addDoc, updateDoc, doc, where } from 'firebase/firestore';
+import { Heart, BookOpen, Shield, Home, Zap, Building, Users, Calendar, MapPin, Clock, TrendingUp, Award, Star } from 'lucide-react';
+import { collection, query, getDocs, updateDoc, doc, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useFormSubmission } from '../hooks/useFormSubmission';
@@ -13,6 +13,12 @@ import SurakshaSetuForm from '../components/DonorForms/SurakshaSetuForm';
 import PunarAshaForm from '../components/DonorForms/PunarAshaForm';
 import RakshaJyothiForm from '../components/DonorForms/RakshaJyothiForm';
 import JyothiNilayamForm from '../components/DonorForms/JyothiNilayamForm';
+import { AnnamitraSevaFormData } from '../components/DonorForms/AnnamitraSevaForm';
+import { VidyaJyothiFormData } from '../components/DonorForms/VidyaJyothiForm';
+import { SurakshaSetuFormData } from '../components/DonorForms/SurakshaSetuForm';
+import { PunarAshaFormData } from '../components/DonorForms/PunarAshaForm';
+import { RakshaJyothiFormData } from '../components/DonorForms/RakshaJyothiForm';
+import { JyothiNilayamFormData } from '../components/DonorForms/JyothiNilayamForm';
 
 interface CommunityRequest {
   id: string;
@@ -25,20 +31,53 @@ interface CommunityRequest {
   description: string;
   urgency: 'low' | 'medium' | 'high';
   status: 'pending' | 'accepted' | 'completed';
-  createdAt: any;
+  createdAt: Date;
   acceptedBy?: string;
-  acceptedAt?: any;
-  completedAt?: any;
+  acceptedAt?: Date;
+  completedAt?: Date;
+}
+
+type DonorFormData =
+  | AnnamitraSevaFormData
+  | VidyaJyothiFormData
+  | SurakshaSetuFormData
+  | PunarAshaFormData
+  | RakshaJyothiFormData
+  | JyothiNilayamFormData;
+
+const tabOptions: { key: 'donate' | 'requests' | 'impact' | 'history'; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: 'donate', label: 'Make Donation', icon: Heart },
+  { key: 'requests', label: 'Community Requests', icon: Users },
+  { key: 'impact', label: 'Your Impact', icon: TrendingUp },
+  { key: 'history', label: 'Donation History', icon: Calendar }
+];
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function formatCreatedAt(createdAt: any) {
+  if (!createdAt) return '';
+  if (typeof createdAt?.toDate === 'function') {
+    return createdAt.toDate().toLocaleString('en-IN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+  if (createdAt instanceof Date) {
+    return createdAt.toLocaleString('en-IN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+  if (typeof createdAt === 'string') {
+    const date = new Date(createdAt);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleString('en-IN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+  }
+  return '';
 }
 
 const DonorDashboard: React.FC = () => {
-  const [selectedInitiative, setSelectedInitiative] = useState('annamitra-seva');
+  const [selectedInitiative, setSelectedInitiative] = useState('');
   const [activeTab, setActiveTab] = useState<'donate' | 'requests' | 'impact' | 'history'>('donate');
   const [communityRequests, setCommunityRequests] = useState<CommunityRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(true);
   const { submitForm, loading, error, success, resetForm } = useFormSubmission('donor');
   const { userData } = useAuth();
-  const [donationHistory, setDonationHistory] = useState<any[]>([]);
+  const [donationHistory, setDonationHistory] = useState<CommunityRequest[]>([]);
   const [donationHistoryLoading, setDonationHistoryLoading] = useState(false);
 
   const initiatives = [
@@ -116,30 +155,24 @@ const DonorDashboard: React.FC = () => {
   const fetchCommunityRequests = async () => {
     try {
       setRequestsLoading(true);
-      
-      // Fetch all pending community requests (no location filtering for donors)
       const requestsQuery = query(
         collection(db, 'community_requests'),
         where('status', '==', 'pending')
       );
-      
       const snapshot = await getDocs(requestsQuery);
       const requests = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as CommunityRequest[];
-
       // Sort by urgency and creation date
       const sortedRequests = requests.sort((a, b) => {
         const urgencyOrder = { high: 3, medium: 2, low: 1 };
         const urgencyDiff = urgencyOrder[b.urgency] - urgencyOrder[a.urgency];
         if (urgencyDiff !== 0) return urgencyDiff;
-        
-        const aTime = a.createdAt?.toDate?.() || new Date(0);
-        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        const aTime = a.createdAt || new Date(0);
+        const bTime = b.createdAt || new Date(0);
         return bTime.getTime() - aTime.getTime();
       });
-
       setCommunityRequests(sortedRequests);
     } catch (error) {
       console.error('Error fetching community requests:', error);
@@ -151,12 +184,13 @@ const DonorDashboard: React.FC = () => {
   const fetchDonationHistory = async () => {
     setDonationHistoryLoading(true);
     try {
+      if (!userData) return;
       const q = query(
         collection(db, 'donations'),
         where('userId', '==', userData.uid)
       );
       const snapshot = await getDocs(q);
-      const donations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const donations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CommunityRequest));
       setDonationHistory(donations);
     } catch (error) {
       console.error('Error fetching donation history:', error);
@@ -165,15 +199,13 @@ const DonorDashboard: React.FC = () => {
     }
   };
 
-  const handleFormSubmit = async (formData: any): Promise<boolean> => {
+  const handleFormSubmit = async (formData: DonorFormData): Promise<boolean> => {
     const submissionData = {
       ...formData,
       initiative: selectedInitiative
     };
-    
     const result = await submitForm(submissionData);
     if (result) {
-      // Reset form after successful submission
       setTimeout(() => {
         resetForm();
       }, 3000);
@@ -325,17 +357,12 @@ const DonorDashboard: React.FC = () => {
 
         {/* Tab Navigation */}
         <div className="flex space-x-1 bg-gray-800 p-1 rounded-lg mb-8 w-fit mx-auto">
-          {[
-            { key: 'donate', label: 'Make Donation', icon: Heart },
-            { key: 'requests', label: 'Community Requests', icon: Users },
-            { key: 'impact', label: 'Your Impact', icon: TrendingUp },
-            { key: 'history', label: 'Donation History', icon: Calendar }
-          ].map((tab) => {
+          {tabOptions.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
+                onClick={() => setActiveTab(tab.key)}
                 className={`px-6 py-3 rounded-md text-sm font-medium transition-all flex items-center space-x-2 ${
                   activeTab === tab.key
                     ? 'bg-green-600 text-white'
@@ -351,58 +378,78 @@ const DonorDashboard: React.FC = () => {
 
         {/* Tab Content */}
         {activeTab === 'donate' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Initiative Selection */}
-            <div className="lg:col-span-1">
-              <h2 className="text-2xl font-bold text-white mb-6">Select Initiative</h2>
-              <div className="space-y-3">
-                {initiatives.map((initiative) => {
-                  const Icon = initiative.icon;
-                  
-                  return (
-                    <button
-                      key={initiative.id}
-                      onClick={() => setSelectedInitiative(initiative.id)}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-all hover:scale-105 ${
-                        selectedInitiative === initiative.id
-                          ? 'border-green-500 bg-green-500/20 shadow-lg'
-                          : 'border-gray-600 bg-gray-800 hover:border-gray-500'
-                      }`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className={`p-2 rounded-lg bg-gradient-to-r ${initiative.color}`}>
-                          <Icon className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-lg text-white mb-1">
-                            {initiative.title}
-                          </h3>
-                          <p className="text-sm text-gray-300 mb-2">
-                            {initiative.description}
-                          </p>
-                          <div className="text-xs text-green-400 font-medium">
-                            {initiative.impact}
+          <div>
+            {selectedInitiative === '' ? (
+              // Show only initiative cards when no initiative is selected
+              <div>
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-white mb-4">Choose Your Initiative</h2>
+                  <p className="text-gray-300 max-w-2xl mx-auto">
+                    Select an initiative to make a donation. Each initiative serves a specific need in our community.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {initiatives.map((initiative) => {
+                    const Icon = initiative.icon;
+                    
+                    return (
+                      <button
+                        key={initiative.id}
+                        onClick={() => setSelectedInitiative(initiative.id)}
+                        className="w-full text-left p-6 rounded-lg border-2 border-gray-600 bg-gray-800 hover:border-green-500 hover:bg-gray-700 transition-all hover:scale-105 shadow-lg"
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className={`p-3 rounded-lg bg-gradient-to-r ${initiative.color}`}>
+                            <Icon className="h-6 w-6 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-medium text-xl text-white mb-2">
+                              {initiative.title}
+                            </h3>
+                            <p className="text-sm text-gray-300 mb-3">
+                              {initiative.description}
+                            </p>
+                            <div className="text-xs text-green-400 font-medium">
+                              {initiative.impact}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Donation Form */}
-            <div className="lg:col-span-2">
-              {FormComponent && (
-                <FormComponent onSubmit={handleFormSubmit} loading={loading} />
-              )}
-              
-              {error && (
-                <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
-                  <p className="text-sm">{error}</p>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              // Show only the selected initiative form (no sidebar/cards)
+              <div className="max-w-2xl mx-auto">
+                {FormComponent && (
+                  <>
+                    <FormComponent
+                      onSubmit={async (data) => {
+                        const result = await handleFormSubmit(data);
+                        if (result) {
+                          setTimeout(() => setSelectedInitiative(''), 3000); // Return to cards after success message
+                        }
+                      }}
+                      loading={loading}
+                    />
+                    <button
+                      type="button"
+                      className="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                      onClick={() => setSelectedInitiative('')}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
+                {error && (
+                  <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -459,7 +506,7 @@ const DonorDashboard: React.FC = () => {
                       </div>
                       <div className="flex items-center space-x-2 text-sm text-gray-400">
                         <Clock className="h-4 w-4" />
-                        <span>{request.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}</span>
+                        <span>{request.createdAt?.toLocaleDateString() || 'Recently'}</span>
                       </div>
                     </div>
 
@@ -595,26 +642,24 @@ const DonorDashboard: React.FC = () => {
                       <th className="px-4 py-2 text-left text-gray-400">Location</th>
                       <th className="px-4 py-2 text-left text-gray-400">Status</th>
                       <th className="px-4 py-2 text-left text-gray-400">Created At</th>
-                      <th className="px-4 py-2 text-left text-gray-400">Assigned Volunteer</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {donationHistory.map((donation: any) => (
+                    {donationHistory.map((donation: CommunityRequest) => (
                       <tr key={donation.id} className="border-b border-gray-700">
                         <td className="px-4 py-2 text-white">{donation.initiative?.replace('-', ' ')}</td>
-                        <td className="px-4 py-2 text-white">{donation.location || donation.location_lowercase}</td>
+                        <td className="px-4 py-2 text-white">{donation.location_lowercase}</td>
                         <td className="px-4 py-2">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             donation.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500' :
-                            donation.status === 'picked' ? 'bg-blue-500/20 text-blue-400 border border-blue-500' :
-                            donation.status === 'delivered' ? 'bg-green-500/20 text-green-400 border border-green-500' :
+                            donation.status === 'accepted' ? 'bg-blue-500/20 text-blue-400 border border-blue-500' :
+                            donation.status === 'completed' ? 'bg-green-500/20 text-green-400 border border-green-500' :
                             'bg-gray-500/20 text-gray-400 border border-gray-500'
                           }`}>
                             {donation.status?.charAt(0).toUpperCase() + donation.status?.slice(1)}
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-gray-300">{donation.createdAt?.toDate?.()?.toLocaleString() || ''}</td>
-                        <td className="px-4 py-2 text-gray-300">{donation.assignedVolunteer || '-'}</td>
+                        <td className="px-4 py-2 text-gray-300">{formatCreatedAt(donation.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>

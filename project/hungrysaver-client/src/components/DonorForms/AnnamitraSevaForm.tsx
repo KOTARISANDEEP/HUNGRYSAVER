@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, User, Phone, Clock, Package } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 
-interface AnnamitraSevaFormData {
+export interface AnnamitraSevaFormData {
   location: string;
   address: string;
   donorName: string;

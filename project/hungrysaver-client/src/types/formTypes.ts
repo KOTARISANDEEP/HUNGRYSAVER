@@ -95,8 +95,8 @@ export interface RequestData {
   createdAt: Date;
 }
 
-export interface FormProps {
-  onSubmit: (data: any) => Promise<boolean>;
+export interface FormProps<T = unknown> {
+  onSubmit: (data: T) => Promise<boolean>;
   loading?: boolean;
 }
 
@@ -107,12 +107,12 @@ export interface Task {
   location: string;
   address: string;
   status: string;
-  createdAt: any;
+  createdAt: Date | string | number;
   donorName?: string;
   donorContact?: string;
   beneficiaryName?: string;
   beneficiaryContact?: string;
   description: string;
-  details?: any;
+  details?: Record<string, unknown>;
   assignedTo?: string;
 }
