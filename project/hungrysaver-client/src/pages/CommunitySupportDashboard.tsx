@@ -262,30 +262,30 @@ const CommunitySupportDashboard: React.FC = () => {
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {initiatives.map((initiative) => {
-                    const Icon = initiative.icon;
-                    return (
+                {initiatives.map((initiative) => {
+                  const Icon = initiative.icon;
+                  return (
                       <button
-                        key={initiative.id}
+                      key={initiative.id}
                         onClick={() => setSelectedInitiative(initiative.id)}
                         className="w-full text-left p-6 rounded-lg border-2 border-gray-600 bg-gray-800 hover:border-green-500 hover:bg-gray-700 transition-all hover:scale-105 shadow-lg"
                       >
-                        <div className="flex items-start space-x-3">
-                          <Icon className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
-                          <div>
+                      <div className="flex items-start space-x-3">
+                        <Icon className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
+                        <div>
                             <h3 className="text-white font-medium text-xl mb-2">{initiative.title}</h3>
                             <p className="text-gray-300 text-sm">{initiative.description}</p>
                           </div>
                         </div>
                       </button>
-                    );
-                  })}
-                </div>
+                  );
+                })}
               </div>
+            </div>
             ) : (
               // Show only the selected initiative form (no sidebar/cards)
               <div className="max-w-2xl mx-auto">
-                {FormComponent && (
+              {FormComponent && (
                   <>
                     <FormComponent
                       onSubmit={async (data) => {
@@ -306,12 +306,12 @@ const CommunitySupportDashboard: React.FC = () => {
                     </button>
                   </>
                 )}
-                {error && (
-                  <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
-                    <p className="text-sm">{error}</p>
-                  </div>
-                )}
-              </div>
+              {error && (
+                <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
+                  <p className="text-sm">{error}</p>
+                </div>
+              )}
+            </div>
             )}
           </div>
         )}

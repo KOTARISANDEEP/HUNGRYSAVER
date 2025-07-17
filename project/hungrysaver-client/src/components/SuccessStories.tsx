@@ -76,29 +76,29 @@ const SuccessStories: React.FC = () => {
   const story = stories[currentStory];
 
   return (
-    <div className="bg-gradient-to-r from-green-600 via-green-700 to-green-800 rounded-xl p-8 text-white relative overflow-hidden">
+    <div className="bg-gradient-to-r from-[#EAA640] via-[#F5E3C3] to-[#FAF9F6] rounded-xl p-8 text-[#333] relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.1%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23EAA640%22%20fill-opacity%3D%220.1%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]" />
       </div>
 
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold flex items-center">
+          <h3 className="text-2xl font-bold flex items-center text-[#845D38]">
             💝 Stories of Hope & Transformation
           </h3>
           <div className="flex space-x-2">
             <button
               onClick={prevStory}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+              className="p-2 rounded-full bg-[#EAA640]/20 hover:bg-[#EAA640]/30 transition-colors"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5 text-[#EAA640]" />
             </button>
             <button
               onClick={nextStory}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+              className="p-2 rounded-full bg-[#EAA640]/20 hover:bg-[#EAA640]/30 transition-colors"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-5 w-5 text-[#EAA640]" />
             </button>
           </div>
         </div>
@@ -107,16 +107,16 @@ const SuccessStories: React.FC = () => {
           {/* Story Content */}
           <div className="space-y-6">
             <div className="relative">
-              <Quote className="h-8 w-8 text-green-200 mb-4" />
-              <blockquote className="text-lg leading-relaxed italic">
+              <Quote className="h-8 w-8 text-[#EAA640] mb-4" />
+              <blockquote className="text-lg leading-relaxed italic text-[#333]">
                 "{story.quote}"
               </blockquote>
             </div>
 
-            <div className="border-l-4 border-green-300 pl-4">
-              <p className="font-semibold text-green-100">{story.author}</p>
-              <p className="text-green-200 text-sm">{story.location}</p>
-              <p className="text-green-300 text-sm font-medium mt-1">
+            <div className="border-l-4 border-[#EAA640] pl-4">
+              <p className="font-semibold text-[#845D38]">{story.author}</p>
+              <p className="text-[#845D38] text-sm">{story.location}</p>
+              <p className="text-[#845D38] text-sm font-medium mt-1">
                 Impact: {story.impact}
               </p>
             </div>
@@ -128,7 +128,7 @@ const SuccessStories: React.FC = () => {
                   key={index}
                   onClick={() => setCurrentStory(index)}
                   className={`h-2 rounded-full transition-all duration-300 ${
-                    index === currentStory ? 'w-8 bg-white' : 'w-2 bg-white/40'
+                    index === currentStory ? 'w-8 bg-[#EAA640]' : 'w-2 bg-[#BFA893]/40'
                   }`}
                 />
               ))}
@@ -143,10 +143,10 @@ const SuccessStories: React.FC = () => {
                 alt={`${story.author} - Success Story`}
                 className="w-full h-64 object-cover transition-transform duration-500 hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#BFA893]/50 to-transparent"></div>
               <div className="absolute bottom-4 left-4 right-4">
                 <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3">
-                  <p className="text-gray-800 font-semibold text-sm">
+                  <p className="text-[#845D38] font-semibold text-sm">
                     🌟 Life Changed Through Hungry Saver
                   </p>
                 </div>
@@ -162,7 +162,7 @@ const SuccessStories: React.FC = () => {
                     alt="Before"
                     className="w-full h-20 object-cover rounded-lg opacity-70"
                   />
-                  <p className="text-xs text-green-200 mt-1">Before</p>
+                  <p className="text-xs text-[#BFA893] mt-1">Before</p>
                 </div>
                 <div className="text-center">
                   <img
@@ -170,7 +170,7 @@ const SuccessStories: React.FC = () => {
                     alt="After"
                     className="w-full h-20 object-cover rounded-lg"
                   />
-                  <p className="text-xs text-green-200 mt-1">After</p>
+                  <p className="text-xs text-[#BFA893] mt-1">After</p>
                 </div>
               </div>
             )}
@@ -179,10 +179,10 @@ const SuccessStories: React.FC = () => {
 
         {/* Call to Action */}
         <div className="mt-8 text-center">
-          <p className="text-green-100 mb-4">
+          <p className="text-[#845D38] mb-4">
             🧡 <strong>This is not just a donation — it's a lifeline.</strong>
           </p>
-          <p className="text-green-200 text-sm">
+          <p className="text-[#845D38] text-sm">
             Your participation changes lives. Even ₹1 can bring hope, hunger relief, and dignity to someone in need.
           </p>
         </div>

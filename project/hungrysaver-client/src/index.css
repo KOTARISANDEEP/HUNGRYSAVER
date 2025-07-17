@@ -2,14 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-background: #FDFDFD;
+  --color-background-alt: #FAF9F6;
+  --color-accent-gold: #EAA640;
+  --color-accent-beige: #D6BFAE;
+  --color-accent-light: #EBE7E1;
+  --color-accent-brown: #BFA893;
+  --color-text-primary: #333333;
+  --color-text-secondary: #666666;
+  --color-cta-green: #28A745;
+  --color-cta-gold: #EAA640;
+}
+
 body {
-  cursor: url('/assets/images/logo.png'), auto;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
 .animate-spin-slow {
   animation: spin-slow 15s linear infinite;
 }
+
+/* Example utility classes for new design */
+.section-light {
+  background-color: var(--color-background);
+}
+.section-beige {
+  background-color: var(--color-accent-light);
+}
+.section-taupe {
+  background-color: var(--color-accent-beige);
+}
+.text-gradient-gold {
+  background: linear-gradient(90deg, var(--color-accent-gold), var(--color-accent-brown));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-gradient-green {
+  background: linear-gradient(90deg, var(--color-cta-green), #20c997);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-background-alt);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-accent-beige);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-brown);
+} 

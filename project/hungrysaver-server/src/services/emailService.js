@@ -286,10 +286,95 @@ class EmailService {
           return;
         }
 
-        const mailOptions = {
-          to: volunteer.email,
-          subject: `🚨 New Donation Alert in ${donation.location.charAt(0).toUpperCase() + donation.location.slice(1)}!`,
-          html: `
+        let mailOptions;
+        // Community request donation: show both needy and donor info
+        if (donation.source === 'community-request' || (donation.details && donation.details.originalRequestId)) {
+          mailOptions = {
+            to: volunteer.email,
+            subject: `🚨 New Community Request Donation in ${donation.location.charAt(0).toUpperCase() + donation.location.slice(1)}!`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc;">
+                <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 25px; text-align: center; border-radius: 12px 12px 0 0;">
+                  <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">
+                    🚨 URGENT: New Community Request Donation!
+                  </h1>
+                  <p style="color: #fecaca; margin: 8px 0 0 0; font-size: 14px;">
+                    A family in ${donation.location} needs your help
+                  </p>
+                </div>
+                <div style="background-color: white; padding: 30px;">
+                  <h2 style="color: #dc2626; margin-top: 0; font-size: 20px;">
+                    Hello ${volunteer.firstName}! 👋
+                  </h2>
+                  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+                    A new donation has been submitted in response to a community request and needs immediate volunteer coordination.
+                  </p>
+                  <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+                    <h3 style="color: #991b1b; margin-top: 0; font-size: 18px; display: flex; align-items: center;">
+                      ${emoji} ${initiativeName} Donation
+                    </h3>
+                    <div style="color: #7f1d1d; font-size: 15px; line-height: 1.6;">
+                      <p style="margin: 8px 0;"><strong>🆘 Needy (Beneficiary) Details:</strong></p>
+                      <ul style="margin: 0 0 10px 0; padding-left: 18px; color: #991b1b;">
+                        <li><strong>Name:</strong> ${donation.beneficiaryName || (donation.details && donation.details.beneficiaryName) || '-'}</li>
+                        <li><strong>Contact:</strong> ${donation.beneficiaryContact || (donation.details && donation.details.beneficiaryContact) || '-'}</li>
+                        <li><strong>Address:</strong> ${donation.address || '-'}</li>
+                      </ul>
+                      <p style="margin: 8px 0;"><strong>🤝 Donor Details:</strong></p>
+                      <ul style="margin: 0 0 10px 0; padding-left: 18px; color: #166534;">
+                        <li><strong>Name:</strong> ${donation.donorName || '-'}</li>
+                        <li><strong>Contact:</strong> ${donation.donorContact || '-'}</li>
+                        <li><strong>Address:</strong> ${donation.donorAddress || '-'}</li>
+                      </ul>
+                      <p style="margin: 8px 0;"><strong>📝 Description:</strong> ${donation.description || '-'}</p>
+                      <p style="margin: 8px 0;"><strong>⏰ Submitted:</strong> ${new Date().toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${process.env.FRONTEND_URL || 'https://hungrysaver.com'}/dashboard/${donation.location}" 
+                       style="background-color: #16a34a; color: white; padding: 15px 25px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; margin-right: 10px;">
+                      ✅ Accept Donation
+                    </a>
+                    <a href="${process.env.FRONTEND_URL || 'https://hungrysaver.com'}/dashboard/${donation.location}"
+                       style="background-color: #6b7280; color: white; padding: 15px 25px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
+                      👀 View Details
+                    </a>
+                  </div>
+                  <div style="background-color: #fffbeb; padding: 15px; border-radius: 8px; border: 1px solid #f59e0b; margin: 20px 0;">
+                    <p style="color: #92400e; margin: 0; font-size: 14px; text-align: center;">
+                      ⚡ <strong>Time Sensitive:</strong> Please respond within 2 hours to ensure timely delivery
+                    </p>
+                  </div>
+                  <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h4 style="color: #15803d; margin-top: 0; font-size: 16px;">
+                      🌟 Your Impact Matters
+                    </h4>
+                    <p style="color: #166534; margin: 0; font-size: 14px; line-height: 1.5;">
+                      By accepting this donation, you're directly helping families in need and strengthening our community support network. Every action creates ripples of hope!
+                    </p>
+                  </div>
+                  <p style="color: #374151; font-size: 14px; line-height: 1.6;">
+                    Thank you for being a vital part of the Hungry Saver volunteer network. Your dedication makes real change possible.
+                  </p>
+                  <p style="color: #374151; font-size: 14px;">
+                    Best regards,<br>
+                    <strong>The Hungry Saver Team</strong>
+                  </p>
+                </div>
+                <div style="background-color: #f8fafc; padding: 15px 30px; text-align: center; border-radius: 0 0 12px 12px;">
+                  <p style="color: #6b7280; font-size: 11px; margin: 0;">
+                    This is an automated notification from Hungry Saver Platform.<br>
+                    If you have questions, contact us at <a href="mailto:support@hungrysaver.com" style="color: #16a34a;">support@hungrysaver.com</a>
+                  </p>
+                </div>
+              </div>
+            `
+          };
+        } else {
+          mailOptions = {
+            to: volunteer.email,
+            subject: `🚨 New Donation Alert in ${donation.location.charAt(0).toUpperCase() + donation.location.slice(1)}!`,
+            html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc;">
               <!-- Header -->
               <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 25px; text-align: center; border-radius: 12px 12px 0 0;">
@@ -380,6 +465,7 @@ class EmailService {
             </div>
           `
         };
+        }
 
         return this.sendEmail(mailOptions);
       });

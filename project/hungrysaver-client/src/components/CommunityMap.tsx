@@ -82,13 +82,13 @@ const CommunityMap: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-xl p-6 shadow-lg">
+    <div className="bg-gradient-to-r from-[#EAA640] to-[#FAF9F6] rounded-xl p-6 shadow-lg">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-white text-xl font-bold flex items-center">
           🗺️ Live Community Activity
         </h3>
-        <div className="flex items-center space-x-2 text-green-400 text-sm">
-          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+        <div className="flex items-center space-x-2 text-white text-sm">
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
           <span>Real-time updates</span>
         </div>
       </div>
@@ -104,10 +104,10 @@ const CommunityMap: React.FC = () => {
           <button
             key={filter.key}
             onClick={() => setActiveFilter(filter.key as any)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all shadow-sm border border-[#EAA640] ${
               activeFilter === filter.key
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ? 'bg-[#EAA640] text-white'
+                : 'bg-[#FAF9F6] text-[#845D38] hover:bg-[#EAA640]/80 hover:text-white'
             }`}
           >
             <span className="mr-1">{filter.icon}</span>
@@ -117,61 +117,58 @@ const CommunityMap: React.FC = () => {
       </div>
 
       {/* Map Container */}
-      <div className="relative h-80 bg-gray-700 rounded-lg overflow-hidden">
-        {/* Simplified Map Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-green-900/20 to-blue-900/20">
-          <div className="absolute inset-0 opacity-10">
-            <svg className="w-full h-full" viewBox="0 0 400 300">
-              {/* Andhra Pradesh outline (simplified) */}
-              <path
-                d="M50 150 Q100 100 150 120 Q200 110 250 130 Q300 140 350 160 Q340 200 300 220 Q250 240 200 230 Q150 220 100 200 Q60 180 50 150"
-                fill="currentColor"
-                className="text-green-500/30"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-            </svg>
-          </div>
-        </div>
-
-        {/* Activity Pins */}
-        {filteredActivities.map((activity) => (
-          <div
-            key={activity.id}
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-            style={{
-              left: `${(activity.coordinates.lng - 78) * 15 + 50}%`,
-              top: `${(18 - activity.coordinates.lat) * 15 + 30}%`
-            }}
-            onClick={() => setSelectedPin(activity)}
-          >
-            <div className={`relative ${getPinColor(activity.type, activity.status)} rounded-full p-2 shadow-lg hover:scale-110 transition-transform`}>
-              <div className="text-white">
-                {getPinIcon(activity.type)}
-              </div>
-              {activity.status === 'active' && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
-              )}
-              {activity.count && (
-                <div className="absolute -top-2 -right-2 bg-white text-gray-800 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                  {activity.count}
+      <div className="relative h-96 w-full max-w-5xl mx-auto rounded-lg overflow-hidden bg-gradient-to-br from-[#EAA640] to-[#FAF9F6]">
+        {/* Static Map Image as Background */}
+        <img
+          src="/assets/images/static_map.png"
+          alt="Community Map"
+          className="absolute inset-0 w-full h-full object-cover opacity-95"
+          style={{ zIndex: 1, top: 0, left: 0 }}
+        />
+        {/* Overlay: Pins */}
+        {filteredActivities.map((activity) => {
+          // Manually set pin positions to match the new map image
+          let pinPositions: Record<string, { left: string; top: string }> = {
+            'Vijayawada': { left: '62%', top: '38%' },
+            'Guntur': { left: '54%', top: '48%' },
+            'Visakhapatnam': { left: '87%', top: '18%' },
+            'Tirupati': { left: '18%', top: '82%' }
+          };
+          const pos = pinPositions[activity.location] || { left: '50%', top: '50%' };
+          return (
+            <div
+              key={activity.id}
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
+              style={{ ...pos, zIndex: 2 }}
+              onClick={() => setSelectedPin(activity)}
+            >
+              <div className={`relative ${activity.type === 'donation' ? 'bg-[#EAA640]' : activity.type === 'request' ? 'bg-[#BFA893]' : 'bg-[#845D38]'} rounded-full p-2 shadow-lg hover:scale-110 transition-transform`}>
+                <div className="text-white">
+                  {getPinIcon(activity.type)}
                 </div>
-              )}
+                {activity.status === 'active' && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping"></div>
+                )}
+                {activity.count && (
+                  <div className="absolute -top-2 -right-2 bg-white text-[#845D38] text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    {activity.count}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-
-        {/* City Labels */}
+          );
+        })}
+        {/* Overlay: City Labels */}
         {[
-          { name: 'Vijayawada', x: 55, y: 45 },
-          { name: 'Guntur', x: 45, y: 55 },
-          { name: 'Visakhapatnam', x: 85, y: 25 },
-          { name: 'Tirupati', x: 25, y: 85 }
+          { name: 'Vijayawada', left: '59%', top: '41%' },
+          { name: 'Guntur', left: '51%', top: '50%' },
+          { name: 'Visakhapatnam', left: '80%', top: '20%' },
+          { name: 'Tirupati', left: '22%', top: '77%' }
         ].map((city) => (
           <div
             key={city.name}
-            className="absolute text-white text-xs font-medium bg-black/50 px-2 py-1 rounded"
-            style={{ left: `${city.x}%`, top: `${city.y}%` }}
+            className="absolute text-white text-xs font-medium bg-[#845D38]/80 px-2 py-1 rounded"
+            style={{ left: city.left, top: city.top, zIndex: 2 }}
           >
             {city.name}
           </div>
@@ -180,29 +177,29 @@ const CommunityMap: React.FC = () => {
 
       {/* Activity Details */}
       {selectedPin && (
-        <div className="mt-4 bg-gray-700 rounded-lg p-4">
+        <div className="mt-4 bg-[#F5E3C3] rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-white font-semibold">{selectedPin.title}</h4>
+            <h4 className="text-[#845D38] font-semibold">{selectedPin.title}</h4>
             <button
               onClick={() => setSelectedPin(null)}
-              className="text-gray-400 hover:text-white"
+              className="text-[#845D38] hover:text-[#EAA640]"
             >
               ✕
             </button>
           </div>
           <div className="space-y-2 text-sm">
-            <div className="flex items-center text-gray-300">
+            <div className="flex items-center text-[#845D38]">
               <MapPin className="h-4 w-4 mr-2" />
               {selectedPin.location}
             </div>
-            <div className="flex items-center text-gray-300">
+            <div className="flex items-center text-[#845D38]">
               <Clock className="h-4 w-4 mr-2" />
               {selectedPin.time}
             </div>
             <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-              selectedPin.status === 'active' ? 'bg-green-500/20 text-green-400' :
-              selectedPin.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-              'bg-gray-500/20 text-gray-400'
+              selectedPin.status === 'active' ? 'bg-[#EAA640]/20 text-[#EAA640]' :
+              selectedPin.status === 'pending' ? 'bg-[#BFA893]/20 text-[#BFA893]' :
+              'bg-[#845D38]/20 text-[#845D38]'
             }`}>
               {selectedPin.status.charAt(0).toUpperCase() + selectedPin.status.slice(1)}
             </div>
@@ -213,22 +210,22 @@ const CommunityMap: React.FC = () => {
       {/* Activity Summary */}
       <div className="mt-6 grid grid-cols-3 gap-4">
         <div className="text-center">
-          <div className="text-2xl font-bold text-green-400">
+          <div className="text-2xl font-bold text-[#EAA640]">
             {mockActivities.filter(a => a.type === 'donation').length}
           </div>
-          <div className="text-gray-400 text-sm">Active Donations</div>
+          <div className="text-[#845D38] text-sm">Active Donations</div>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold text-red-400">
+          <div className="text-2xl font-bold text-[#BFA893]">
             {mockActivities.filter(a => a.type === 'request').length}
           </div>
-          <div className="text-gray-400 text-sm">Pending Requests</div>
+          <div className="text-[#845D38] text-sm">Pending Requests</div>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold text-blue-400">
+          <div className="text-2xl font-bold text-[#845D38]">
             {mockActivities.filter(a => a.type === 'volunteer').length}
           </div>
-          <div className="text-gray-400 text-sm">Online Volunteers</div>
+          <div className="text-[#845D38] text-sm">Online Volunteers</div>
         </div>
       </div>
     </div>

@@ -5,11 +5,10 @@ interface ImpactCounterProps {
   value: number;
   label: string;
   icon: React.ReactNode;
-  color: string;
   trend?: string;
 }
 
-const ImpactCounter: React.FC<ImpactCounterProps> = ({ value, label, icon, color, trend }) => {
+const ImpactCounter: React.FC<ImpactCounterProps> = ({ value, label, icon, trend }) => {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -32,7 +31,7 @@ const ImpactCounter: React.FC<ImpactCounterProps> = ({ value, label, icon, color
   }, [value]);
 
   return (
-    <div className={`bg-gradient-to-br from-${color}-500 to-${color}-600 p-6 rounded-xl text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105`}>
+    <div className="bg-gradient-to-r from-[#EAA640] to-[#FAF9F6] p-6 rounded-xl text-[#333] shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
       <div className="flex items-center justify-between">
         <div>
           <div className="text-3xl font-bold mb-1">
@@ -40,13 +39,13 @@ const ImpactCounter: React.FC<ImpactCounterProps> = ({ value, label, icon, color
           </div>
           <p className="text-sm opacity-90">{label}</p>
           {trend && (
-            <div className="flex items-center mt-2 text-xs">
-              <TrendingUp className="h-3 w-3 mr-1" />
+            <div className="flex items-center mt-2 text-xs" style={{ color: '#845D38' }}>
+              <TrendingUp className="h-3 w-3 mr-1" style={{ color: '#845D38' }} />
               <span>{trend}</span>
             </div>
           )}
         </div>
-        <div className="text-4xl opacity-80">
+        <div className="text-4xl opacity-80 text-[#EAA640]">
           {icon}
         </div>
       </div>
@@ -60,29 +59,25 @@ export const LiveImpactDashboard: React.FC = () => {
       <ImpactCounter
         value={2847}
         label="Meals Served Today"
-        icon={<Heart className="h-8 w-8" />}
-        color="green"
+        icon={<Heart className="h-8 w-8 text-[#EAA640]" />}
         trend="+342 since yesterday"
       />
       <ImpactCounter
         value={156}
         label="Families Helped This Week"
-        icon={<Users className="h-8 w-8" />}
-        color="blue"
+        icon={<Users className="h-8 w-8 text-[#EAA640]" />}
         trend="+23 new families"
       />
       <ImpactCounter
         value={89}
         label="Active Volunteers"
-        icon={<MapPin className="h-8 w-8" />}
-        color="purple"
+        icon={<MapPin className="h-8 w-8 text-[#EAA640]" />}
         trend="+12 this month"
       />
       <ImpactCounter
         value={10}
         label="Cities Covered"
-        icon="🌍"
-        color="orange"
+        icon={<span className="text-3xl text-[#EAA640]">🌍</span>}
         trend="Expanding daily"
       />
     </div>

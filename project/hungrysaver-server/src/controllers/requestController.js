@@ -46,6 +46,7 @@ class RequestController {
 
       // Create request document
       const requestData = {
+        ...req.body, // Spread all fields from the request body (initiative-specific fields)
         userId,
         initiative,
         location: standardizedLocation,

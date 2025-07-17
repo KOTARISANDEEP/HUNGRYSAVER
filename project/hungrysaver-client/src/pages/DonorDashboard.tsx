@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, BookOpen, Shield, Home, Zap, Building, Users, Calendar, MapPin, Clock, TrendingUp, Award, Star } from 'lucide-react';
-import { collection, query, getDocs, updateDoc, doc, where } from 'firebase/firestore';
+import { collection, query, getDocs, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useFormSubmission } from '../hooks/useFormSubmission';
@@ -19,22 +19,45 @@ import { SurakshaSetuFormData } from '../components/DonorForms/SurakshaSetuForm'
 import { PunarAshaFormData } from '../components/DonorForms/PunarAshaForm';
 import { RakshaJyothiFormData } from '../components/DonorForms/RakshaJyothiForm';
 import { JyothiNilayamFormData } from '../components/DonorForms/JyothiNilayamForm';
+import { useNavigate } from 'react-router-dom';
 
 interface CommunityRequest {
   id: string;
-  userId: string;
+  userId?: string;
   initiative: string;
-  location_lowercase: string;
-  address: string;
-  beneficiaryName: string;
-  beneficiaryContact: string;
-  description: string;
-  urgency: 'low' | 'medium' | 'high';
-  status: 'pending' | 'accepted' | 'completed';
-  createdAt: Date;
+  location?: string;
+  location_lowercase?: string;
+  address?: string;
+  beneficiaryName?: string;
+  beneficiaryContact?: string;
+  childName?: string;
+  childAge?: string;
+  schoolName?: string;
+  class?: string;
+  neededItems?: Record<string, boolean>;
+  neededItemTypes?: string[];
+  requestedItems?: string[];
+  parentGuardianName?: string;
+  shelterTypeNeeded?: string;
+  numberOfPeopleAnimals?: string;
+  durationNeeded?: string;
+  emergencyDescription?: string;
+  peopleAnimalsAffected?: string;
+  immediateNeeds?: string;
+  donorName?: string;
+  donorContact?: string;
+  donorAddress?: string;
+  availableTime?: string;
+  description?: string;
+  urgency?: 'low' | 'medium' | 'high' | string;
+  status?: 'pending' | 'accepted' | 'completed' | string;
+  createdAt?: Date | string | { toDate: () => Date };
   acceptedBy?: string;
-  acceptedAt?: Date;
-  completedAt?: Date;
+  acceptedAt?: Date | string | { toDate: () => Date };
+  completedAt?: Date | string | { toDate: () => Date };
+  updatedAt?: Date | string | { toDate: () => Date };
+  details?: unknown;
+  [key: string]: unknown;
 }
 
 type DonorFormData =
@@ -79,6 +102,7 @@ const DonorDashboard: React.FC = () => {
   const { userData } = useAuth();
   const [donationHistory, setDonationHistory] = useState<CommunityRequest[]>([]);
   const [donationHistoryLoading, setDonationHistoryLoading] = useState(false);
+  const navigate = useNavigate();
 
   const initiatives = [
     {
@@ -165,12 +189,26 @@ const DonorDashboard: React.FC = () => {
         ...doc.data()
       })) as CommunityRequest[];
       // Sort by urgency and creation date
+      const urgencyOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      const getDate = (val: unknown): Date => {
+        if (!val) return new Date(0);
+        if (typeof val === 'string') {
+          const d = new Date(val);
+          return isNaN(d.getTime()) ? new Date(0) : d;
+        }
+        if (val instanceof Date) return val;
+        if (typeof val === 'object' && val !== null && 'toDate' in val && typeof (val as { toDate: unknown }).toDate === 'function') {
+          return (val as { toDate: () => Date }).toDate();
+        }
+        return new Date(0);
+      };
       const sortedRequests = requests.sort((a, b) => {
-        const urgencyOrder = { high: 3, medium: 2, low: 1 };
-        const urgencyDiff = urgencyOrder[b.urgency] - urgencyOrder[a.urgency];
+        const urgencyA = typeof a.urgency === 'string' ? urgencyOrder[a.urgency] ?? 0 : 0;
+        const urgencyB = typeof b.urgency === 'string' ? urgencyOrder[b.urgency] ?? 0 : 0;
+        const urgencyDiff = urgencyB - urgencyA;
         if (urgencyDiff !== 0) return urgencyDiff;
-        const aTime = a.createdAt || new Date(0);
-        const bTime = b.createdAt || new Date(0);
+        const aTime = getDate(a.createdAt);
+        const bTime = getDate(b.createdAt);
         return bTime.getTime() - aTime.getTime();
       });
       setCommunityRequests(sortedRequests);
@@ -213,66 +251,33 @@ const DonorDashboard: React.FC = () => {
     return result;
   };
 
-  const handleAcceptRequest = async (requestId: string, requestData: CommunityRequest) => {
-    try {
-      // Get the current user's ID token for authentication
-      const { getAuth } = await import('firebase/auth');
-      const auth = getAuth();
-      const user = auth.currentUser;
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
-      const idToken = await user.getIdToken();
-      
-      // Create a donation based on the community request using the API
-      const donationData = {
-        initiative: requestData.initiative,
-        location: requestData.location_lowercase,
-        address: requestData.address,
-        donorName: userData?.firstName || 'Anonymous Donor',
-        donorContact: userData?.email || '',
-        description: `Donation in response to community request: ${requestData.description}`,
-        details: {
-          originalRequestId: requestId,
-          beneficiaryName: requestData.beneficiaryName,
-          beneficiaryContact: requestData.beneficiaryContact,
-          urgency: requestData.urgency
-        }
-      };
-
-      // Submit donation via API to trigger volunteer notifications
-      const response = await fetch('/api/donations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify(donationData)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit donation');
-      }
-
-      // Update the community request status
-      await updateDoc(doc(db, 'community_requests', requestId), {
-        status: 'accepted',
-        acceptedBy: userData?.uid,
-        acceptedAt: new Date(),
-        updatedAt: new Date()
-      });
-
-      // Remove from local state
-      setCommunityRequests(prev => prev.filter(req => req.id !== requestId));
-
-      alert('Thank you! Your donation has been submitted and volunteers will be notified.');
-    } catch (error) {
-      console.error('Error accepting request:', error);
-      alert('Error submitting donation. Please try again.');
+  // Replace handleAcceptRequest with navigation logic
+  const handleCommunityDonate = (request: CommunityRequest) => {
+    let route = '';
+    switch (request.initiative) {
+      case 'annamitra-seva':
+        route = `/community-donor/annamitra-seva/${request.id}`;
+        break;
+      case 'vidya-jyothi':
+        route = `/community-donor/vidya-jyothi/${request.id}`;
+        break;
+      case 'suraksha-setu':
+        route = `/community-donor/suraksha-setu/${request.id}`;
+        break;
+      case 'punarasha':
+        route = `/community-donor/punar-asha/${request.id}`;
+        break;
+      case 'raksha-jyothi':
+        route = `/community-donor/raksha-jyothi/${request.id}`;
+        break;
+      case 'jyothi-nilayam':
+        route = `/community-donor/jyothi-nilayam/${request.id}`;
+        break;
+      default:
+        console.error('Unknown initiative:', request.initiative);
+        return;
     }
+    navigate(route, { state: { request } });
   };
 
   const getUrgencyColor = (urgency: string) => {
@@ -389,50 +394,50 @@ const DonorDashboard: React.FC = () => {
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {initiatives.map((initiative) => {
-                    const Icon = initiative.icon;
-                    
-                    return (
-                      <button
-                        key={initiative.id}
-                        onClick={() => setSelectedInitiative(initiative.id)}
+                {initiatives.map((initiative) => {
+                  const Icon = initiative.icon;
+                  
+                  return (
+                    <button
+                      key={initiative.id}
+                      onClick={() => setSelectedInitiative(initiative.id)}
                         className="w-full text-left p-6 rounded-lg border-2 border-gray-600 bg-gray-800 hover:border-green-500 hover:bg-gray-700 transition-all hover:scale-105 shadow-lg"
-                      >
-                        <div className="flex items-start space-x-3">
+                    >
+                      <div className="flex items-start space-x-3">
                           <div className={`p-3 rounded-lg bg-gradient-to-r ${initiative.color}`}>
                             <Icon className="h-6 w-6 text-white" />
-                          </div>
-                          <div className="flex-1">
+                        </div>
+                        <div className="flex-1">
                             <h3 className="font-medium text-xl text-white mb-2">
-                              {initiative.title}
-                            </h3>
+                            {initiative.title}
+                          </h3>
                             <p className="text-sm text-gray-300 mb-3">
-                              {initiative.description}
-                            </p>
-                            <div className="text-xs text-green-400 font-medium">
-                              {initiative.impact}
-                            </div>
+                            {initiative.description}
+                          </p>
+                          <div className="text-xs text-green-400 font-medium">
+                            {initiative.impact}
                           </div>
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+            </div>
             ) : (
               // Show only the selected initiative form (no sidebar/cards)
               <div className="max-w-2xl mx-auto">
-                {FormComponent && (
+              {FormComponent && (
                   <>
-                    <FormComponent
+                <FormComponent
                       onSubmit={async (data) => {
                         const result = await handleFormSubmit(data);
                         if (result) {
                           setTimeout(() => setSelectedInitiative(''), 3000); // Return to cards after success message
                         }
                       }}
-                      loading={loading}
-                    />
+                  loading={loading}
+                />
                     <button
                       type="button"
                       className="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
@@ -443,12 +448,12 @@ const DonorDashboard: React.FC = () => {
                     </button>
                   </>
                 )}
-                {error && (
-                  <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
-                    <p className="text-sm">{error}</p>
-                  </div>
-                )}
-              </div>
+              {error && (
+                <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
+                  <p className="text-sm">{error}</p>
+                </div>
+              )}
+            </div>
             )}
           </div>
         )}
@@ -484,34 +489,86 @@ const DonorDashboard: React.FC = () => {
                         <div className="text-2xl">{getInitiativeEmoji(request.initiative)}</div>
                         <div>
                           <h3 className="text-lg font-semibold text-white capitalize">
-                            {request.initiative.replace('-', ' ')}
+                            {request.initiative ? request.initiative.replace('-', ' ') : ''}
                           </h3>
-                          <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getUrgencyColor(request.urgency)}`}>
-                            {request.urgency ? request.urgency.toUpperCase() : ''} PRIORITY
-                          </span>
+                          <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getUrgencyColor(request.urgency as string)}`}>{request.urgency ? request.urgency.toUpperCase() : ''} PRIORITY</span>
                         </div>
                       </div>
                     </div>
-
+                    {/* Initiative-specific details */}
+                    {request.initiative === 'vidya-jyothi' ? (
+                      <div className="mb-2 text-gray-300 text-sm space-y-1">
+                        <div><span className="font-semibold">Parent/Guardian:</span> {request.parentGuardianName || request.beneficiaryName || '-'}</div>
+                        <div><span className="font-semibold">Contact:</span> {request.beneficiaryContact || '-'}</div>
+                        <div><span className="font-semibold">Child Name:</span> {request.childName || '-'}</div>
+                        <div><span className="font-semibold">Child Age:</span> {request.childAge || '-'}</div>
+                        <div><span className="font-semibold">School:</span> {request.schoolName || '-'}</div>
+                        <div><span className="font-semibold">Class:</span> {request.class || '-'}</div>
+                        <div><span className="font-semibold">Needed Items:</span> {request.neededItems && Object.keys(request.neededItems).length > 0 ? Object.keys(request.neededItems).filter(k => request.neededItems && request.neededItems[k]).join(', ') : '-'}</div>
+                      </div>
+                    ) : null}
+                    {request.initiative === 'jyothi-nilayam' ? (
+                      <div className="mb-2 text-gray-300 text-sm space-y-1">
+                        <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
+                        <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
+                        <div><span className="font-semibold">Shelter Type Needed:</span> {request.shelterTypeNeeded || '-'}</div>
+                        <div><span className="font-semibold">Number of People/Animals:</span> {request.numberOfPeopleAnimals || '-'}</div>
+                        <div><span className="font-semibold">Duration Needed:</span> {request.durationNeeded || '-'}</div>
+                      </div>
+                    ) : null}
+                    {request.initiative === 'suraksha-setu' ? (
+                      <div className="mb-2 text-gray-300 text-sm space-y-1">
+                        <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
+                        <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
+                        <div><span className="font-semibold">Needed Item Types:</span> {request.neededItemTypes ? request.neededItemTypes.join(', ') : '-'}</div>
+                        <div><span className="font-semibold">Quantity Required:</span> {request.quantityRequired || '-'}</div>
+                      </div>
+                    ) : null}
+                    {request.initiative === 'punarasha' ? (
+                      <div className="mb-2 text-gray-300 text-sm space-y-1">
+                        <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
+                        <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
+                        <div><span className="font-semibold">Requested Items:</span> {request.requestedItems ? request.requestedItems.join(', ') : '-'}</div>
+                        <div><span className="font-semibold">Purpose:</span> {request.purpose || '-'}</div>
+                        <div><span className="font-semibold">Quantity Needed:</span> {request.quantityNeeded || '-'}</div>
+                      </div>
+                    ) : null}
+                    {request.initiative === 'raksha-jyothi' ? (
+                      <div className="mb-2 text-gray-300 text-sm space-y-1">
+                        <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
+                        <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
+                        <div><span className="font-semibold">Emergency Description:</span> {request.emergencyDescription || '-'}</div>
+                        <div><span className="font-semibold">People/Animals Affected:</span> {request.peopleAnimalsAffected || '-'}</div>
+                        <div><span className="font-semibold">Immediate Needs:</span> {request.immediateNeeds || '-'}</div>
+                      </div>
+                    ) : null}
+                    {request.initiative === 'annamitra-seva' ? (
+                      <div className="mb-2 text-gray-300 text-sm space-y-1">
+                        <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
+                        <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
+                        <div><span className="font-semibold">Number of People:</span> {request.numberOfPeople || '-'}</div>
+                        <div><span className="font-semibold">Dietary Restrictions:</span> {request.dietaryRestrictions || '-'}</div>
+                        <div><span className="font-semibold">Meal Frequency:</span> {request.mealFrequency || '-'}</div>
+                      </div>
+                    ) : null}
+                    {/* Common fields for all initiatives */}
                     <p className="text-gray-300 mb-4 leading-relaxed">{request.description}</p>
-
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center space-x-2 text-sm text-gray-400">
                         <MapPin className="h-4 w-4" />
-                        <span className="capitalize">{request.location_lowercase}</span>
+                        <span className="capitalize">{request.location_lowercase || request.location || '-'}</span>
                       </div>
                       <div className="flex items-center space-x-2 text-sm text-gray-400">
                         <Users className="h-4 w-4" />
-                        <span>{request.beneficiaryName}</span>
+                        <span>{request.beneficiaryName || '-'}</span>
                       </div>
                       <div className="flex items-center space-x-2 text-sm text-gray-400">
                         <Clock className="h-4 w-4" />
                         <span>{formatCreatedAt(request.createdAt) || 'Recently'}</span>
                       </div>
                     </div>
-
                     <button
-                      onClick={() => handleAcceptRequest(request.id, request)}
+                      onClick={() => handleCommunityDonate(request)}
                       className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center space-x-2 transform hover:scale-105"
                     >
                       <Heart className="h-4 w-4" />
@@ -647,8 +704,8 @@ const DonorDashboard: React.FC = () => {
                   <tbody>
                     {donationHistory.map((donation: CommunityRequest) => (
                       <tr key={donation.id} className="border-b border-gray-700">
-                        <td className="px-4 py-2 text-white">{donation.initiative?.replace('-', ' ')}</td>
-                        <td className="px-4 py-2 text-white">{donation.location_lowercase}</td>
+                        <td className="px-4 py-2 text-white">{donation.initiative ? donation.initiative.replace('-', ' ') : ''}</td>
+                        <td className="px-4 py-2 text-white">{donation.location_lowercase || ''}</td>
                         <td className="px-4 py-2">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             donation.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500' :
@@ -656,10 +713,10 @@ const DonorDashboard: React.FC = () => {
                             donation.status === 'completed' ? 'bg-green-500/20 text-green-400 border border-green-500' :
                             'bg-gray-500/20 text-gray-400 border border-gray-500'
                           }`}>
-                            {donation.status?.charAt(0).toUpperCase() + donation.status?.slice(1)}
+                            {donation.status ? donation.status.charAt(0).toUpperCase() + donation.status.slice(1) : ''}
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-gray-300">{formatCreatedAt(donation.createdAt)}</td>
+                        <td className="px-4 py-2 text-gray-300">{formatCreatedAt(donation.createdAt) || ''}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -66,6 +66,22 @@ class DonationController {
       const donationRef = await this.getDb().collection(COLLECTIONS.DONATIONS).add(donationData);
       const donationId = donationRef.id;
 
+      // If this donation is linked to a community request, mark it as accepted
+      let isCommunityRequest = false;
+      if (details && details.originalRequestId) {
+        isCommunityRequest = true;
+        const requestRef = this.getDb().collection(COLLECTIONS.REQUESTS).doc(details.originalRequestId);
+        await requestRef.update({
+          status: STATUS_STAGES.ACCEPTED,
+          acceptedBy: userId,
+          acceptedAt: new Date(),
+          updatedAt: new Date()
+        });
+        logger.info(`Community request ${details.originalRequestId} marked as accepted by donor ${userId}`);
+        // Extra logging for confirmation
+        logger.info(`[CONFIRM] Updated request ${details.originalRequestId} to status 'accepted' by user ${userId}`);
+      }
+
       // Log the creation
       await auditService.logUserAction(userId, 'donation_created', {
         donationId,
@@ -91,6 +107,9 @@ class DonationController {
       }
 
       logger.info(`New donation created: ${donationId} in ${standardizedLocation}, notified ${volunteers.length} volunteers`);
+      if (isCommunityRequest) {
+        logger.info(`[COMMUNITY REQUEST DONATION] Donation submitted with ID: ${donationId}`);
+      }
 
       res.status(201).json({
         success: true,
@@ -98,7 +117,9 @@ class DonationController {
           id: donationId,
           ...donationData
         },
-        message: 'Donation created successfully',
+        message: isCommunityRequest
+          ? `Community request donation submitted successfully! Donation ID: ${donationId}`
+          : `Donation created successfully. Donation ID: ${donationId}`,
         volunteersNotified: volunteers.length
       });
     } catch (error) {
