@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Heart, Users, BookOpen, Shield, Home, Zap, Building } from 'lucide-react';
 import { LiveImpactDashboard } from '../components/ImpactCounter';
@@ -79,11 +80,22 @@ const HomePage: React.FC = () => {
       color: "from-orange-500 to-orange-600"
     }
   ];
+  
+  // Slider state for the hero-style initiatives showcase
+  const [currentInitiative, setCurrentInitiative] = useState(0);
+  const totalInitiatives = initiatives.length;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentInitiative((prev) => (prev + 1) % totalInitiatives);
+    }, 5000); // change every 5 seconds
+    return () => clearInterval(interval);
+  }, [totalInitiatives]);
 
   return (
     <div className="min-h-screen">
       {/* Entire Body */}
-      <div className="relative bg-cover bg-center bg-no-repeat bg-fixed" style={{ backgroundImage: 'url(/assets/images/background1.jpg)' }}>
+      <div className="relative bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/assets/images/background1.jpg)' }}>
         <div className="absolute inset-0 bg-black/40"></div>
         
         {/* Hero Section */}
@@ -104,7 +116,7 @@ const HomePage: React.FC = () => {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-8 leading-tight text-center">
-              Connecting Surplus Resources with <span style={{ color: '#28A745' }}>Those in Need</span>
+              Connecting Surplus Resources with <span style={{ color: '#A16D28' }}>Those in Need</span>
             </h1>
 
             {/* Stats */}
@@ -114,7 +126,7 @@ const HomePage: React.FC = () => {
                 <p className="text-sm">Lives Touched Today</p>
               </div>
               <div className="bg-white/10 rounded-xl shadow-lg p-6">
-                <p className="text-2xl font-bold text-[#28A745]">156</p>
+                <p className="text-2xl font-bold text-[#F9CB99]">156</p>
                 <p className="text-sm">Families Helped</p>
               </div>
               <div className="bg-white/10 rounded-xl shadow-lg p-6">
@@ -125,7 +137,7 @@ const HomePage: React.FC = () => {
 
             {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-              <Link to="/register" className="bg-gradient-to-r from-[#28A745] to-[#20c997] text-white px-6 py-2 rounded-full font-semibold flex items-center justify-center">
+              <Link to="/register" className="bg-gradient-to-r from-[#C78A3B] to-[#EAA64D] text-white px-6 py-2 rounded-full font-semibold flex items-center justify-center">
                 Join Our Mission <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
               <Link to="/login" className="border border-white text-white hover:bg-white hover:text-[#333] px-6 py-2 rounded-full font-semibold flex items-center justify-center">
@@ -179,37 +191,63 @@ const HomePage: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {initiatives.map((initiative, index) => {
-                const Icon = initiative.icon;
-                return (
-                  <div
-                    key={index}
-                    data-card={index}
-                    className={`bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 ${
-                      visibleCards.includes(index) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-                    }`}
-                    style={{ transitionDelay: `${index * 100}ms` }}
-                  >
-                    <div className="relative h-48 overflow-hidden">
-                      <img src={initiative.image} alt={initiative.title} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <div className="absolute top-4 left-4 bg-[#EAA640] p-3 rounded-full">
-                        <Icon className="h-6 w-6 text-white" />
-                      </div>
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <div className={`bg-gradient-to-r ${initiative.color} text-white px-3 py-1 rounded-full text-sm font-medium inline-block`}>
-                          {initiative.impact}
+            {/* Hero-style single image with two overlay cards */}
+            <div className="relative h-[70vh] rounded-3xl overflow-hidden shadow-2xl">
+              <AnimatePresence mode="sync">
+                <motion.img
+                  key={currentInitiative}
+                  src={initiatives[currentInitiative].image}
+                  alt={initiatives[currentInitiative].title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  transition={{ duration: 0.9, ease: 'easeInOut' }}
+                />
+              </AnimatePresence>
+
+              {/* subtle dark gradient for readability */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-black/10 to-black/40" />
+
+              {/* Main title and stats (left) */}
+              <div className="absolute left-6 top-6 md:left-10 md:top-10 text-white max-w-xl">
+                <div className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-3 leading-tight">
+                  {initiatives[currentInitiative].title}
+                </div>
+                <div className="text-blue-300 text-xl md:text-2xl font-bold mb-4">
+                  {initiatives[currentInitiative].impact}
+                </div>
+                <p className="text-white/95 text-base sm:text-lg lg:text-xl leading-relaxed">
+                  {initiatives[currentInitiative].description} We coordinate volunteers, donors, and trusted community
+                  partners to deliver timely support, expand access to essentials, and ensure every contribution creates
+                  lasting change where it matters most.
+                </p>
+              </div>
+
+              {/* Two overlay small cards aligned to the right-middle */}
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 flex gap-4">
+                {[1,2].map((offset, idx) => {
+                  const item = initiatives[(currentInitiative + offset) % totalInitiatives];
+                  return (
+                    <motion.div
+                      key={item.title}
+                      className="relative w-40 sm:w-52 h-28 sm:h-36 rounded-3xl shadow-lg hover:shadow-xl overflow-hidden"
+                      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.7, delay: idx === 0 ? 0.3 : 0.6, type: 'spring', damping: 20, stiffness: 120 }}
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      {/* Image only with subtle title label */}
+                      <img src={item.image} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
+                        <div className="text-white text-xs font-semibold text-center truncate">
+                          {item.title}
                         </div>
                       </div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-[#333] mb-3">{initiative.title}</h3>
-                      <p className="text-[#666]">{initiative.description}</p>
-                    </div>
-                  </div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>
@@ -238,7 +276,7 @@ const HomePage: React.FC = () => {
                   <p className="text-white/80 mb-3">If you have any queries, contact us at:</p>
                   <a 
                     href="mailto:hungrysaver198@gmail.com"
-                    className="inline-flex items-center bg-gradient-to-r from-[#EAA640] to-[#28A745] text-white px-6 py-3 rounded-full font-semibold text-lg hover:from-[#28A745] hover:to-[#EAA640] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="inline-flex items-center bg-gradient-to-r from-[#EAA640] to-[#EAA640] text-white px-6 py-3 rounded-full font-semibold text-lg hover:from-[#28A745] hover:to-[#EAA640] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     📧 hungrysaver198@gmail.com
                   </a>
@@ -268,7 +306,7 @@ const HomePage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                   <Link
                     to="/register"
-                    className="bg-gradient-to-r from-[#28A745] to-[#20c997] hover:from-[#218838] hover:to-[#1e7e34] text-white px-8 py-3 rounded-full font-semibold transition-all duration-300 inline-flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="bg-gradient-to-r from-[#EAA640] to-[#EAA64D] hover:from-[#EAA64D] hover:to-[#EAA640] text-white px-8 py-3 rounded-full font-semibold transition-all duration-300 inline-flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     Get Started Today
                     <ArrowRight className="ml-2 h-5 w-5" />
@@ -282,7 +320,7 @@ const HomePage: React.FC = () => {
                 </div>
 
                 {/* Motivational Message */}
-                <div className="bg-gradient-to-r from-[#EAA640]/20 to-[#28A745]/20 backdrop-blur-sm rounded-xl border border-[#EAA640]/30 p-6">
+                <div className="bg-gradient-to-r from-[#EAA640]/20 to-[#F2EDD1]/20 backdrop-blur-sm rounded-xl border border-[#EAA640]/30 p-6">
                   <p className="text-[#EAA640] text-xl font-medium mb-3">
                     🧡 "This is not just a donation — it's a lifeline."
                   </p>

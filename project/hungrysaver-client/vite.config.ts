@@ -16,7 +16,9 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
-    }
+    },
+    // Handle client-side routing
+    historyApiFallback: true,
   },
   build: {
     rollupOptions: {
@@ -29,5 +31,7 @@ export default defineConfig({
         }
       }
     }
-  }
+  },
+  // Ensure proper base URL handling
+  base: '/',
 });

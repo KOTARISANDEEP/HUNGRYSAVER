@@ -1,6 +1,6 @@
 import './config/firebase';
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -47,12 +47,7 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true
-        }}
-      >
+      <Router>
         <div className="min-h-screen bg-gray-900">
           {/* Removed token fetch UI for debugging */}
           <Navbar />
@@ -158,6 +153,8 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              {/* Catch-all route - redirect to home for unknown routes */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </div>
