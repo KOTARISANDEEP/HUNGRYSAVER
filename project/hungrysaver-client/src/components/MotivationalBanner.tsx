@@ -5,8 +5,8 @@ const motivationalMessages = [
   {
     icon: "🧡",
     title: "This is not just a donation — it's a lifeline.",
-    subtitle: "Your participation changes lives.",
-    description: "Even ₹1 can bring hope, hunger relief, and dignity to someone in need."
+    subtitle: "Every contribution matters.",
+    description: "Join us in making a real difference in people's lives."
   },
   {
     icon: "🌟",
@@ -28,7 +28,7 @@ const motivationalMessages = [
   }
 ];
 
-const MotivationalBanner: React.FC = () => {
+const MotivationalBanner = () => {
   const [currentMessage, setCurrentMessage] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
 
@@ -127,9 +127,10 @@ const MotivationalBanner: React.FC = () => {
             <button
               key={index}
               onClick={() => setCurrentMessage(index)}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={[
+                "h-2 rounded-full transition-all duration-300",
                 index === currentMessage ? 'w-8 bg-[#EAA640]' : 'w-2 bg-[#BFA893]/40'
-              }`}
+              ].join(' ')}
             />
           ))}
         </div>
