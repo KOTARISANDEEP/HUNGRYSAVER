@@ -279,6 +279,8 @@ const getErrorMessage = (error: AuthError): string => {
       return 'No account found with this email address.';
     case 'auth/wrong-password':
       return 'Incorrect password. Please try again.';
+    case 'auth/invalid-credential':
+      return 'Invalid email or password. Please check your credentials and try again.';
     case 'auth/too-many-requests':
       return 'Too many failed attempts. Please try again later.';
     case 'auth/network-request-failed':

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History } from 'lucide-react';
+import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History, BarChart3, MessageSquare, Settings, Star, Award, Users, TrendingUp, Target, Lightbulb, LogOut } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFormSubmission } from '../hooks/useFormSubmission';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import AnnamitraCommunityForm from '../components/CommunitySupportForms/AnnamitraCommunityForm';
 import VidyaJyothiCommunityForm from '../components/CommunitySupportForms/VidyaJyothiCommunityForm';
 import SurakshaSetuCommunityForm from '../components/CommunitySupportForms/SurakshaSetuCommunityForm';
@@ -30,11 +31,12 @@ interface CommunityRequest {
 
 const CommunitySupportDashboard: React.FC = () => {
   const [selectedInitiative, setSelectedInitiative] = useState('');
-  const [activeTab, setActiveTab] = useState<'request' | 'history'>('request');
+  const [activeTab, setActiveTab] = useState<'home' | 'newRequest' | 'myRequests' | 'supportHistory' | 'successStories' | 'impactHub' | 'messages' | 'feedback' | 'settings'>('home');
   const { submitForm, loading, error, success, resetForm } = useFormSubmission('community');
   const [requestHistory, setRequestHistory] = useState<CommunityRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
-  const { userData } = useAuth();
+  const { userData, logout } = useAuth();
+  const navigate = useNavigate();
 
   const initiatives = [
     {
@@ -81,11 +83,33 @@ const CommunitySupportDashboard: React.FC = () => {
     }
   ];
 
+  const navigationTabs = [
+    { key: 'home', label: 'Home', icon: Home },
+    { key: 'newRequest', label: 'New Request', icon: Heart },
+    { key: 'myRequests', label: 'My Requests', icon: User },
+    { key: 'supportHistory', label: 'Support History', icon: History },
+    { key: 'successStories', label: 'Success Stories', icon: Award },
+    { key: 'impactHub', label: 'Impact Hub', icon: BarChart3 },
+    { key: 'messages', label: 'Messages', icon: MessageSquare },
+    { key: 'feedback', label: 'Feedback', icon: Star },
+    { key: 'settings', label: 'Settings', icon: Settings }
+  ];
+
   useEffect(() => {
-    if (activeTab === 'history') {
+    if (activeTab === 'myRequests' || activeTab === 'supportHistory') {
       fetchRequestHistory();
     }
   }, [activeTab, userData]);
+
+  // Hide global site navbar while on community support dashboard
+  useEffect(() => {
+    const nav = document.querySelector('nav');
+    const originalDisplay = nav instanceof HTMLElement ? nav.style.display : '';
+    if (nav instanceof HTMLElement) nav.style.display = 'none';
+    return () => {
+      if (nav instanceof HTMLElement) nav.style.display = originalDisplay;
+    };
+  }, []);
 
   const fetchRequestHistory = async () => {
     if (!userData?.uid) return;
@@ -123,8 +147,7 @@ const CommunitySupportDashboard: React.FC = () => {
     
     const result = await submitForm(submissionData);
     if (result) {
-      // Refresh history and reset form after successful submission
-      if (activeTab === 'history') {
+      if (activeTab === 'myRequests' || activeTab === 'supportHistory') {
         fetchRequestHistory();
       }
       setTimeout(() => {
@@ -140,8 +163,8 @@ const CommunitySupportDashboard: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
-      case 'accepted': return 'bg-blue-500/20 text-blue-400 border-blue-500';
-      case 'completed': return 'bg-green-500/20 text-green-400 border-green-500';
+      case 'accepted': return 'bg-[#eaa640]/20 text-[#eaa640] border-[#eaa640]';
+      case 'completed': return 'bg-[#eeb766]/20 text-[#eeb766] border-[#eeb766]';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
     }
   };
@@ -168,7 +191,7 @@ const CommunitySupportDashboard: React.FC = () => {
     switch (urgency) {
       case 'high': return 'bg-red-500/20 text-red-400 border-red-500';
       case 'medium': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
-      case 'low': return 'bg-green-500/20 text-green-400 border-green-500';
+      case 'low': return 'bg-[#eeb766]/20 text-[#eeb766] border-[#eeb766]';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
     }
   };
@@ -185,25 +208,40 @@ const CommunitySupportDashboard: React.FC = () => {
     return emojiMap[initiative.toLowerCase()] || '💝';
   };
 
+  const renderStarsRating = (rating: number) => {
+    return (
+      <div className="flex items-center space-x-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-4 w-4 ${
+              star <= rating ? 'text-[#eaa640] fill-current' : 'text-gray-600'
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-900 pt-20 flex items-center justify-center">
-        <div className="bg-gray-800 rounded-xl p-8 text-center max-w-md mx-4">
-          <div className="bg-green-500 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <Heart className="h-8 w-8 text-white" />
+      <div className="min-h-screen bg-black pt-20 flex items-center justify-center">
+        <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl p-8 text-center max-w-md mx-4 border border-[#eaa640]/30">
+          <div className="bg-gradient-to-r from-[#eaa640] to-[#eeb766] p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <Heart className="h-8 w-8 text-black" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Request Submitted!</h2>
           <p className="text-gray-300 mb-4">
             Your request has been submitted successfully. Donors will be able to see your request and volunteers will reach out to you soon.
           </p>
-          <div className="bg-green-500/20 border border-green-500 rounded-lg p-3">
-            <p className="text-green-400 text-sm">
+          <div className="bg-[#eaa640]/20 border border-[#eaa640] rounded-lg p-3">
+            <p className="text-[#eaa640] text-sm">
               Expected response time: 2-6 hours
             </p>
           </div>
           <button
             onClick={resetForm}
-            className="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+            className="mt-4 bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] to-[#eeb766] text-black px-6 py-2 rounded-lg font-medium transition-all duration-300"
           >
             Submit Another Request
           </button>
@@ -213,262 +251,686 @@ const CommunitySupportDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 pt-20 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-            Community Support Dashboard
-          </h1>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Submit requests for support through our community initiatives or track your request history.
-          </p>
+    <div className="min-h-screen bg-black">
+      {/* Minimal Header Bar */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50 bg-transparent h-[60px]"
+      >
+        <div className="h-full flex items-center justify-between px-5">
+          {/* Left: Welcome with emoji */}
+          <div className="text-white text-base font-medium flex items-center gap-2">
+            <span role="img" aria-label="handshake">🤝</span>
+            <span>Welcome back, {userData?.firstName || 'Community Member'}!</span>
+          </div>
+          {/* Right: Profile + Logout */}
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
+              <User className="h-4 w-4 text-white" />
+            </div>
+            <button
+              onClick={async () => { await logout(); navigate('/login'); }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-gray-600 text-sm text-white hover:text-[#EAA640] hover:border-[#EAA640] transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* Tab Navigation */}
-        <div className="flex space-x-1 bg-gray-800 p-1 rounded-lg mb-8 w-fit mx-auto">
-          {[
-            { key: 'request', label: 'Submit Request', icon: Heart },
-            { key: 'history', label: 'Request History', icon: History }
-          ].map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
-                className={`px-6 py-3 rounded-md text-sm font-medium transition-all flex items-center space-x-2 ${
-                  activeTab === tab.key
-                    ? 'bg-green-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+      {/* Transparent Sidebar */}
+      <aside className="fixed top-[60px] left-0 h-full w-64 bg-black/60 backdrop-blur-md border-r border-[#eaa640]/20 z-40">
+        <div className="p-6">
+          <nav className="space-y-2">
+            {navigationTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setActiveTab(tab.key as any);
+                    setSelectedInitiative('');
+                  }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-all duration-300 ${
+                    activeTab === tab.key
+                      ? 'bg-gradient-to-r from-[#eaa640]/20 to-[#eeb766]/20 text-[#eaa640] border-l-4 border-[#eaa640]'
+                      : 'text-gray-400 hover:text-[#eaa640] hover:bg-[#eaa640]/10'
+                  }`}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-medium">{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
+      </aside>
 
-        {/* Tab Content */}
-        {activeTab === 'request' && (
-          <div>
-            {selectedInitiative === '' ? (
-              // Show only initiative cards when no initiative is selected
-              <div>
-                <div className="text-center mb-8">
-                  <h2 className="text-3xl font-bold text-white mb-4">Choose Your Initiative</h2>
-                  <p className="text-gray-300 max-w-2xl mx-auto">
-                    Select an initiative to submit a support request. Each initiative addresses specific community needs.
+      {/* Main Content */}
+      <main className="ml-64 pt-[60px]">
+        <div className="p-8">
+          {/* Home Dashboard */}
+          {activeTab === 'home' && (
+            <div className="space-y-8">
+              {/* Motivational Banner */}
+              <div className="relative bg-gradient-to-r from-[#eaa640]/20 to-[#eeb766]/20 rounded-xl p-8 border border-[#eaa640]/30 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent"></div>
+                <div className="relative z-10">
+                  <h2 className="text-3xl font-bold text-white mb-4">Together We Make a Difference</h2>
+                  <p className="text-gray-300 text-lg max-w-2xl">
+                    Every act of kindness creates ripples of hope. Your support transforms lives and builds stronger communities.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {initiatives.map((initiative) => {
-                  const Icon = initiative.icon;
-                  return (
-                      <button
-                      key={initiative.id}
-                        onClick={() => setSelectedInitiative(initiative.id)}
-                        className="w-full text-left p-6 rounded-lg border-2 border-gray-600 bg-gray-800 hover:border-green-500 hover:bg-gray-700 transition-all hover:scale-105 shadow-lg"
-                      >
-                      <div className="flex items-start space-x-3">
-                        <Icon className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
-                        <div>
-                            <h3 className="text-white font-medium text-xl mb-2">{initiative.title}</h3>
-                            <p className="text-gray-300 text-sm">{initiative.description}</p>
-                          </div>
-                        </div>
-                      </button>
-                  );
-                })}
+                <div className="absolute top-4 right-4 text-6xl opacity-20">🌟</div>
+              </div>
+
+              {/* Summary Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl p-6 border border-[#eaa640]/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Total Requests</h3>
+                    <Target className="h-8 w-8 text-[#eaa640]" />
+                  </div>
+                  <p className="text-3xl font-bold text-[#eaa640]">127</p>
+                  <p className="text-gray-400 text-sm">This month</p>
+                </div>
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl p-6 border border-[#ecae53]/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Approved</h3>
+                    <CheckCircle className="h-8 w-8 text-[#ecae53]" />
+                  </div>
+                  <p className="text-3xl font-bold text-[#ecae53]">95</p>
+                  <p className="text-gray-400 text-sm">Success rate: 75%</p>
+                </div>
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl p-6 border border-[#eeb766]/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Pending</h3>
+                    <Clock className="h-8 w-8 text-[#eeb766]" />
+                  </div>
+                  <p className="text-3xl font-bold text-[#eeb766]">32</p>
+                  <p className="text-gray-400 text-sm">Awaiting donors</p>
+                </div>
+              </div>
+
+              {/* Charts and Visual Elements */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl p-6 border border-[#eaa640]/30">
+                  <h3 className="text-xl font-bold text-white mb-6">Support Impact</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300">Families Helped</span>
+                      <span className="text-[#eaa640] font-bold">342</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-[#eaa640] to-[#eeb766] h-2 rounded-full w-4/5"></div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300">Children Educated</span>
+                      <span className="text-[#ecae53] font-bold">156</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-[#ecae53] to-[#eeb766] h-2 rounded-full w-3/5"></div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300">Emergency Responses</span>
+                      <span className="text-[#eeb766] font-bold">89</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-[#eeb766] to-[#f0c079] h-2 rounded-full w-2/3"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl p-6 border border-[#eaa640]/30">
+                  <h3 className="text-xl font-bold text-white mb-6">Community Map</h3>
+                  <div className="bg-gray-800 rounded-lg p-8 text-center">
+                    <MapPin className="h-12 w-12 text-[#eaa640] mx-auto mb-4" />
+                    <p className="text-gray-400">Interactive map showing support distribution</p>
+                    <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                      <div className="bg-[#eaa640]/20 p-3 rounded">
+                        <p className="text-[#eaa640] font-bold">North Zone</p>
+                        <p className="text-gray-300">45 requests</p>
+                      </div>
+                      <div className="bg-[#ecae53]/20 p-3 rounded">
+                        <p className="text-[#ecae53] font-bold">South Zone</p>
+                        <p className="text-gray-300">38 requests</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            ) : (
-              // Show only the selected initiative form (no sidebar/cards)
-              <div className="max-w-2xl mx-auto">
-              {FormComponent && (
-                  <>
-                    <FormComponent
-                      onSubmit={async (data) => {
-                        const result = await handleFormSubmit(data);
-                        if (result) {
-                          setTimeout(() => setSelectedInitiative(''), 3000); // Return to cards after success message
-                        }
-                      }}
-                      loading={loading}
-                    />
-                    <button
-                      type="button"
-                      className="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                      onClick={() => setSelectedInitiative('')}
-                      disabled={loading}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                )}
-              {error && (
-                <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
-                  <p className="text-sm">{error}</p>
+          )}
+
+          {/* New Request */}
+          {activeTab === 'newRequest' && (
+            <div>
+              {selectedInitiative === '' ? (
+                <div>
+                  <div className="mb-8">
+                    <h2 className="text-3xl font-bold text-white mb-4">Choose Your Initiative</h2>
+                    <p className="text-gray-300 max-w-2xl">
+                      Select an initiative to submit a support request. Each initiative addresses specific community needs.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {initiatives.map((initiative) => {
+                      const Icon = initiative.icon;
+                      return (
+                        <button
+                          key={initiative.id}
+                          onClick={() => setSelectedInitiative(initiative.id)}
+                          className="w-full text-left p-6 rounded-lg border-2 border-gray-600 bg-gray-900/60 hover:border-[#eaa640] hover:bg-[#eaa640]/10 transition-all hover:scale-105 shadow-lg backdrop-blur-sm"
+                        >
+                          <div className="flex items-start space-x-3">
+                            <Icon className="h-6 w-6 text-[#eaa640] mt-1 flex-shrink-0" />
+                            <div>
+                              <h3 className="text-white font-medium text-xl mb-2">{initiative.title}</h3>
+                              <p className="text-gray-300 text-sm">{initiative.description}</p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="max-w-2xl">
+                  {FormComponent && (
+                    <>
+                      <FormComponent
+                        onSubmit={async (data) => {
+                          const result = await handleFormSubmit(data);
+                          if (result) {
+                            setTimeout(() => setSelectedInitiative(''), 3000);
+                          }
+                        }}
+                        loading={loading}
+                      />
+                      <button
+                        type="button"
+                        className="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                        onClick={() => setSelectedInitiative('')}
+                        disabled={loading}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                  {error && (
+                    <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
+                      <p className="text-sm">{error}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {activeTab === 'history' && (
-          <div>
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-white mb-4">Request History</h2>
-              <p className="text-gray-300 max-w-2xl mx-auto">
-                Track the status of all your submitted requests and see their progress through our system.
-              </p>
-            </div>
+          {/* My Requests */}
+          {activeTab === 'myRequests' && (
+            <div>
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-white mb-4">My Requests</h2>
+                <p className="text-gray-300 max-w-2xl">
+                  Track all your submitted requests and see their current status in real-time.
+                </p>
+              </div>
 
-            {historyLoading ? (
-              <div className="bg-gray-800 rounded-lg p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400 mx-auto mb-4"></div>
-                <p className="text-gray-400">Loading request history...</p>
-              </div>
-            ) : requestHistory.length === 0 ? (
-              <div className="bg-gray-800 rounded-lg p-8 text-center">
-                <Calendar className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">No requests yet</h3>
-                <p className="text-gray-400">Your submitted requests will appear here</p>
-                <button
-                  onClick={() => setActiveTab('request')}
-                  className="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                >
-                  Submit Your First Request
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {requestHistory.map((request) => (
-                  <div key={request.id} className="bg-gray-800 rounded-lg p-6 hover:shadow-lg transition-all duration-300 border border-gray-700">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="text-2xl">{getInitiativeEmoji(request.initiative)}</div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-white capitalize">
-                            {request.initiative.replace('-', ' ')}
-                          </h3>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <span className={`px-3 py-1 rounded-full text-xs border font-medium flex items-center space-x-1 ${getStatusColor(request.status)}`}>
-                              {getStatusIcon(request.status)}
-                              <span className="capitalize">{request.status}</span>
-                            </span>
-                            <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getUrgencyColor(request.urgency)}`}>
-                              {request.urgency ? request.urgency.toUpperCase() : ''}
-                            </span>
+              {historyLoading ? (
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-8 text-center border border-[#eaa640]/30">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#eaa640] mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading your requests...</p>
+                </div>
+              ) : requestHistory.length === 0 ? (
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-8 text-center border border-[#eaa640]/30">
+                  <Heart className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">No requests yet</h3>
+                  <p className="text-gray-400">Your submitted requests will appear here</p>
+                  <button
+                    onClick={() => setActiveTab('newRequest')}
+                    className="mt-4 bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] to-[#eeb766] text-black px-6 py-2 rounded-lg font-medium transition-all duration-300"
+                  >
+                    Submit Your First Request
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {requestHistory.map((request) => (
+                    <div key={request.id} className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 hover:shadow-lg transition-all duration-300 border border-[#eaa640]/30">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-2xl">{getInitiativeEmoji(request.initiative)}</div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-white capitalize">
+                              {request.initiative.replace('-', ' ')}
+                            </h3>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className={`px-3 py-1 rounded-full text-xs border font-medium flex items-center space-x-1 ${getStatusColor(request.status)}`}>
+                                {getStatusIcon(request.status)}
+                                <span className="capitalize">{request.status}</span>
+                              </span>
+                              <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getUrgencyColor(request.urgency)}`}>
+                                {request.urgency ? request.urgency.toUpperCase() : ''}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right text-sm text-gray-400">
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="h-4 w-4" />
+                            <span>{request.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="text-right text-sm text-gray-400">
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{request.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}</span>
+
+                      <p className="text-gray-300 mb-4 leading-relaxed">{request.description}</p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2 text-sm text-gray-400">
+                            <MapPin className="h-4 w-4" />
+                            <span className="capitalize">{request.location_lowercase}</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-400">
+                            <User className="h-4 w-4" />
+                            <span>{request.beneficiaryName}</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-400">
+                            <Phone className="h-4 w-4" />
+                            <span>{request.beneficiaryContact}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-gray-700/50 p-4 rounded-lg">
+                          <h4 className="text-white font-medium mb-2">Status Information</h4>
+                          <p className="text-gray-300 text-sm">{getStatusDescription(request.status)}</p>
+                          
+                          {request.status === 'accepted' && request.acceptedAt && (
+                            <p className="text-[#eaa640] text-xs mt-2">
+                              Accepted on {request.acceptedAt.toDate?.()?.toLocaleDateString()}
+                            </p>
+                          )}
+                          
+                          {request.status === 'completed' && request.completedAt && (
+                            <p className="text-[#eeb766] text-xs mt-2">
+                              Completed on {request.completedAt.toDate?.()?.toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                          <span>Pending</span>
+                          <span>Accepted</span>
+                          <span>Completed</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-500 ${
+                              request.status === 'pending' ? 'bg-gradient-to-r from-yellow-500 to-yellow-400 w-1/3' :
+                              request.status === 'accepted' ? 'bg-gradient-to-r from-[#eaa640] to-[#ecae53] w-2/3' :
+                              'bg-gradient-to-r from-[#eeb766] to-[#f0c079] w-full'
+                            }`}
+                          />
                         </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                    <p className="text-gray-300 mb-4 leading-relaxed">{request.description}</p>
+          {/* Support History */}
+          {activeTab === 'supportHistory' && (
+            <div>
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-white mb-4">Support History</h2>
+                <p className="text-gray-300 max-w-2xl">
+                  View your complete history of completed support requests and their outcomes.
+                </p>
+              </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2 text-sm text-gray-400">
-                          <MapPin className="h-4 w-4" />
-                          <span className="capitalize">{request.location_lowercase}</span>
+              {historyLoading ? (
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-8 text-center border border-[#eaa640]/30">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#eaa640] mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading support history...</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {requestHistory.filter(r => r.status === 'completed').map((request, index) => (
+                    <div key={request.id || index} className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-4 border-l-4 border-[#eeb766] hover:bg-gray-900/90 transition-all duration-300">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-xl">{getInitiativeEmoji(request.initiative)}</div>
+                          <div>
+                            <h4 className="text-white font-medium capitalize">{request.initiative.replace('-', ' ')}</h4>
+                            <p className="text-gray-400 text-sm">{request.beneficiaryName}</p>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2 text-sm text-gray-400">
-                          <User className="h-4 w-4" />
-                          <span>{request.beneficiaryName}</span>
+                        <div className="text-right text-sm text-gray-400">
+                          <p>{request.completedAt?.toDate?.()?.toLocaleDateString() || 'Recently completed'}</p>
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-[#eeb766]/20 text-[#eeb766] border border-[#eeb766]">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Completed
+                          </span>
                         </div>
-                        <div className="flex items-center space-x-2 text-sm text-gray-400">
-                          <Phone className="h-4 w-4" />
-                          <span>{request.beneficiaryContact}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-gray-700/50 p-4 rounded-lg">
-                        <h4 className="text-white font-medium mb-2">Status Information</h4>
-                        <p className="text-gray-300 text-sm">{getStatusDescription(request.status)}</p>
-                        
-                        {request.status === 'accepted' && request.acceptedAt && (
-                          <p className="text-blue-400 text-xs mt-2">
-                            Accepted on {request.acceptedAt.toDate?.()?.toLocaleDateString()}
-                          </p>
-                        )}
-                        
-                        {request.status === 'completed' && request.completedAt && (
-                          <p className="text-green-400 text-xs mt-2">
-                            Completed on {request.completedAt.toDate?.()?.toLocaleDateString()}
-                          </p>
-                        )}
                       </div>
                     </div>
+                  ))}
+                  {requestHistory.filter(r => r.status === 'completed').length === 0 && (
+                    <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-8 text-center border border-[#eaa640]/30">
+                      <History className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-white mb-2">No completed requests</h3>
+                      <p className="text-gray-400">Your completed support history will appear here</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-                    {/* Progress Indicator */}
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
-                        <span>Pending</span>
-                        <span>Accepted</span>
-                        <span>Completed</span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full transition-all duration-500 ${
-                            request.status === 'pending' ? 'bg-yellow-500 w-1/3' :
-                            request.status === 'accepted' ? 'bg-blue-500 w-2/3' :
-                            'bg-green-500 w-full'
-                          }`}
-                        />
-                      </div>
+          {/* Success Stories */}
+          {activeTab === 'successStories' && (
+            <div>
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-white mb-4">Success Stories</h2>
+                <p className="text-gray-300 max-w-2xl">
+                  Inspiring stories from our community showing the impact of collective support and kindness.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { title: "A Family's New Beginning", image: "🏠", story: "Through Annamitra Seva, the Sharma family received consistent food support during their difficult time, allowing them to focus on finding stable employment.", impact: "3 children now attending school regularly" },
+                  { title: "Education Changes Everything", image: "📚", story: "Vidya Jyothi helped Priya get school supplies and fees covered, enabling her to complete her 10th grade with excellent marks.", impact: "First in family to complete high school" },
+                  { title: "Emergency Response Success", image: "🚨", story: "Raksha Jyothi's quick response during the flood helped rescue and relocate 15 families to safety within hours.", impact: "15 families saved, zero casualties" },
+                  { title: "Shelter Restoration", image: "🏛️", story: "Jyothi Nilayam provided funds to rebuild a community shelter, giving 25 homeless individuals a safe place to stay.", impact: "25 people now have secure housing" },
+                  { title: "Healthcare Support", image: "🏥", story: "Suraksha Setu covered medical expenses for elderly Mrs. Devi's surgery, giving her a new lease on life.", impact: "Full recovery and independent living" },
+                  { title: "Community Rebuilding", image: "🤝", story: "PunarAsha helped three families rebuild their homes after a natural disaster, stronger and more resilient than before.", impact: "3 homes rebuilt with disaster-resistant features" }
+                ].map((story, index) => (
+                  <div key={index} className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-[#eaa640]/30 hover:border-[#eaa640] hover:scale-105 transition-all duration-300 group">
+                    <div className="text-center mb-4">
+                      <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">{story.image}</div>
+                      <h3 className="text-xl font-bold text-white mb-3">{story.title}</h3>
+                    </div>
+                    <p className="text-gray-300 text-sm mb-4 leading-relaxed">{story.story}</p>
+                    <div className="bg-[#eaa640]/20 border border-[#eaa640] rounded-lg p-3">
+                      <p className="text-[#eaa640] text-sm font-medium">Impact: {story.impact}</p>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Help Section */}
-        <div className="mt-16 bg-gray-800 rounded-xl p-8 text-center">
-          <h3 className="text-2xl font-bold text-white mb-4">How It Works</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Impact Hub */}
+          {activeTab === 'impactHub' && (
             <div>
-              <div className="bg-green-500 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <span className="text-white font-bold text-xl">1</span>
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-white mb-4">Impact Hub</h2>
+                <p className="text-gray-300 max-w-2xl">
+                  Visualize the collective impact of our community support initiatives across all programs.
+                </p>
               </div>
-              <h4 className="text-lg font-semibold text-white mb-2">Submit Request</h4>
-              <p className="text-gray-300">Choose the type of support you need and provide details about your situation.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 text-center border border-[#eaa640]/30">
+                  <Users className="h-12 w-12 text-[#eaa640] mx-auto mb-4" />
+                  <p className="text-3xl font-bold text-white mb-2">2,456</p>
+                  <p className="text-gray-400">Total Beneficiaries</p>
+                </div>
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 text-center border border-[#ecae53]/30">
+                  <Heart className="h-12 w-12 text-[#ecae53] mx-auto mb-4" />
+                  <p className="text-3xl font-bold text-white mb-2">890</p>
+                  <p className="text-gray-400">Total Volunteers</p>
+                </div>
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 text-center border border-[#eeb766]/30">
+                  <TrendingUp className="h-12 w-12 text-[#eeb766] mx-auto mb-4" />
+                  <p className="text-3xl font-bold text-white mb-2">₹12.5L</p>
+                  <p className="text-gray-400">Total Donations</p>
+                </div>
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 text-center border border-[#f0c079]/30">
+                  <Award className="h-12 w-12 text-[#f0c079] mx-auto mb-4" />
+                  <p className="text-3xl font-bold text-white mb-2">1,234</p>
+                  <p className="text-gray-400">Requests Completed</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-[#eaa640]/30">
+                  <h3 className="text-xl font-bold text-white mb-6">Initiative Performance</h3>
+                  <div className="space-y-4">
+                    {initiatives.map((initiative, index) => (
+                      <div key={initiative.id} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-lg">{initiative.title.split(' ')[0]}</span>
+                          <span className="text-gray-300 text-sm">{initiative.title.split(' ').slice(1).join(' ')}</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-24 bg-gray-700 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full bg-gradient-to-r from-[#eaa640] to-[#eeb766]`}
+                              style={{ width: `${70 + Math.random() * 30}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-[#eaa640] font-bold text-sm">{Math.floor(50 + Math.random() * 100)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-[#eaa640]/30">
+                  <h3 className="text-xl font-bold text-white mb-6">Monthly Trends</h3>
+                  <div className="space-y-3">
+                    {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, index) => (
+                      <div key={month} className="flex items-center justify-between">
+                        <span className="text-gray-300">{month} 2024</span>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-32 bg-gray-700 rounded-full h-2">
+                            <div 
+                              className="h-2 rounded-full bg-gradient-to-r from-[#ecae53] to-[#eeb766]"
+                              style={{ width: `${60 + index * 5}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-[#ecae53] font-bold text-sm">{60 + index * 5}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            
+          )}
+
+          {/* Messages/Chat */}
+          {activeTab === 'messages' && (
             <div>
-              <div className="bg-green-500 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <span className="text-white font-bold text-xl">2</span>
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-white mb-4">Messages & Support</h2>
+                <p className="text-gray-300 max-w-2xl">
+                  Connect with our support team and volunteers for assistance with your requests.
+                </p>
               </div>
-              <h4 className="text-lg font-semibold text-white mb-2">Donor Accepts</h4>
-              <p className="text-gray-300">Generous donors in our community will see your request and offer to help.</p>
+
+              <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg border border-[#eaa640]/30 overflow-hidden">
+                <div className="p-6 border-b border-[#eaa640]/20">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-gradient-to-r from-[#eaa640] to-[#eeb766] p-2 rounded-full">
+                      <MessageSquare className="h-5 w-5 text-black" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Support Chat</h3>
+                      <p className="text-gray-400 text-sm">Our team is here to help • Available 24/7</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-6 h-96 flex items-center justify-center">
+                  <div className="text-center">
+                    <MessageSquare className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+                    <h4 className="text-lg font-semibold text-white mb-2">Chat Support Coming Soon</h4>
+                    <p className="text-gray-400 mb-4">Real-time messaging with our support team</p>
+                    <button className="bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] to-[#eeb766] text-black px-6 py-2 rounded-lg font-medium transition-all duration-300">
+                      Start Chat
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            
+          )}
+
+          {/* Feedback & Ratings */}
+          {activeTab === 'feedback' && (
             <div>
-              <div className="bg-green-500 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <span className="text-white font-bold text-xl">3</span>
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-white mb-4">Feedback & Ratings</h2>
+                <p className="text-gray-300 max-w-2xl">
+                  Share your experience and help us improve our community support services.
+                </p>
               </div>
-              <h4 className="text-lg font-semibold text-white mb-2">Volunteers Deliver</h4>
-              <p className="text-gray-300">Our trained volunteers coordinate the delivery and ensure you receive the support.</p>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-[#eaa640]/30">
+                  <h3 className="text-xl font-bold text-white mb-6">Rate Our Service</h3>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-white font-medium mb-2">Overall Experience</label>
+                      <div className="flex items-center space-x-2">
+                        {renderStarsRating(5)}
+                        <span className="text-[#eaa640] ml-2">Excellent</span>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Response Time</label>
+                      <div className="flex items-center space-x-2">
+                        {renderStarsRating(4)}
+                        <span className="text-[#eaa640] ml-2">Very Good</span>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Support Quality</label>
+                      <div className="flex items-center space-x-2">
+                        {renderStarsRating(5)}
+                        <span className="text-[#eaa640] ml-2">Excellent</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-white font-medium mb-2">Your Feedback</label>
+                      <textarea 
+                        className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
+                        rows={4}
+                        placeholder="Share your experience with our community support..."
+                      />
+                    </div>
+
+                    <button className="w-full bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] to-[#eeb766] text-black py-3 rounded-lg font-medium transition-all duration-300">
+                      Submit Feedback
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-[#eaa640]/30">
+                  <h3 className="text-xl font-bold text-white mb-6">Recent Reviews</h3>
+                  <div className="space-y-4">
+                    {[
+                      { name: "Priya Sharma", rating: 5, comment: "Amazing support during our difficult time. The volunteers were incredibly kind and responsive." },
+                      { name: "Rajesh Kumar", rating: 5, comment: "Quick response for emergency help. Grateful for this wonderful community initiative." },
+                      { name: "Anita Devi", rating: 4, comment: "Great service, helped my children get educational supplies they needed for school." }
+                    ].map((review, index) => (
+                      <div key={index} className="bg-gray-800/50 p-4 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-white font-medium">{review.name}</span>
+                          {renderStarsRating(review.rating)}
+                        </div>
+                        <p className="text-gray-300 text-sm">{review.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          
-          <div className="mt-8 bg-green-500/20 border border-green-500 rounded-lg p-4">
-            <p className="text-green-400 font-medium">
-              Average response time: 2-6 hours | Available 24/7 for emergencies
-            </p>
-          </div>
+          )}
+
+          {/* Settings */}
+          {activeTab === 'settings' && (
+            <div>
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-white mb-4">Settings</h2>
+                <p className="text-gray-300 max-w-2xl">
+                  Manage your profile information and notification preferences.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-[#eaa640]/30">
+                  <h3 className="text-xl font-bold text-white mb-6">Profile Information</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-white font-medium mb-2">Full Name</label>
+                      <input 
+                        type="text" 
+                        value={userData?.firstName || ''}
+                        className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Email</label>
+                      <input 
+                        type="email" 
+                        value={userData?.email || ''}
+                        className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
+                        placeholder="Enter your email"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Phone Number</label>
+                      <input 
+                        type="tel" 
+                        className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
+
+                    <button className="w-full bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] to-[#eeb766] text-black py-3 rounded-lg font-medium transition-all duration-300">
+                      Update Profile
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-[#eaa640]/30">
+                  <h3 className="text-xl font-bold text-white mb-6">Notification Preferences</h3>
+                  <div className="space-y-4">
+                    {[
+                      { label: "Email notifications for request updates", checked: true },
+                      { label: "SMS alerts for urgent requests", checked: true },
+                      { label: "Weekly community impact reports", checked: false },
+                      { label: "New initiative announcements", checked: true },
+                      { label: "Volunteer opportunity alerts", checked: false }
+                    ].map((setting, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                        <span className="text-white">{setting.label}</span>
+                        <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${setting.checked ? 'bg-gradient-to-r from-[#eaa640] to-[#eeb766]' : 'bg-gray-600'}`}>
+                          <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 ${setting.checked ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };
