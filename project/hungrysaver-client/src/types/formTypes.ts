@@ -95,6 +95,51 @@ export interface RequestData {
   createdAt: Date;
 }
 
+// New Community Request workflow types
+export interface CommunityRequest {
+  id: string;
+  userId: string;
+  initiative: string;
+  location: string;
+  location_lowercase: string;
+  address: string;
+  beneficiaryName: string;
+  beneficiaryContact: string;
+  description: string;
+  urgency: 'low' | 'medium' | 'high';
+  status: CommunityRequestStatus;
+  volunteerId?: string;
+  donorId?: string;
+  donorAddress?: string;
+  donorNotes?: string;
+  createdAt: any;
+  acceptedAt?: any;
+  reachedAt?: any;
+  decisionAt?: any;
+  claimedAt?: any;
+  deniedBy?: string;
+  denialReason?: string;
+  decisionNotes?: string;
+  type?: 'pending' | 'assigned'; // For volunteer dashboard
+}
+
+export type CommunityRequestStatus = 
+  | 'pending'                    // New request; visible only to volunteers in same city
+  | 'VOLUNTEER_ACCEPTED'         // Volunteer took the task
+  | 'REACHED_COMMUNITY'          // Volunteer reached the address
+  | 'APPROVED_BY_VOLUNTEER'      // Visible to all donors
+  | 'REJECTED_BY_VOLUNTEER'      // Request closed
+  | 'DONOR_CLAIMED';             // Donor submitted address and created linked donation
+
+export interface CommunityRequestAction {
+  type: 'accept' | 'deny' | 'mark-reached' | 'approve' | 'reject';
+  requestId: string;
+  data?: {
+    reason?: string;
+    notes?: string;
+  };
+}
+
 export interface FormProps<T = unknown> {
   onSubmit: (data: T) => Promise<boolean>;
   loading?: boolean;

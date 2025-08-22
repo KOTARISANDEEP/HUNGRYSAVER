@@ -93,9 +93,10 @@ class RequestController {
       });
     } catch (error) {
       logger.error('Error creating request:', error);
-      res.status(400).json({
+      const status = error?.name === 'ValidationError' ? 400 : 500;
+      res.status(status).json({
         success: false,
-        message: error.message
+        message: error?.message || 'Server error while submitting request.'
       });
     }
   };

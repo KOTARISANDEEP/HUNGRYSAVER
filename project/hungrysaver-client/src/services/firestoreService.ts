@@ -6,6 +6,17 @@ import { DonationData, RequestData } from '../types/formTypes';
 export const donationsCollection = collection(db, 'donations');
 export const requestsCollection = collection(db, 'community_requests');
 
+// Helper to safely parse JSON
+const safeParseJson = async (response: Response): Promise<any | null> => {
+  try {
+    const text = await response.text();
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
 // Donation operations
 export const submitDonation = async (data: DonationData): Promise<string> => {
   try {
@@ -31,16 +42,20 @@ export const submitDonation = async (data: DonationData): Promise<string> => {
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to submit donation');
+      const errorJson = await safeParseJson(response);
+      const message = errorJson?.message || `Failed to submit donation (HTTP ${response.status})`;
+      throw new Error(message);
     }
     
-    const result = await response.json();
-    console.log('✅ Donation submitted successfully via API:', result.data.id);
-    return result.data.id;
+    const resultJson = await safeParseJson(response);
+    if (!resultJson || !resultJson.data?.id) {
+      throw new Error('Failed to submit donation. Invalid server response.');
+    }
+    console.log('✅ Donation submitted successfully via API:', resultJson.data.id);
+    return resultJson.data.id;
   } catch (error) {
     console.error('❌ Error submitting donation:', error);
-    throw new Error('Failed to submit donation. Please try again.');
+    throw new Error(error instanceof Error ? error.message : 'Failed to submit donation. Please try again.');
   }
 };
 
@@ -69,16 +84,20 @@ export const submitRequest = async (data: RequestData): Promise<string> => {
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to submit request');
+      const errorJson = await safeParseJson(response);
+      const message = errorJson?.message || `Failed to submit request (HTTP ${response.status})`;
+      throw new Error(message);
     }
     
-    const result = await response.json();
-    console.log('✅ Request submitted successfully via API:', result.data.id);
-    return result.data.id;
+    const resultJson = await safeParseJson(response);
+    if (!resultJson || !resultJson.data?.id) {
+      throw new Error('Failed to submit request. Invalid server response.');
+    }
+    console.log('✅ Request submitted successfully via API:', resultJson.data.id);
+    return resultJson.data.id;
   } catch (error) {
-    console.error('❌ Error submitting request:', error);
-    throw new Error('Failed to submit request. Please try again.');
+    console.error('❌ Form submission error (request):', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to submit request. Please try again.');
   }
 };
 

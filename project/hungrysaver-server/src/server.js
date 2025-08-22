@@ -35,6 +35,7 @@ import locationRoutes from './routes/locationRoutes.js';
 import historyRoutes from './routes/historyRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import communityRequestsRoutes from './routes/communityRequests.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -86,7 +87,8 @@ app.get('/', (req, res) => {
       volunteers: '/api/volunteers',
       notifications: '/api/notifications',
       auth: '/api/auth',
-      dashboard: '/api/dashboard'
+      dashboard: '/api/dashboard',
+      communityRequests: '/api/community-requests'
     }
   });
 });
@@ -115,6 +117,7 @@ app.use('/api/status', statusRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/community-requests', communityRequestsRoutes);
 
 // Error handling middleware
 app.use(notFound);

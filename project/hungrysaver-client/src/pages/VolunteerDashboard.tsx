@@ -7,18 +7,22 @@ import {
   ChevronRight, BarChart3, Gift
 } from 'lucide-react';
 import { getTasksByLocation, updateTaskStatus } from '../services/firestoreService';
+import { getVolunteerCommunityRequests, updateCommunityRequestStatus } from '../services/communityRequestService';
 import { useAuth } from '../contexts/AuthContext';
-import { Task } from '../types/formTypes';
+import { Task, CommunityRequest } from '../types/formTypes';
 import { LiveImpactDashboard } from '../components/ImpactCounter';
 import MotivationalBanner from '../components/MotivationalBanner';
 import AnimatedEmptyState from '../components/AnimatedIllustrations';
+import CommunityRequestCard from '../components/CommunityRequestCard';
 
 const VolunteerDashboard: React.FC = () => {
   const { location } = useParams<{ location: string }>();
   const { userData, logout } = useAuth();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [communityRequests, setCommunityRequests] = useState<CommunityRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [communityRequestsLoading, setCommunityRequestsLoading] = useState(false);
 
   const [activeSection, setActiveSection] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -54,6 +58,7 @@ const VolunteerDashboard: React.FC = () => {
 
     if (location) {
       fetchTasks();
+      fetchCommunityRequests();
     }
   }, [location, userData]);
 
@@ -101,6 +106,35 @@ const VolunteerDashboard: React.FC = () => {
       console.error('Error fetching tasks:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCommunityRequests = async () => {
+    try {
+      if (!userData || userData.status !== 'approved') {
+        setCommunityRequests([]);
+        return;
+      }
+
+      setCommunityRequestsLoading(true);
+      const requests = await getVolunteerCommunityRequests();
+      setCommunityRequests(requests);
+    } catch (error) {
+      console.error('Error fetching community requests:', error);
+      setCommunityRequests([]);
+    } finally {
+      setCommunityRequestsLoading(false);
+    }
+  };
+
+  const handleCommunityRequestAction = async (action: 'accept' | 'deny' | 'mark-reached' | 'approve' | 'reject', requestId: string, data?: any) => {
+    try {
+      await updateCommunityRequestStatus({ type: action, requestId, data });
+      // Refresh the community requests after action
+      await fetchCommunityRequests();
+    } catch (error) {
+      console.error('Error handling community request action:', error);
+      throw error;
     }
   };
 
@@ -314,12 +348,37 @@ const VolunteerDashboard: React.FC = () => {
       case 'community-requests':
         return (
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white">Community Requests</h2>
-            <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-12 text-center border border-gray-700">
-              <Users className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-300 mb-2">Coming Soon</h3>
-              <p className="text-gray-400">Community requests feature will be available soon.</p>
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-white">Community Requests</h2>
+              <div className="bg-[#eaa640]/10 backdrop-blur-lg border border-[#eaa640]/30 rounded-lg px-4 py-2">
+                <span className="text-[#eaa640] font-medium">
+                  {communityRequests.filter(r => r.status === 'pending').length} Pending
+                </span>
+              </div>
             </div>
+
+            {communityRequestsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#eaa640]"></div>
+              </div>
+            ) : communityRequests.length === 0 ? (
+              <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-12 text-center border border-gray-700">
+                <Users className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-300 mb-2">No Community Requests</h3>
+                <p className="text-gray-400">There are no community requests in your area at the moment.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {communityRequests.map((request) => (
+                  <CommunityRequestCard
+                    key={request.id}
+                    request={request}
+                    onAction={handleCommunityRequestAction}
+                    userData={userData}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         );
 

@@ -22,11 +22,14 @@ interface CommunityRequest {
   beneficiaryContact: string;
   description: string;
   urgency: 'low' | 'medium' | 'high';
-  status: 'pending' | 'accepted' | 'completed';
+  status: 'pending' | 'VOLUNTEER_ACCEPTED' | 'REACHED_COMMUNITY' | 'APPROVED_BY_VOLUNTEER' | 'DONOR_CLAIMED' | 'completed';
   createdAt: any;
   acceptedBy?: string;
   acceptedAt?: any;
   completedAt?: any;
+  decisionAt?: any;
+  reachedAt?: any;
+  claimedAt?: any;
 }
 
 const CommunitySupportDashboard: React.FC = () => {
@@ -163,7 +166,10 @@ const CommunitySupportDashboard: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
-      case 'accepted': return 'bg-[#eaa640]/20 text-[#eaa640] border-[#eaa640]';
+      case 'VOLUNTEER_ACCEPTED': return 'bg-blue-500/20 text-blue-400 border-blue-500';
+      case 'REACHED_COMMUNITY': return 'bg-purple-500/20 text-purple-400 border-purple-500';
+      case 'APPROVED_BY_VOLUNTEER': return 'bg-green-500/20 text-green-400 border-green-500';
+      case 'DONOR_CLAIMED': return 'bg-orange-500/20 text-orange-400 border-orange-500';
       case 'completed': return 'bg-[#eeb766]/20 text-[#eeb766] border-[#eeb766]';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
     }
@@ -172,7 +178,10 @@ const CommunitySupportDashboard: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending': return <Clock className="h-4 w-4" />;
-      case 'accepted': return <AlertCircle className="h-4 w-4" />;
+      case 'VOLUNTEER_ACCEPTED': return <AlertCircle className="h-4 w-4" />;
+      case 'REACHED_COMMUNITY': return <AlertCircle className="h-4 w-4" />;
+      case 'APPROVED_BY_VOLUNTEER': return <CheckCircle className="h-4 w-4" />;
+      case 'DONOR_CLAIMED': return <CheckCircle className="h-4 w-4" />;
       case 'completed': return <CheckCircle className="h-4 w-4" />;
       default: return <Clock className="h-4 w-4" />;
     }
@@ -180,10 +189,25 @@ const CommunitySupportDashboard: React.FC = () => {
 
   const getStatusDescription = (status: string) => {
     switch (status) {
-      case 'pending': return 'Waiting for a donor to accept your request';
-      case 'accepted': return 'A donor has accepted your request and volunteers are coordinating delivery';
+      case 'pending': return 'Awaiting volunteer review in your city';
+      case 'VOLUNTEER_ACCEPTED': return 'A volunteer has accepted your request';
+      case 'REACHED_COMMUNITY': return 'Volunteer reached your location for verification';
+      case 'APPROVED_BY_VOLUNTEER': return 'Approved by volunteer – now visible to donors';
+      case 'DONOR_CLAIMED': return 'A donor claimed this request – pickup will be coordinated';
       case 'completed': return 'Your request has been fulfilled and delivered';
       default: return 'Unknown status';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Pending';
+      case 'VOLUNTEER_ACCEPTED': return 'Volunteer Accepted';
+      case 'REACHED_COMMUNITY': return 'Reached Community';
+      case 'APPROVED_BY_VOLUNTEER': return 'Approved by Volunteer';
+      case 'DONOR_CLAIMED': return 'Donor Claimed';
+      case 'completed': return 'Delivered';
+      default: return status;
     }
   };
 
@@ -507,85 +531,35 @@ const CommunitySupportDashboard: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {requestHistory.map((request) => (
-                    <div key={request.id} className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 hover:shadow-lg transition-all duration-300 border border-[#eaa640]/30">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center space-x-3">
+                    <div key={request.id} className="bg-gray-900/80 rounded-lg border border-[#eaa640]/20 hover:border-[#eaa640]/50 transition-all">
+                      <div className="p-5 grid grid-cols-1 md:grid-cols-12 gap-4">
+                        <div className="md:col-span-4 flex items-start space-x-3">
                           <div className="text-2xl">{getInitiativeEmoji(request.initiative)}</div>
                           <div>
-                            <h3 className="text-lg font-semibold text-white capitalize">
-                              {request.initiative.replace('-', ' ')}
-                            </h3>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className={`px-3 py-1 rounded-full text-xs border font-medium flex items-center space-x-1 ${getStatusColor(request.status)}`}>
+                            <h3 className="text-white font-semibold text-lg capitalize">{request.initiative.replace('-', ' ')}</h3>
+                            <div className="mt-2">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs border font-medium ${getStatusColor(request.status)}`}>
                                 {getStatusIcon(request.status)}
-                                <span className="capitalize">{request.status}</span>
-                              </span>
-                              <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getUrgencyColor(request.urgency)}`}>
-                                {request.urgency ? request.urgency.toUpperCase() : ''}
+                                <span className="ml-1">{getStatusLabel(request.status)}</span>
                               </span>
                             </div>
                           </div>
                         </div>
-                        <div className="text-right text-sm text-gray-400">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-4 w-4" />
+                        <div className="md:col-span-5 text-sm text-gray-300 space-y-2">
+                          <div className="flex items-center space-x-2"><MapPin className="h-4 w-4" /><span className="capitalize">{request.location_lowercase}</span></div>
+                          <div className="flex items-center space-x-2"><User className="h-4 w-4" /><span>{request.beneficiaryName}</span></div>
+                          <div className="flex items-center space-x-2"><Phone className="h-4 w-4" /><span>{request.beneficiaryContact}</span></div>
+                          <p className="text-gray-400 line-clamp-2">{request.description}</p>
+                        </div>
+                        <div className="md:col-span-3 bg-gray-800/50 rounded-lg p-3 text-sm">
+                          <div className="text-white font-medium mb-1">Status</div>
+                          <div className="text-gray-300">{getStatusDescription(request.status)}</div>
+                          <div className="text-xs text-gray-400 mt-2 flex items-center space-x-1">
+                            <Calendar className="h-3 w-3" />
                             <span>{request.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}</span>
                           </div>
-                        </div>
-                      </div>
-
-                      <p className="text-gray-300 mb-4 leading-relaxed">{request.description}</p>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2 text-sm text-gray-400">
-                            <MapPin className="h-4 w-4" />
-                            <span className="capitalize">{request.location_lowercase}</span>
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm text-gray-400">
-                            <User className="h-4 w-4" />
-                            <span>{request.beneficiaryName}</span>
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm text-gray-400">
-                            <Phone className="h-4 w-4" />
-                            <span>{request.beneficiaryContact}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="bg-gray-700/50 p-4 rounded-lg">
-                          <h4 className="text-white font-medium mb-2">Status Information</h4>
-                          <p className="text-gray-300 text-sm">{getStatusDescription(request.status)}</p>
-                          
-                          {request.status === 'accepted' && request.acceptedAt && (
-                            <p className="text-[#eaa640] text-xs mt-2">
-                              Accepted on {request.acceptedAt.toDate?.()?.toLocaleDateString()}
-                            </p>
-                          )}
-                          
-                          {request.status === 'completed' && request.completedAt && (
-                            <p className="text-[#eeb766] text-xs mt-2">
-                              Completed on {request.completedAt.toDate?.()?.toLocaleDateString()}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="mt-4">
-                        <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
-                          <span>Pending</span>
-                          <span>Accepted</span>
-                          <span>Completed</span>
-                        </div>
-                        <div className="w-full bg-gray-700 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full transition-all duration-500 ${
-                              request.status === 'pending' ? 'bg-gradient-to-r from-yellow-500 to-yellow-400 w-1/3' :
-                              request.status === 'accepted' ? 'bg-gradient-to-r from-[#eaa640] to-[#ecae53] w-2/3' :
-                              'bg-gradient-to-r from-[#eeb766] to-[#f0c079] w-full'
-                            }`}
-                          />
                         </div>
                       </div>
                     </div>

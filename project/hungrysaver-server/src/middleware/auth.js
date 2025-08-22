@@ -87,6 +87,32 @@ export const requireVolunteer = (req, res, next) => {
 };
 
 /**
+ * Check if user is donor
+ */
+export const requireDonor = (req, res, next) => {
+  if (req.user.userType !== 'donor' && req.user.userType !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Donor access required'
+    });
+  }
+  next();
+};
+
+/**
+ * Check if user is community user
+ */
+export const requireCommunity = (req, res, next) => {
+  if (req.user.userType !== 'community' && req.user.userType !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Community user access required'
+    });
+  }
+  next();
+};
+
+/**
  * Check if user is approved
  */
 export const requireApproved = (req, res, next) => {

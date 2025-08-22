@@ -3,13 +3,15 @@ import {
   Heart, BookOpen, Shield, Home, Zap, Building, Users, Calendar, MapPin, Clock, TrendingUp, Award, Star,
   Menu, X, Bell, LogOut, User, Gift, History, BarChart3, MessageSquare, FileText, HelpCircle, Settings
 } from 'lucide-react';
-import { collection, query, getDocs, where } from 'firebase/firestore';
+import { collection, query, getDocs, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useFormSubmission } from '../hooks/useFormSubmission';
+import { getApprovedCommunityRequests, claimCommunityRequest } from '../services/communityRequestService';
 import ImpactSection from '../components/ImpactSection';
 import SuccessStories from '../components/SuccessStories';
 import AnimatedEmptyState from '../components/AnimatedIllustrations';
+import DonorCommunityRequestCard from '../components/DonorCommunityRequestCard';
 import AnnamitraSevaForm from '../components/DonorForms/AnnamitraSevaForm';
 import VidyaJyothiForm from '../components/DonorForms/VidyaJyothiForm';
 import SurakshaSetuForm from '../components/DonorForms/SurakshaSetuForm';
@@ -25,50 +27,7 @@ import { JyothiNilayamFormData } from '../components/DonorForms/JyothiNilayamFor
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-interface CommunityRequest {
-  id: string;
-  userId?: string;
-  initiative: string;
-  location?: string;
-  location_lowercase?: string;
-  address?: string;
-  beneficiaryName?: string;
-  beneficiaryContact?: string;
-  childName?: string;
-  childAge?: string;
-  schoolName?: string;
-  class?: string;
-  neededItems?: Record<string, boolean>;
-  neededItemTypes?: string[];
-  requestedItems?: string[];
-  parentGuardianName?: string;
-  shelterTypeNeeded?: string;
-  numberOfPeopleAnimals?: string;
-  numberOfPeople?: string;
-  durationNeeded?: string;
-  emergencyDescription?: string;
-  peopleAnimalsAffected?: string;
-  immediateNeeds?: string;
-  quantityRequired?: string;
-  purpose?: string;
-  quantityNeeded?: string;
-  dietaryRestrictions?: string;
-  mealFrequency?: string;
-  donorName?: string;
-  donorContact?: string;
-  donorAddress?: string;
-  availableTime?: string;
-  description?: string;
-  urgency?: 'low' | 'medium' | 'high' | string;
-  status?: 'pending' | 'accepted' | 'completed' | string;
-  createdAt?: Date | string | { toDate: () => Date };
-  acceptedBy?: string;
-  acceptedAt?: Date | string | { toDate: () => Date };
-  completedAt?: Date | string | { toDate: () => Date };
-  updatedAt?: Date | string | { toDate: () => Date };
-  details?: unknown;
-  [key: string]: unknown;
-}
+import { CommunityRequest } from '../types/formTypes';
 
 type DonorFormData =
   | AnnamitraSevaFormData
@@ -145,8 +104,11 @@ const DonorDashboard: React.FC = () => {
   const [requestsLoading, setRequestsLoading] = useState(true);
   const { submitForm, loading, error, success, resetForm } = useFormSubmission('donor');
   const { userData, logout } = useAuth();
-  const [donationHistory, setDonationHistory] = useState<CommunityRequest[]>([]);
+  const [donationHistory, setDonationHistory] = useState<any[]>([]);
   const [donationHistoryLoading, setDonationHistoryLoading] = useState(false);
+  const [approvedCommunityRequests, setApprovedCommunityRequests] = useState<CommunityRequest[]>([]);
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<CommunityRequest | null>(null);
   const navigate = useNavigate();
 
   // Hide global site navbar while on donor dashboard
@@ -223,54 +185,43 @@ const DonorDashboard: React.FC = () => {
   ];
 
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
     if (activeSection === 'requests') {
-      fetchCommunityRequests();
+      // Real-time subscription to approved community requests
+      setRequestsLoading(true);
+      const q = query(
+        collection(db, 'community_requests'),
+        where('status', '==', 'APPROVED_BY_VOLUNTEER')
+      );
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })) as CommunityRequest[];
+        setApprovedCommunityRequests(list);
+        setRequestsLoading(false);
+      }, (err) => {
+        console.error('Realtime fetch error (approved community requests):', err);
+        setApprovedCommunityRequests([]);
+        setRequestsLoading(false);
+      });
     }
     if (activeSection === 'contributions' && userData?.uid) {
       fetchDonationHistory();
     }
+    return () => { if (unsubscribe) unsubscribe(); };
   }, [activeSection, userData?.uid]);
 
-  const fetchCommunityRequests = async () => {
+  // remove old manual fetch functions (using realtime subscription instead)
+
+  const handleCommunityRequestClaim = async (requestId: string, donorAddress: string, notes: string) => {
     try {
-      setRequestsLoading(true);
-      const requestsQuery = query(
-        collection(db, 'community_requests'),
-        where('status', '==', 'pending')
-      );
-      const snapshot = await getDocs(requestsQuery);
-      const requests = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as CommunityRequest[];
-      // Sort by urgency and creation date
-      const urgencyOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
-      const getDate = (val: unknown): Date => {
-        if (!val) return new Date(0);
-        if (typeof val === 'string') {
-          const d = new Date(val);
-          return isNaN(d.getTime()) ? new Date(0) : d;
-        }
-        if (val instanceof Date) return val;
-        if (typeof val === 'object' && val !== null && 'toDate' in val && typeof (val as { toDate: unknown }).toDate === 'function') {
-          return (val as { toDate: () => Date }).toDate();
-        }
-        return new Date(0);
-      };
-      const sortedRequests = requests.sort((a, b) => {
-        const urgencyA = typeof a.urgency === 'string' ? urgencyOrder[a.urgency] ?? 0 : 0;
-        const urgencyB = typeof b.urgency === 'string' ? urgencyOrder[b.urgency] ?? 0 : 0;
-        const urgencyDiff = urgencyB - urgencyA;
-        if (urgencyDiff !== 0) return urgencyDiff;
-        const aTime = getDate(a.createdAt);
-        const bTime = getDate(b.createdAt);
-        return bTime.getTime() - aTime.getTime();
-      });
-      setCommunityRequests(sortedRequests);
+      await claimCommunityRequest(requestId, donorAddress, notes);
+      // Refresh the approved requests after claiming
+      alert('Request claimed successfully! A donation record has been created and linked.');
+      setClaimModalOpen(false);
+      setSelectedRequest(null);
+      setActiveSection('contributions');
     } catch (error) {
-      console.error('Error fetching community requests:', error);
-    } finally {
-      setRequestsLoading(false);
+      console.error('Error claiming community request:', error);
+      throw error;
     }
   };
 
@@ -647,7 +598,7 @@ const DonorDashboard: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#eaa640] mx-auto mb-4"></div>
           <p className="text-gray-300">Loading community requests...</p>
         </div>
-      ) : communityRequests.length === 0 ? (
+      ) : approvedCommunityRequests.length === 0 ? (
         <AnimatedEmptyState
           type="requests"
           title="No pending requests"
@@ -657,7 +608,7 @@ const DonorDashboard: React.FC = () => {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {communityRequests.map((request) => (
+          {approvedCommunityRequests.map((request) => (
             <div key={request.id} className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 hover:shadow-lg transition-all duration-300 border border-[#eaa640]/30 hover:border-[#eaa640] transform hover:scale-105">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
@@ -666,66 +617,15 @@ const DonorDashboard: React.FC = () => {
                     <h3 className="text-lg font-semibold text-white capitalize">
                       {request.initiative ? request.initiative.replace('-', ' ') : ''}
                     </h3>
-                    <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getUrgencyColor(request.urgency as string)}`}>{request.urgency ? request.urgency.toUpperCase() : ''} PRIORITY</span>
+                    <span className={`px-2 py-1 rounded-full text-xs border font-medium bg-green-500/10 text-green-400 border-green-500`}>APPROVED BY VOLUNTEER</span>
                   </div>
                 </div>
               </div>
-              {/* Initiative-specific details */}
-              {request.initiative === 'vidya-jyothi' ? (
-                <div className="mb-2 text-gray-300 text-sm space-y-1">
-                  <div><span className="font-semibold">Parent/Guardian:</span> {request.parentGuardianName || request.beneficiaryName || '-'}</div>
-                  <div><span className="font-semibold">Contact:</span> {request.beneficiaryContact || '-'}</div>
-                  <div><span className="font-semibold">Child Name:</span> {request.childName || '-'}</div>
-                  <div><span className="font-semibold">Child Age:</span> {request.childAge || '-'}</div>
-                  <div><span className="font-semibold">School:</span> {request.schoolName || '-'}</div>
-                  <div><span className="font-semibold">Class:</span> {request.class || '-'}</div>
-                  <div><span className="font-semibold">Needed Items:</span> {request.neededItems && Object.keys(request.neededItems).length > 0 ? Object.keys(request.neededItems).filter(k => request.neededItems && request.neededItems[k]).join(', ') : '-'}</div>
-                </div>
-              ) : null}
-              {request.initiative === 'jyothi-nilayam' ? (
-                <div className="mb-2 text-gray-300 text-sm space-y-1">
-                  <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
-                  <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
-                  <div><span className="font-semibold">Shelter Type Needed:</span> {request.shelterTypeNeeded || '-'}</div>
-                  <div><span className="font-semibold">Number of People/Animals:</span> {request.numberOfPeopleAnimals || '-'}</div>
-                  <div><span className="font-semibold">Duration Needed:</span> {request.durationNeeded || '-'}</div>
-                </div>
-              ) : null}
-              {request.initiative === 'suraksha-setu' ? (
-                <div className="mb-2 text-gray-300 text-sm space-y-1">
-                  <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
-                  <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
-                  <div><span className="font-semibold">Needed Item Types:</span> {request.neededItemTypes ? request.neededItemTypes.join(', ') : '-'}</div>
-                  <div><span className="font-semibold">Quantity Required:</span> {request.quantityRequired || '-'}</div>
-                </div>
-              ) : null}
-              {request.initiative === 'punarasha' ? (
-                <div className="mb-2 text-gray-300 text-sm space-y-1">
-                  <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
-                  <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
-                  <div><span className="font-semibold">Requested Items:</span> {request.requestedItems ? request.requestedItems.join(', ') : '-'}</div>
-                  <div><span className="font-semibold">Purpose:</span> {request.purpose || '-'}</div>
-                  <div><span className="font-semibold">Quantity Needed:</span> {request.quantityNeeded || '-'}</div>
-                </div>
-              ) : null}
-              {request.initiative === 'raksha-jyothi' ? (
-                <div className="mb-2 text-gray-300 text-sm space-y-1">
-                  <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
-                  <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
-                  <div><span className="font-semibold">Emergency Description:</span> {request.emergencyDescription || '-'}</div>
-                  <div><span className="font-semibold">People/Animals Affected:</span> {request.peopleAnimalsAffected || '-'}</div>
-                  <div><span className="font-semibold">Immediate Needs:</span> {request.immediateNeeds || '-'}</div>
-                </div>
-              ) : null}
-              {request.initiative === 'annamitra-seva' ? (
-                <div className="mb-2 text-gray-300 text-sm space-y-1">
-                  <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
-                  <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
-                  <div><span className="font-semibold">Number of People:</span> {request.numberOfPeople || '-'}</div>
-                  <div><span className="font-semibold">Dietary Restrictions:</span> {request.dietaryRestrictions || '-'}</div>
-                  <div><span className="font-semibold">Meal Frequency:</span> {request.mealFrequency || '-'}</div>
-                </div>
-              ) : null}
+              {/* Basic details for all initiatives */}
+              <div className="mb-2 text-gray-300 text-sm space-y-1">
+                <div><span className="font-semibold">Contact Person:</span> {request.beneficiaryName || '-'}</div>
+                <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
+              </div>
               <p className="text-gray-300 mb-4 leading-relaxed">{request.description}</p>
               <div className="space-y-2 mb-4">
                 <div className="flex items-center space-x-2 text-sm text-gray-400">
@@ -742,11 +642,11 @@ const DonorDashboard: React.FC = () => {
                 </div>
               </div>
               <button
-                onClick={() => handleCommunityDonate(request)}
+                onClick={() => { setSelectedRequest(request); setClaimModalOpen(true); }}
                 className="w-full bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] hover:to-[#eeb766] text-black py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center space-x-2 transform hover:scale-105"
               >
                 <Heart className="h-4 w-4" />
-                <span>Donate to Help</span>
+                <span>Support This Request</span>
               </button>
             </div>
           ))}
@@ -1044,8 +944,67 @@ const DonorDashboard: React.FC = () => {
           {renderContent()}
         </div>
       </div>
+
+      {/* Claim Modal inline import to avoid circular deps */}
+      {claimModalOpen && selectedRequest && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-2xl w-full max-w-md mx-auto border border-gray-700">
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-[#eaa640]/20 rounded-lg">
+                  <Heart className="h-6 w-6 text-[#eaa640]" />
+                </div>
+                <h3 className="text-xl font-semibold text-white">Support This Request</h3>
+              </div>
+              <button onClick={() => { setClaimModalOpen(false); setSelectedRequest(null); }} className="text-gray-400 hover:text-white transition-colors">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <ClaimForm onSubmit={async (addr, notes) => await handleCommunityRequestClaim(selectedRequest.id, addr, notes)} request={selectedRequest} onCancel={() => { setClaimModalOpen(false); setSelectedRequest(null); }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default DonorDashboard;
+
+// Lightweight inline claim form to avoid extra imports
+const ClaimForm: React.FC<{ request: CommunityRequest; onSubmit: (addr: string, notes: string) => Promise<void>; onCancel: () => void; }> = ({ request, onSubmit, onCancel }) => {
+  const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  return (
+    <form
+      onSubmit={async (e) => { e.preventDefault(); if (!address.trim()) return; setSubmitting(true); try { await onSubmit(address.trim(), notes.trim()); } finally { setSubmitting(false); } }}
+      className="p-6 space-y-4"
+    >
+      <div className="bg-gray-700/30 rounded-lg p-4">
+        <h4 className="text-white font-medium mb-3">Request Details</h4>
+        <div className="space-y-2 text-sm text-gray-300">
+          <div className="flex items-center space-x-2">
+            <MapPin className="h-4 w-4 text-[#eaa640]" />
+            <span>{request.address}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <FileText className="h-4 w-4 text-[#eaa640]" />
+            <span>{request.description}</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-white mb-2">Your Address <span className="text-red-400">*</span></label>
+        <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={3} className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none transition-colors" placeholder="Enter your full address for pickup..." required />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-white mb-2">Additional Notes (Optional)</label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none transition-colors" placeholder="Any additional information or special instructions..." />
+      </div>
+      <div className="flex space-x-3 pt-2">
+        <button type="button" onClick={onCancel} className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-medium transition-colors">Cancel</button>
+        <button type="submit" disabled={submitting || !address.trim()} className="flex-1 px-4 py-3 bg-[#eaa640] hover:bg-[#eaa640]/80 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-black font-medium transition-colors">{submitting ? 'Submitting...' : 'Confirm Support'}</button>
+      </div>
+    </form>
+  );
+};
