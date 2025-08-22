@@ -22,7 +22,7 @@ interface CommunityRequest {
   beneficiaryContact: string;
   description: string;
   urgency: 'low' | 'medium' | 'high';
-  status: 'pending' | 'VOLUNTEER_ACCEPTED' | 'REACHED_COMMUNITY' | 'APPROVED_BY_VOLUNTEER' | 'DONOR_CLAIMED' | 'completed';
+  status: 'pending' | 'VOLUNTEER_ACCEPTED' | 'REACHED_COMMUNITY' | 'APPROVED_BY_VOLUNTEER' | 'DONOR_CLAIMED' | 'REJECTED_BY_VOLUNTEER' | 'completed';
   createdAt: any;
   acceptedBy?: string;
   acceptedAt?: any;
@@ -169,6 +169,7 @@ const CommunitySupportDashboard: React.FC = () => {
       case 'VOLUNTEER_ACCEPTED': return 'bg-blue-500/20 text-blue-400 border-blue-500';
       case 'REACHED_COMMUNITY': return 'bg-purple-500/20 text-purple-400 border-purple-500';
       case 'APPROVED_BY_VOLUNTEER': return 'bg-green-500/20 text-green-400 border-green-500';
+      case 'REJECTED_BY_VOLUNTEER': return 'bg-red-500/20 text-red-400 border-red-500';
       case 'DONOR_CLAIMED': return 'bg-orange-500/20 text-orange-400 border-orange-500';
       case 'completed': return 'bg-[#eeb766]/20 text-[#eeb766] border-[#eeb766]';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
@@ -181,6 +182,7 @@ const CommunitySupportDashboard: React.FC = () => {
       case 'VOLUNTEER_ACCEPTED': return <AlertCircle className="h-4 w-4" />;
       case 'REACHED_COMMUNITY': return <AlertCircle className="h-4 w-4" />;
       case 'APPROVED_BY_VOLUNTEER': return <CheckCircle className="h-4 w-4" />;
+      case 'REJECTED_BY_VOLUNTEER': return <AlertCircle className="h-4 w-4" />;
       case 'DONOR_CLAIMED': return <CheckCircle className="h-4 w-4" />;
       case 'completed': return <CheckCircle className="h-4 w-4" />;
       default: return <Clock className="h-4 w-4" />;
@@ -192,7 +194,8 @@ const CommunitySupportDashboard: React.FC = () => {
       case 'pending': return 'Awaiting volunteer review in your city';
       case 'VOLUNTEER_ACCEPTED': return 'A volunteer has accepted your request';
       case 'REACHED_COMMUNITY': return 'Volunteer reached your location for verification';
-      case 'APPROVED_BY_VOLUNTEER': return 'Approved by volunteer – now visible to donors';
+      case 'APPROVED_BY_VOLUNTEER': return (<span className="text-[#eaa640] font-semibold animate-pulse">Waiting for Donor Support</span>);
+      case 'REJECTED_BY_VOLUNTEER': return 'Request was reviewed and rejected by a volunteer';
       case 'DONOR_CLAIMED': return 'A donor claimed this request – pickup will be coordinated';
       case 'completed': return 'Your request has been fulfilled and delivered';
       default: return 'Unknown status';
@@ -205,6 +208,7 @@ const CommunitySupportDashboard: React.FC = () => {
       case 'VOLUNTEER_ACCEPTED': return 'Volunteer Accepted';
       case 'REACHED_COMMUNITY': return 'Reached Community';
       case 'APPROVED_BY_VOLUNTEER': return 'Approved by Volunteer';
+      case 'REJECTED_BY_VOLUNTEER': return 'Rejected by Volunteer';
       case 'DONOR_CLAIMED': return 'Donor Claimed';
       case 'completed': return 'Delivered';
       default: return status;
@@ -285,7 +289,6 @@ const CommunitySupportDashboard: React.FC = () => {
           <div className="text-white text-base font-medium flex items-center gap-2">
             <span role="img" aria-label="handshake">🤝</span>
             <span>Welcome back, {userData?.firstName || 'Community Member'}!</span>
-            <span className="text-xs text-[#eaa640] ml-4">Active: {activeTab}</span>
           </div>
           {/* Right: Profile + Logout */}
           <div className="flex items-center gap-3">
@@ -586,7 +589,7 @@ const CommunitySupportDashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {requestHistory.filter(r => r.status === 'completed').map((request, index) => (
+                  {requestHistory.filter(r => r.status === 'completed' || r.status === 'REJECTED_BY_VOLUNTEER').map((request, index) => (
                     <div key={request.id || index} className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-4 border-l-4 border-[#eeb766] hover:bg-gray-900/90 transition-all duration-300">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
@@ -597,20 +600,27 @@ const CommunitySupportDashboard: React.FC = () => {
                           </div>
                         </div>
                         <div className="text-right text-sm text-gray-400">
-                          <p>{request.completedAt?.toDate?.()?.toLocaleDateString() || 'Recently completed'}</p>
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-[#eeb766]/20 text-[#eeb766] border border-[#eeb766]">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Completed
-                          </span>
+                          <p>{(request.completedAt || request.decisionAt)?.toDate?.()?.toLocaleDateString() || 'Recently updated'}</p>
+                          {request.status === 'completed' ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-[#eeb766]/20 text-[#eeb766] border border-[#eeb766]">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Completed
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Rejected by Volunteer
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
                   ))}
-                  {requestHistory.filter(r => r.status === 'completed').length === 0 && (
+                  {requestHistory.filter(r => r.status === 'completed' || r.status === 'REJECTED_BY_VOLUNTEER').length === 0 && (
                     <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-8 text-center border border-[#eaa640]/30">
                       <History className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold text-white mb-2">No completed requests</h3>
-                      <p className="text-gray-400">Your completed support history will appear here</p>
+                      <h3 className="text-xl font-semibold text-white mb-2">No completed or rejected requests</h3>
+                      <p className="text-gray-400">Your completed and volunteer-rejected requests will appear here</p>
                     </div>
                   )}
                 </div>

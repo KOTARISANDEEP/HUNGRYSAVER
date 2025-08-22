@@ -15,6 +15,33 @@ const getIdToken = async (): Promise<string> => {
   return await user.getIdToken();
 };
 
+// Create a new community request
+export const createCommunityRequest = async (requestData: Omit<CommunityRequest, 'id' | 'userId' | 'status' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    const idToken = await getIdToken();
+    
+    const response = await fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to create community request');
+    }
+
+    const result = await response.json();
+    return result.data?.id || result.id;
+  } catch (error) {
+    console.error('Error creating community request:', error);
+    throw error;
+  }
+};
+
 // Fetch community requests for volunteers by city
 export const getVolunteerCommunityRequests = async (): Promise<CommunityRequest[]> => {
   try {

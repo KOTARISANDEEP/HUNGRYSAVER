@@ -4,6 +4,16 @@ import { logger } from '../utils/logger.js';
 // Ensure Firebase is initialized once and reuse db instance
 const db = getFirestore();
 
+// Import notification service
+let notificationService = null;
+const getNotificationService = async () => {
+  if (!notificationService) {
+    const { default: NotificationServiceInstance } = await import('../services/notificationService.js');
+    notificationService = NotificationServiceInstance;
+  }
+  return notificationService;
+};
+
 /**
  * Community Support Request Status Enums:
  * - pending: New request; visible only to volunteers in same city (existing status)
@@ -415,6 +425,18 @@ export const createRequest = async (req, res) => {
 
     const docRef = await db.collection('community_requests').add(requestData);
 
+    // Notify volunteers in the specific city about the new request
+    try {
+      const notificationService = await getNotificationService();
+      await notificationService.notifyCityVolunteersNewRequest({
+        ...requestData,
+        id: docRef.id
+      });
+    } catch (notificationError) {
+      logger.warn('Failed to send city-based notifications to volunteers:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
+
     logger.info(`Community request created by user ${uid} with ID ${docRef.id}`);
 
     res.status(201).json({
@@ -459,6 +481,7 @@ export const donorClaim = async (req, res) => {
     }
 
     const requestRef = db.collection('community_requests').doc(id);
+    let requestData = null;
     
     // Use transaction to ensure atomicity
     await db.runTransaction(async (transaction) => {
@@ -468,7 +491,7 @@ export const donorClaim = async (req, res) => {
         throw new Error('Request not found');
       }
 
-      const requestData = requestDoc.data();
+      requestData = requestDoc.data();
       
       if (requestData.status !== 'APPROVED_BY_VOLUNTEER') {
         throw new Error('Request is not approved for donor claiming');
@@ -500,6 +523,18 @@ export const donorClaim = async (req, res) => {
       transaction.set(donationRef, donationData);
     });
 
+    // Notify the volunteer about the claimed request
+    try {
+      const notificationService = await getNotificationService();
+      await notificationService.notifyVolunteerCommunityRequestClaimed(
+        { ...requestData, id },
+        { donorAddress, donorNotes: notes || '' }
+      );
+    } catch (notificationError) {
+      logger.warn('Failed to send notification to volunteer:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
+
     logger.info(`Donor ${uid} claimed community request ${id} and created donation`);
 
     res.json({
@@ -512,6 +547,59 @@ export const donorClaim = async (req, res) => {
     res.status(400).json({
       success: false,
       message: error.message || 'Failed to claim request'
+    });
+  }
+};
+
+/**
+ * Test email service functionality
+ */
+export const testEmailService = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email address is required'
+      });
+    }
+
+    // Import email service
+    const { default: emailService } = await import('../services/emailService.js');
+    
+    // Test email
+    const testRequest = {
+      id: 'test-request-id',
+      initiative: 'annamitra-seva',
+      location: 'tirupati',
+      location_lowercase: 'tirupati',
+      beneficiaryName: 'Test Beneficiary',
+      beneficiaryContact: '1234567890',
+      address: 'Test Address, Tirupati',
+      description: 'This is a test community request'
+    };
+
+    const testVolunteer = {
+      firstName: 'Test Volunteer',
+      email: email
+    };
+
+    await emailService.sendNewCommunityRequestEmail(testRequest, testVolunteer);
+
+    logger.info(`Test email sent successfully to ${email}`);
+
+    res.json({
+      success: true,
+      message: 'Test email sent successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error sending test email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send test email',
+      error: error.message
     });
   }
 };

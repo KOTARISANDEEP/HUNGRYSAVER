@@ -25,7 +25,7 @@ import { PunarAshaFormData } from '../components/DonorForms/PunarAshaForm';
 import { RakshaJyothiFormData } from '../components/DonorForms/RakshaJyothiForm';
 import { JyothiNilayamFormData } from '../components/DonorForms/JyothiNilayamForm';
 import { useNavigate } from 'react-router-dom';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area } from 'recharts';
 
 import { CommunityRequest } from '../types/formTypes';
 
@@ -38,6 +38,15 @@ type DonorFormData =
   | JyothiNilayamFormData;
 
 type ActiveSection = 'home' | 'donate' | 'contributions' | 'impact' | 'requests' | 'stories' | 'rewards' | 'notifications' | 'help' | 'settings';
+
+// Type for donation history items
+interface DonationHistoryItem {
+  id: string;
+  initiative: string;
+  location_lowercase?: string;
+  status: 'pending' | 'accepted' | 'picked' | 'delivered';
+  createdAt: any;
+}
 
 const sidebarItems = [
   { key: 'home' as ActiveSection, label: 'Home', icon: Home, description: 'Dashboard Overview' },
@@ -69,6 +78,21 @@ const weeklyData = [
   { name: 'Fri', donations: 8 },
   { name: 'Sat', donations: 6 },
   { name: 'Sun', donations: 9 }
+];
+
+const monthlyDonationData = [
+  { month: 'jan', donations: 15 },
+  { month: 'feb', donations: 22 },
+  { month: 'mar', donations: 18 },
+  { month: 'apr', donations: 25 },
+  { month: 'may', donations: 30 },
+  { month: 'jun', donations: 28 },
+  { month: 'jul', donations: 35 },
+  { month: 'aug', donations: 32 },
+  { month: 'sep', donations: 40 },
+  { month: 'oct', donations: 38 },
+  { month: 'nov', donations: 45 },
+  { month: 'dec', donations: 50 }
 ];
 
 const recentActivities = [
@@ -104,7 +128,7 @@ const DonorDashboard: React.FC = () => {
   const [requestsLoading, setRequestsLoading] = useState(true);
   const { submitForm, loading, error, success, resetForm } = useFormSubmission('donor');
   const { userData, logout } = useAuth();
-  const [donationHistory, setDonationHistory] = useState<any[]>([]);
+  const [donationHistory, setDonationHistory] = useState<DonationHistoryItem[]>([]);
   const [donationHistoryLoading, setDonationHistoryLoading] = useState(false);
   const [approvedCommunityRequests, setApprovedCommunityRequests] = useState<CommunityRequest[]>([]);
   const [claimModalOpen, setClaimModalOpen] = useState(false);
@@ -214,11 +238,7 @@ const DonorDashboard: React.FC = () => {
   const handleCommunityRequestClaim = async (requestId: string, donorAddress: string, notes: string) => {
     try {
       await claimCommunityRequest(requestId, donorAddress, notes);
-      // Refresh the approved requests after claiming
-      alert('Request claimed successfully! A donation record has been created and linked.');
-      setClaimModalOpen(false);
-      setSelectedRequest(null);
-      setActiveSection('contributions');
+      // Success is handled in ClaimForm component
     } catch (error) {
       console.error('Error claiming community request:', error);
       throw error;
@@ -234,7 +254,16 @@ const DonorDashboard: React.FC = () => {
         where('userId', '==', userData.uid)
       );
       const snapshot = await getDocs(q);
-      const donations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CommunityRequest));
+      const donations = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          initiative: data.initiative || data.communityRequestId ? 'Community Support' : 'Direct Donation',
+          location_lowercase: data.city || data.location_lowercase || '',
+          status: data.status || 'pending',
+          createdAt: data.createdAt
+        } as DonationHistoryItem;
+      });
       setDonationHistory(donations);
     } catch (error) {
       console.error('Error fetching donation history:', error);
@@ -449,6 +478,79 @@ const DonorDashboard: React.FC = () => {
                 <Bar dataKey="donations" fill="#EAA640" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Donations Over Time - Centered */}
+        <div className="flex justify-center mb-8">
+          <div className="w-full max-w-4xl">
+            <div className="bg-[#1E102C] rounded-[20px] p-6 shadow-lg border border-[#eaa640]/30 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#eaa640]/5 to-transparent opacity-30"></div>
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold text-white mb-6">Donations Over Time</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={monthlyDonationData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="donationGradient" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#EAA640" />
+                          <stop offset="100%" stopColor="#EBE7E1" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                      <XAxis 
+                        dataKey="month" 
+                        stroke="#EBE7E1" 
+                        fontSize={12}
+                        tick={{ fill: '#EBE7E1' }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis 
+                        stroke="#9ca3af" 
+                        fontSize={12}
+                        tick={{ fill: '#9ca3af' }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(value) => `${value}k`}
+                      />
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: '#1E102C',
+                          border: '1px solid #EAA640',
+                          borderRadius: '8px',
+                          color: 'white'
+                        }}
+                        labelStyle={{ color: '#EBE7E1' }}
+                        formatter={(value: any) => [`${value}k donations`, 'Amount']}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="donations" 
+                        stroke="white" 
+                        strokeWidth={3}
+                        fill="url(#donationGradient)"
+                        fillOpacity={0.8}
+                        dot={{
+                          fill: 'white',
+                          stroke: '#EAA640',
+                          strokeWidth: 2,
+                          r: 4,
+                          filter: 'drop-shadow(0 0 4px rgba(234, 166, 64, 0.6))'
+                        }}
+                        activeDot={{
+                          fill: 'white',
+                          stroke: '#EAA640',
+                          strokeWidth: 3,
+                          r: 6,
+                          filter: 'drop-shadow(0 0 8px rgba(234, 166, 64, 0.8))'
+                        }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -777,7 +879,7 @@ const DonorDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-gray-900/80 divide-y divide-gray-700">
-                {donationHistory.map((donation: CommunityRequest) => (
+                {donationHistory.map((donation: DonationHistoryItem) => (
                   <tr key={donation.id} className="hover:bg-gray-800/50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                       {donation.initiative ? donation.initiative.replace('-', ' ') : ''}
@@ -789,7 +891,8 @@ const DonorDashboard: React.FC = () => {
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         donation.status === 'pending' ? 'bg-[#eeb766]/20 text-[#eeb766] border border-[#eeb766]' :
                         donation.status === 'accepted' ? 'bg-[#eaa640]/20 text-[#eaa640] border border-[#eaa640]' :
-                        donation.status === 'completed' ? 'bg-[#ecae53]/20 text-[#ecae53] border border-[#ecae53]' :
+                        donation.status === 'picked' ? 'bg-[#ecae53]/20 text-[#ecae53] border border-[#ecae53]' :
+                        donation.status === 'delivered' ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]' :
                         'bg-gray-600/20 text-gray-300 border border-gray-600'
                       }`}>
                         {donation.status ? donation.status.charAt(0).toUpperCase() + donation.status.slice(1) : ''}
@@ -975,9 +1078,55 @@ const ClaimForm: React.FC<{ request: CommunityRequest; onSubmit: (addr: string, 
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!address.trim()) return;
+    
+    setSubmitting(true);
+    try {
+      await onSubmit(address.trim(), notes.trim());
+      setSuccessMessage('Request claimed successfully! A donation record has been created and linked. Volunteers will be notified for pickup coordination.');
+      setSuccess(true);
+      // Reset form
+      setAddress('');
+      setNotes('');
+    } catch (error) {
+      console.error('Error claiming request:', error);
+      alert('Failed to claim request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="p-6 text-center">
+        <div className="bg-[#eaa640] p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+          <span className="text-2xl">✅</span>
+        </div>
+        <h3 className="text-xl font-semibold text-white mb-2">🎉 Request Claimed Successfully!</h3>
+        <p className="text-gray-300 mb-4">{successMessage}</p>
+        <div className="bg-[#eaa640]/20 border border-[#eaa640] rounded-lg p-3 mb-4">
+          <p className="text-[#eaa640] text-sm">
+            Volunteers will be notified and will contact you soon to arrange pickup.
+          </p>
+        </div>
+        <button
+          onClick={onCancel}
+          className="bg-[#eaa640] hover:bg-[#ecae53] text-black px-6 py-2 rounded-lg font-medium transition-colors"
+        >
+          Close
+        </button>
+      </div>
+    );
+  }
+
   return (
     <form
-      onSubmit={async (e) => { e.preventDefault(); if (!address.trim()) return; setSubmitting(true); try { await onSubmit(address.trim(), notes.trim()); } finally { setSubmitting(false); } }}
+      onSubmit={handleSubmit}
       className="p-6 space-y-4"
     >
       <div className="bg-gray-700/30 rounded-lg p-4">

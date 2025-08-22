@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { submitDonation, submitRequest, validateDonationData, validateRequestData } from '../services/firestoreService';
+import { submitDonation, validateDonationData, validateRequestData } from '../services/firestoreService';
+import { createCommunityRequest } from '../services/communityRequestService';
 import { useAuth } from '../contexts/AuthContext';
 
 export const useFormSubmission = (userType: 'donor' | 'community') => {
@@ -52,8 +53,9 @@ export const useFormSubmission = (userType: 'donor' | 'community') => {
         result = await submitDonation(submissionData);
         console.log('✅ Donation submitted with ID:', result);
       } else {
-        result = await submitRequest(submissionData);
-        console.log('✅ Request submitted with ID:', result);
+        // Use the new community request service for community users
+        result = await createCommunityRequest(submissionData);
+        console.log('✅ Community request submitted with ID:', result);
       }
 
       setSuccess(true);

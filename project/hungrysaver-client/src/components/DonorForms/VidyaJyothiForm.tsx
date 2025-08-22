@@ -7,11 +7,8 @@ export interface VidyaJyothiFormData {
   address: string;
   donorName: string;
   donorContact: string;
+  supportType: 'fees' | 'books' | 'uniforms' | 'supplies' | '';
   amount: string;
-  purpose: 'fees' | 'books' | 'uniform' | '';
-  childName?: string;
-  childAge?: string;
-  childGrade?: string;
   description: string;
 }
 
@@ -26,11 +23,8 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
     address: '',
     donorName: '',
     donorContact: '',
+    supportType: '',
     amount: '',
-    purpose: '',
-    childName: '',
-    childAge: '',
-    childGrade: '',
     description: ''
   });
   const [error, setError] = useState('');
@@ -50,7 +44,7 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
 
   const validateForm = (): boolean => {
     if (!formData.location || !formData.address || !formData.donorName || 
-        !formData.donorContact || !formData.amount || !formData.purpose) {
+        !formData.donorContact || !formData.supportType || !formData.amount) {
       setError('Please fill in all required fields.');
       return false;
     }
@@ -81,7 +75,7 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
       <ErrorMessage error={error} className="mb-6" />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Location and Purpose */}
+        {/* Location and Address */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="text-white text-sm font-medium mb-2 block">
@@ -93,7 +87,7 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
                 name="location"
                 value={formData.location}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
                 <option value="">Select your city</option>
@@ -108,19 +102,20 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
 
           <div>
             <label className="text-white text-sm font-medium mb-2 block">
-              Purpose <span className="text-red-400">*</span>
+              Support Type <span className="text-red-400">*</span>
             </label>
             <select
-              name="purpose"
-              value={formData.purpose}
+              name="supportType"
+              value={formData.supportType}
               onChange={handleInputChange}
-              className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             >
-              <option value="">Select purpose</option>
+              <option value="">Select support type</option>
               <option value="fees">School Fees</option>
               <option value="books">Books & Supplies</option>
-              <option value="uniform">School Uniform</option>
+              <option value="uniforms">School Uniforms</option>
+              <option value="supplies">Educational Supplies</option>
             </select>
           </div>
         </div>
@@ -133,7 +128,7 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
             name="address"
             value={formData.address}
             onChange={handleInputChange}
-            className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             rows={2}
             placeholder="Enter your address"
             required
@@ -153,7 +148,7 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
                 name="donorName"
                 value={formData.donorName}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Your name"
                 required
               />
@@ -171,7 +166,7 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
                 name="donorContact"
                 value={formData.donorContact}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Your phone number"
                 required
               />
@@ -191,62 +186,11 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
               name="amount"
               value={formData.amount}
               onChange={handleInputChange}
-              className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Amount in ₹"
               min="1"
               required
             />
-          </div>
-        </div>
-
-        {/* Optional Child Details */}
-        <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-          <h3 className="text-lg font-semibold text-white mb-4">Child Details (Optional)</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-white text-sm font-medium mb-2 block">
-                Child Name
-              </label>
-              <input
-                type="text"
-                name="childName"
-                value={formData.childName}
-                onChange={handleInputChange}
-                className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Child's name"
-              />
-            </div>
-            
-            <div>
-              <label className="text-white text-sm font-medium mb-2 block">
-                Age
-              </label>
-              <input
-                type="number"
-                name="childAge"
-                value={formData.childAge}
-                onChange={handleInputChange}
-                className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Age"
-                min="3"
-                max="18"
-              />
-            </div>
-            
-            <div>
-              <label className="text-white text-sm font-medium mb-2 block">
-                Class/Grade
-              </label>
-              <input
-                type="text"
-                name="childGrade"
-                value={formData.childGrade}
-                onChange={handleInputChange}
-                className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="e.g., 5th Grade"
-              />
-            </div>
           </div>
         </div>
 
@@ -259,7 +203,7 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
             name="description"
             value={formData.description}
             onChange={handleInputChange}
-            className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             rows={3}
             placeholder="Any additional information about the donation..."
           />

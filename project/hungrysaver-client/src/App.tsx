@@ -23,12 +23,6 @@ const CommunityDashboard = React.lazy(() => import('./pages/CommunityDashboard')
 const CommunitySupportDashboard = React.lazy(() => import('./pages/CommunitySupportDashboard'));
 const DonorDashboard = React.lazy(() => import('./pages/DonorDashboard'));
 const PendingApproval = React.lazy(() => import('./pages/PendingApproval'));
-const CommunityDonorAnnamitraSeva = React.lazy(() => import('./components/DonorForms/CommunityDonorAnnamitraSeva'));
-const CommunityDonorVidyaJyothi = React.lazy(() => import('./components/DonorForms/CommunityDonorVidyaJyothi'));
-const CommunityDonorSurakshaSetu = React.lazy(() => import('./components/DonorForms/CommunityDonorSurakshaSetu'));
-const CommunityDonorPunarAsha = React.lazy(() => import('./components/DonorForms/CommunityDonorPunarAsha'));
-const CommunityDonorRakshaJyothi = React.lazy(() => import('./components/DonorForms/CommunityDonorRakshaJyothi'));
-const CommunityDonorJyothiNilayam = React.lazy(() => import('./components/DonorForms/CommunityDonorJyothiNilayam'));
 
 function App() {
   // Removed unused token and error state
@@ -103,55 +97,6 @@ function App() {
                     <DonorDashboard />
                   </ProtectedRoute>
                 } 
-              />
-              {/* Community Donor Forms for each initiative */}
-              <Route
-                path="/community-donor/annamitra-seva/:requestId"
-                element={
-                  <ProtectedRoute>
-                    <CommunityDonorAnnamitraSeva />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/community-donor/vidya-jyothi/:requestId"
-                element={
-                  <ProtectedRoute>
-                    <CommunityDonorVidyaJyothi />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/community-donor/suraksha-setu/:requestId"
-                element={
-                  <ProtectedRoute>
-                    <CommunityDonorSurakshaSetu />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/community-donor/punar-asha/:requestId"
-                element={
-                  <ProtectedRoute>
-                    <CommunityDonorPunarAsha />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/community-donor/raksha-jyothi/:requestId"
-                element={
-                  <ProtectedRoute>
-                    <CommunityDonorRakshaJyothi />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/community-donor/jyothi-nilayam/:requestId"
-                element={
-                  <ProtectedRoute>
-                    <CommunityDonorJyothiNilayam />
-                  </ProtectedRoute>
-                }
               />
               {/* Catch-all route - redirect to home for unknown routes */}
               <Route path="*" element={<Navigate to="/" replace />} />

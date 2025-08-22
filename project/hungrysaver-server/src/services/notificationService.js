@@ -3,8 +3,8 @@ import { getFirestore } from '../config/firebase.js';
 import { COLLECTIONS, NOTIFICATION_TYPES, MOTIVATIONAL_MESSAGES } from '../config/constants.js';
 import { logger } from '../utils/logger.js';
 
-// Import emailService dynamically to avoid circular dependencies
-let emailService = null;
+// Import emailService directly to avoid async loading issues
+import emailService from './emailService.js';
 
 class NotificationService {
   constructor() {
@@ -29,13 +29,6 @@ class NotificationService {
       } catch (error) {
         logger.warn('FCM messaging not available:', error.message);
         this.messaging = null;
-      }
-      
-      // Import email service dynamically
-      if (!emailService) {
-        import('./emailService.js').then(module => {
-          emailService = module.default;
-        });
       }
       
       this.initialized = true;
@@ -202,6 +195,210 @@ class NotificationService {
       logger.info(`Sent donation accepted notification for ${donation.id}`);
     } catch (error) {
       logger.error('Error sending donation accepted notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send notification to volunteer when community request is claimed by donor
+   */
+  async notifyVolunteerCommunityRequestClaimed(request, donorDetails) {
+    try {
+      const db = this.getDb();
+      
+      // Get volunteer details who approved the request
+      const volunteerDoc = await db.collection(COLLECTIONS.USERS).doc(request.volunteerId).get();
+      if (!volunteerDoc.exists) {
+        logger.warn(`Volunteer ${request.volunteerId} not found for notification`);
+        return;
+      }
+      
+      const volunteer = volunteerDoc.data();
+
+      // Create notification for volunteer
+      const notification = {
+        userId: request.volunteerId,
+        type: NOTIFICATION_TYPES.COMMUNITY_REQUEST_CLAIMED,
+        title: `Community Request Claimed in ${request.location}!`,
+        message: `A donor has claimed your approved request. Pickup details available.`,
+        data: {
+          requestId: request.id,
+          initiative: request.initiative,
+          location: request.location,
+          beneficiaryName: request.beneficiaryName,
+          donorAddress: donorDetails.donorAddress,
+          donorNotes: donorDetails.donorNotes,
+          claimedAt: new Date()
+        },
+        createdAt: new Date(),
+        read: false
+      };
+
+      await db.collection(COLLECTIONS.NOTIFICATIONS).add(notification);
+
+      // Send push notification if FCM is available
+      if (this.messaging && volunteer.fcmToken) {
+        await this.sendPushNotification([volunteer.fcmToken], {
+          title: `Community Request Claimed in ${request.location}!`,
+          body: `A donor has claimed your approved request. Pickup details available.`,
+          data: {
+            type: NOTIFICATION_TYPES.COMMUNITY_REQUEST_CLAIMED,
+            requestId: request.id
+          }
+        });
+      }
+
+      // Send email notification if service is available
+      try {
+        if (emailService && volunteer.email) {
+          await emailService.sendCommunityRequestClaimedEmail(request, volunteer, donorDetails);
+          logger.info(`Sent community request claimed email to volunteer ${volunteer.email}`);
+        }
+      } catch (emailError) {
+        logger.warn('Failed to send email notification to volunteer:', emailError);
+        // Don't fail the main operation if email fails
+      }
+
+      logger.info(`Notified volunteer ${request.volunteerId} about claimed community request ${request.id}`);
+    } catch (error) {
+      logger.error('Error notifying volunteer about claimed community request:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send notifications to volunteers in a specific city about new community request
+   */
+  async notifyCityVolunteersNewRequest(request) {
+    try {
+      const db = this.getDb();
+      
+      logger.info(`Looking for volunteers in city: ${request.location_lowercase}`);
+      
+      // First, let's check all volunteers in the city without the approved filter
+      const allVolunteersQuery = await db.collection(COLLECTIONS.USERS)
+        .where('userType', '==', 'volunteer')
+        .where('location', '==', request.location_lowercase)
+        .get();
+
+      logger.info(`Found ${allVolunteersQuery.docs.length} total volunteers in ${request.location_lowercase} (before approved filter)`);
+      
+      // Log details of each volunteer to debug
+      allVolunteersQuery.docs.forEach((doc, index) => {
+        const volunteer = doc.data();
+        logger.info(`Volunteer ${index + 1}: ID=${doc.id}, Name=${volunteer.firstName}, Email=${volunteer.email}, Status=${volunteer.status}, Location=${volunteer.location}`);
+      });
+      
+      // Now apply the approved filter
+      const volunteersQuery = await db.collection(COLLECTIONS.USERS)
+        .where('userType', '==', 'volunteer')
+        .where('location', '==', request.location_lowercase)
+        .where('status', '==', 'approved')
+        .get();
+
+      const volunteers = volunteersQuery.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      logger.info(`Found ${volunteers.length} approved volunteers in ${request.location_lowercase}`);
+
+      if (volunteers.length === 0) {
+        logger.warn(`No approved volunteers found in city ${request.location_lowercase}`);
+        
+        // Fallback: Try to find volunteers without the approved filter
+        logger.info(`Trying fallback query without approved filter...`);
+        const fallbackQuery = await db.collection(COLLECTIONS.USERS)
+          .where('userType', '==', 'volunteer')
+          .where('location', '==', request.location_lowercase)
+          .get();
+        
+        const fallbackVolunteers = fallbackQuery.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        logger.info(`Found ${fallbackVolunteers.length} volunteers in fallback query`);
+        
+        if (fallbackVolunteers.length > 0) {
+          logger.info(`Using fallback volunteers (not all may be approved)`);
+          // Use fallback volunteers but log a warning
+          volunteers.length = 0; // Clear the array
+          volunteers.push(...fallbackVolunteers);
+        } else {
+          return;
+        }
+      }
+
+      // Create notifications for all volunteers in the city
+      const notifications = volunteers.map(volunteer => ({
+        userId: volunteer.id,
+        type: NOTIFICATION_TYPES.NEW_COMMUNITY_REQUEST,
+        title: `New Community Request in ${request.location}!`,
+        message: `${request.initiative.replace('-', ' ')} request needs your attention`,
+        data: {
+          requestId: request.id,
+          initiative: request.initiative,
+          location: request.location,
+          beneficiaryName: request.beneficiaryName,
+          urgency: request.urgency
+        },
+        createdAt: new Date(),
+        read: false
+      }));
+
+      // Save notifications to database
+      const batch = db.batch();
+      notifications.forEach(notification => {
+        const notificationRef = db.collection(COLLECTIONS.NOTIFICATIONS).doc();
+        batch.set(notificationRef, notification);
+      });
+      await batch.commit();
+
+      // Send push notifications if FCM is available
+      if (this.messaging) {
+        const fcmTokens = volunteers
+          .filter(v => v.fcmToken)
+          .map(v => v.fcmToken);
+
+        if (fcmTokens.length > 0) {
+          await this.sendPushNotification(fcmTokens, {
+            title: `New Community Request in ${request.location}!`,
+            body: `${request.initiative.replace('-', ' ')} request needs your attention`,
+            data: {
+              type: NOTIFICATION_TYPES.NEW_COMMUNITY_REQUEST,
+              requestId: request.id
+            }
+          });
+        }
+      }
+
+      // Send email notifications to all volunteers in the city
+      logger.info(`Attempting to send email notifications to ${volunteersQuery.docs.length} volunteers`);
+      try {
+        if (emailService) {
+          logger.info('Email service is available, sending emails...');
+          for (const doc of volunteersQuery.docs) {
+            const volunteer = doc.data();
+            if (volunteer.email) {
+              logger.info(`Sending email to volunteer: ${volunteer.email}`);
+              await emailService.sendNewCommunityRequestEmail(request, volunteer);
+              logger.info(`Sent new community request email to volunteer ${volunteer.email} in city ${request.location_lowercase}`);
+            } else {
+              logger.warn(`Volunteer ${volunteer.id} has no email address`);
+            }
+          }
+        } else {
+          logger.warn('Email service is not available');
+        }
+      } catch (emailError) {
+        logger.error('Failed to send email notifications to volunteers:', emailError);
+        // Don't fail the main operation if email fails
+      }
+
+      logger.info(`Notified ${volunteers.length} volunteers about new community request ${request.id}`);
+    } catch (error) {
+      logger.error('Error notifying city volunteers about new community request:', error);
       throw error;
     }
   }

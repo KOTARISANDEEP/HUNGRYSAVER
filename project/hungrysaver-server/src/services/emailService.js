@@ -479,53 +479,306 @@ class EmailService {
   }
 
   /**
-   * Send donation accepted email
+   * Send donation accepted email to donor
    */
   async sendDonationAcceptedEmail(donation, volunteer) {
     try {
       const mailOptions = {
-        to: donation.donorEmail || donation.donorContact,
-        subject: 'Your Donation Has Been Accepted! 🎉',
+        to: donation.donorEmail,
+        subject: '🎉 Your Donation Has Been Accepted!',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #16a34a;">Great News! Your Donation Has Been Accepted</h2>
-            
-            <p>Dear ${donation.donorName},</p>
-            
-            <p>We're excited to let you know that your generous donation has been accepted by one of our volunteers!</p>
-            
-            <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #0369a1; margin-top: 0;">Donation Details:</h3>
-              <ul style="list-style: none; padding: 0;">
-                <li><strong>Initiative:</strong> ${donation.initiative.replace('-', ' ')}</li>
-                <li><strong>Location:</strong> ${donation.location}</li>
-                <li><strong>Volunteer:</strong> ${volunteer.firstName}</li>
-                <li><strong>Status:</strong> Accepted - Pickup scheduled</li>
-              </ul>
+            <div style="background: linear-gradient(135deg, #eaa640 0%, #ecae53 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Donation Accepted!</h1>
+              <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Your generosity is making a difference!</p>
             </div>
             
-            <p><strong>What happens next?</strong></p>
-            <ol>
-              <li>Our volunteer will contact you to arrange pickup</li>
-              <li>Your donation will be collected at the scheduled time</li>
-              <li>We'll notify you once it's delivered to those in need</li>
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #333; margin-top: 0;">Hello ${donation.donorName || 'Generous Donor'}!</h2>
+              
+              <p style="color: #555; line-height: 1.6;">
+                Great news! Your donation has been accepted by <strong>${volunteer.firstName} ${volunteer.lastName || ''}</strong>, 
+                a volunteer in your area.
+              </p>
+              
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #eaa640;">
+                <h3 style="color: #333; margin-top: 0;">📋 Donation Details</h3>
+                <p><strong>Initiative:</strong> ${donation.initiative ? donation.initiative.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Community Support'}</p>
+                <p><strong>Location:</strong> ${donation.location || 'Your area'}</p>
+                <p><strong>Status:</strong> <span style="color: #28a745; font-weight: bold;">Accepted for Pickup</span></p>
+            </div>
+            
+              <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="color: #155724; margin-top: 0;">📞 What Happens Next?</h3>
+                <ol style="color: #155724; line-height: 1.8;">
+                  <li><strong>${volunteer.firstName}</strong> will contact you within 2-6 hours to arrange pickup</li>
+                  <li>They will coordinate the pickup time and location</li>
+                  <li>Your donation will be delivered to families in need</li>
+                  <li>You'll receive updates on the delivery status</li>
             </ol>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <p style="color: #666; font-style: italic;">
+                  "Your small step today can become someone's reason to survive tomorrow."
+                </p>
+              </div>
+              
+              <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border: 1px solid #ffeaa7;">
+                <h3 style="color: #856404; margin-top: 0;">💡 Need to Make Changes?</h3>
+                <p style="color: #856404; margin-bottom: 0;">
+                  If you need to modify pickup details or have questions, please contact us at 
+                  <a href="mailto:support@hungrysaver.com" style="color: #eaa640;">support@hungrysaver.com</a>
+                </p>
+              </div>
+            </div>
             
-            <p>Thank you for making a difference in your community! 🙏</p>
-            
-            <hr style="margin: 30px 0;">
-            <p style="color: #666; font-size: 12px;">
-              This is an automated message from Hungry Saver Platform.<br>
-              If you have any questions, please contact us at support@hungrysaver.com
-            </p>
+            <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+              <p>Thank you for being part of the Hungry Saver community! 🌟</p>
+              <p>This email was sent from Hungry Saver - Connecting Generosity with Need</p>
+            </div>
           </div>
         `
       };
 
-      await this.sendEmail(mailOptions);
+      return await this.sendEmail(mailOptions);
     } catch (error) {
       logger.error('Error sending donation accepted email:', error);
-      // Don't throw error to avoid breaking the main flow
+      throw error;
+    }
+  }
+
+  /**
+   * Send community request claimed email to volunteer
+   */
+  async sendCommunityRequestClaimedEmail(request, volunteer, donorDetails) {
+    try {
+      const mailOptions = {
+        to: volunteer.email,
+        subject: `🎯 Community Request Claimed in ${request.location}!`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #eaa640 0%, #ecae53 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">🎯 Request Claimed!</h1>
+              <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">A donor has claimed your approved community request!</p>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #333; margin-top: 0;">Hello ${volunteer.firstName}!</h2>
+              
+              <p style="color: #555; line-height: 1.6;">
+                Excellent news! A generous donor has claimed the community request you approved. 
+                It's time to coordinate the pickup and delivery!
+              </p>
+              
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #eaa640;">
+                <h3 style="color: #333; margin-top: 0;">📋 Request Details</h3>
+                <p><strong>Initiative:</strong> ${request.initiative ? request.initiative.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Community Support'}</p>
+                <p><strong>Location:</strong> ${request.location || 'Your area'}</p>
+                <p><strong>Beneficiary:</strong> ${request.beneficiaryName || 'Community Member'}</p>
+                <p><strong>Description:</strong> ${request.description || 'Support needed'}</p>
+                <p><strong>Status:</strong> <span style="color: #28a745; font-weight: bold;">Claimed by Donor</span></p>
+              </div>
+              
+              <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="color: #155724; margin-top: 0;">📍 Pickup Information</h3>
+                <p><strong>Donor Address:</strong> ${donorDetails.donorAddress}</p>
+                ${donorDetails.donorNotes ? `<p><strong>Donor Notes:</strong> ${donorDetails.donorNotes}</p>` : ''}
+                <p><strong>Claimed At:</strong> ${new Date().toLocaleString('en-IN')}</p>
+              </div>
+              
+              <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border: 1px solid #ffeaa7;">
+                <h3 style="color: #856404; margin-top: 0;">🚀 Next Steps</h3>
+                <ol style="color: #856404; line-height: 1.8;">
+                  <li><strong>Contact the donor</strong> within 2-6 hours to arrange pickup</li>
+                  <li><strong>Coordinate pickup time</strong> and location with the donor</li>
+                  <li><strong>Collect the donation</strong> from the donor's address</li>
+                  <li><strong>Deliver to beneficiary</strong> at ${request.address || 'the specified location'}</li>
+                  <li><strong>Update status</strong> in your volunteer dashboard</li>
+                </ol>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <p style="color: #666; font-style: italic;">
+                  "You're the bridge between generosity and need. Thank you for your service!"
+                </p>
+              </div>
+              
+              <div style="background: #d1ecf1; padding: 20px; border-radius: 8px; border: 1px solid #bee5eb;">
+                <h3 style="color: #0c5460; margin-top: 0;">📱 Dashboard Access</h3>
+                <p style="color: #0c5460; margin-bottom: 0;">
+                  Access your volunteer dashboard to track this request and update its status as you progress through the delivery process.
+                </p>
+              </div>
+            </div>
+            
+            <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+              <p>Thank you for your dedication to serving the community! 🌟</p>
+              <p>This email was sent from Hungry Saver - Connecting Generosity with Need</p>
+            </div>
+          </div>
+        `
+      };
+
+      return await this.sendEmail(mailOptions);
+    } catch (error) {
+      logger.error('Error sending community request claimed email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send email notification to volunteers when a new community request is created in their city
+   */
+  async sendNewCommunityRequestEmail(request, volunteer) {
+    try {
+      // Get initiative details with emojis
+      const initiativeDetails = {
+        'annamitra-seva': { name: 'Annamitra Seva', emoji: '🍛', description: 'Food assistance for families in need' },
+        'vidya-jyothi': { name: 'Vidya Jyothi', emoji: '📚', description: 'Educational support for children' },
+        'suraksha-setu': { name: 'Suraksha Setu', emoji: '🛡️', description: 'Emergency support during crisis' },
+        'punarasha': { name: 'PunarAsha', emoji: '🏠', description: 'Rehabilitation support for families' },
+        'raksha-jyothi': { name: 'Raksha Jyothi', emoji: '⚡', description: 'Emergency response for critical situations' },
+        'jyothi-nilayam': { name: 'Jyothi Nilayam', emoji: '🏛️', description: 'Support for shelters and sanctuaries' }
+      };
+
+      const initiative = initiativeDetails[request.initiative] || { 
+        name: request.initiative.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()), 
+        emoji: '💝', 
+        description: 'Community support request' 
+      };
+
+      const urgencyColors = {
+        'low': '#10b981',
+        'medium': '#f59e0b', 
+        'high': '#ef4444'
+      };
+
+      const urgencyLabels = {
+        'low': 'Low Priority',
+        'medium': 'Medium Priority',
+        'high': 'High Priority'
+      };
+
+      const mailOptions = {
+        to: volunteer.email,
+        subject: `${initiative.emoji} New ${initiative.name} Request in ${request.location}!`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; background-color: #f8fafc;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #eaa640 0%, #ecae53 100%); padding: 35px; text-align: center; border-radius: 12px 12px 0 0; box-shadow: 0 4px 15px rgba(234, 166, 64, 0.3);">
+              <h1 style="color: white; margin: 0; font-size: 32px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                ${initiative.emoji} New Community Request!
+              </h1>
+              <p style="color: white; margin: 15px 0 0 0; font-size: 18px; opacity: 0.95;">
+                A family in <strong>${request.location}</strong> needs your help
+              </p>
+              <div style="background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 25px; display: inline-block; margin-top: 15px;">
+                <span style="color: white; font-weight: bold; font-size: 14px;">
+                  Priority: ${urgencyLabels[request.urgency]}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div style="background: white; padding: 40px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <h2 style="color: #333; margin-top: 0; font-size: 24px;">Hello ${volunteer.firstName}! 👋</h2>
+              
+              <p style="color: #666; line-height: 1.7; font-size: 16px; margin-bottom: 25px;">
+                A new <strong>${initiative.name}</strong> request has been submitted in <strong>${request.location}</strong> and needs your attention. 
+                As a trusted volunteer in this area, you can help make a real difference in someone's life.
+              </p>
+              
+              <!-- Initiative Info -->
+              <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 25px; border-radius: 12px; margin: 25px 0; border-left: 5px solid #0ea5e9;">
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                  <span style="font-size: 28px; margin-right: 15px;">${initiative.emoji}</span>
+                  <div>
+                    <h3 style="color: #0c4a6e; margin: 0; font-size: 20px;">${initiative.name}</h3>
+                    <p style="color: #0369a1; margin: 5px 0 0 0; font-size: 14px;">${initiative.description}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Request Details -->
+              <div style="background: #f8f9fa; padding: 30px; border-radius: 12px; margin: 25px 0; border: 1px solid #e9ecef;">
+                <h3 style="color: #333; margin-top: 0; font-size: 20px; display: flex; align-items: center;">
+                  📋 Request Details
+                  <span style="background: ${urgencyColors[request.urgency]}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-left: 15px; font-weight: normal;">
+                    ${urgencyLabels[request.urgency]}
+                  </span>
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                  <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #eaa640;">
+                    <strong style="color: #555; font-size: 14px;">👤 BENEFICIARY NAME</strong><br>
+                    <span style="color: #333; font-size: 16px; font-weight: 500;">${request.beneficiaryName}</span>
+                  </div>
+                  <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #eaa640;">
+                    <strong style="color: #555; font-size: 14px;">📞 CONTACT NUMBER</strong><br>
+                    <span style="color: #333; font-size: 16px; font-weight: 500;">${request.beneficiaryContact}</span>
+                  </div>
+                  <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #eaa640;">
+                    <strong style="color: #555; font-size: 14px;">📍 LOCATION</strong><br>
+                    <span style="color: #333; font-size: 16px; font-weight: 500;">${request.location}</span>
+                  </div>
+                  <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #eaa640;">
+                    <strong style="color: #555; font-size: 14px;">🏠 ADDRESS</strong><br>
+                    <span style="color: #333; font-size: 16px; font-weight: 500;">${request.address}</span>
+                  </div>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #eaa640;">
+                  <strong style="color: #555; font-size: 14px;">📝 DESCRIPTION</strong><br>
+                  <span style="color: #333; font-size: 16px; line-height: 1.6;">${request.description}</span>
+                </div>
+              </div>
+              
+              <!-- How to Help -->
+              <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 30px; border-radius: 12px; margin: 25px 0; border-left: 5px solid #16a34a;">
+                <h3 style="color: #15803d; margin-top: 0; font-size: 20px; display: flex; align-items: center;">
+                  🎯 How You Can Help
+                </h3>
+                <ol style="color: #166534; line-height: 2; margin: 20px 0 0 0; padding-left: 25px; font-size: 16px;">
+                  <li><strong>Review the request</strong> and assess if you can provide assistance</li>
+                  <li><strong>Accept the request</strong> if you're available and capable of helping</li>
+                  <li><strong>Visit the beneficiary</strong> to verify the need and gather more details</li>
+                  <li><strong>Make a decision</strong> to approve or reject based on your verification</li>
+                  <li><strong>Coordinate with donors</strong> once the request is approved</li>
+                </ol>
+              </div>
+              
+              <!-- CTA Button -->
+              <div style="text-align: center; margin: 35px 0;">
+                <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard/${request.location_lowercase}" 
+                   style="background: linear-gradient(135deg, #eaa640 0%, #ecae53 100%); color: white; padding: 18px 40px; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 18px; display: inline-block; box-shadow: 0 4px 15px rgba(234, 166, 64, 0.4); transition: all 0.3s ease;">
+                  📱 View Request in Dashboard
+                </a>
+              </div>
+              
+              <!-- Footer -->
+              <div style="margin-top: 40px; padding-top: 25px; border-top: 2px solid #f1f5f9; text-align: center;">
+                <p style="color: #475569; margin: 0; font-size: 16px; font-weight: 500;">
+                  Your dedication to helping families in ${request.location} is truly appreciated! 🌟
+                </p>
+                <p style="color: #64748b; margin: 10px 0 0 0; font-size: 14px;">
+                  Please respond to this request within <strong>24 hours</strong> to ensure timely assistance.
+                </p>
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                  <p style="color: #64748b; margin: 0; font-size: 13px;">
+                    <strong>Request ID:</strong> ${request.id} | <strong>Submitted:</strong> ${new Date().toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+      };
+
+      return await this.sendEmail(mailOptions);
+    } catch (error) {
+      logger.error('Error sending new community request email:', error);
+      throw error;
     }
   }
 

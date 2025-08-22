@@ -9,7 +9,8 @@ import {
   markReached,
   makeDecision,
   getApprovedRequests,
-  donorClaim
+  donorClaim,
+  testEmailService
 } from '../controllers/communityRequests.controller.js';
 
 const router = express.Router();
@@ -37,5 +38,8 @@ router.post('/:id/decision', authenticateToken, requireVolunteer, requireApprove
 // Donor routes - require donor role and approval
 router.get('/approved', authenticateToken, requireDonor, requireApproved, getApprovedRequests);
 router.post('/:id/donor-claim', authenticateToken, requireDonor, requireApproved, donorClaim);
+
+// Test route for email service (remove in production)
+router.post('/test-email', testEmailService);
 
 export default router;

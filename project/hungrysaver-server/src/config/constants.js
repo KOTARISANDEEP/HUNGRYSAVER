@@ -53,7 +53,9 @@ export const NOTIFICATION_TYPES = {
   DONATION_PICKED: 'donation_picked',
   DONATION_DELIVERED: 'donation_delivered',
   NEW_REQUEST: 'new_request',
-  REQUEST_FULFILLED: 'request_fulfilled'
+  REQUEST_FULFILLED: 'request_fulfilled',
+  COMMUNITY_REQUEST_CLAIMED: 'community_request_claimed',
+  NEW_COMMUNITY_REQUEST: 'new_community_request'
 };
 
 // Collection names
