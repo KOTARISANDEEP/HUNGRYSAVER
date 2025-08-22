@@ -84,15 +84,15 @@ const CommunitySupportDashboard: React.FC = () => {
   ];
 
   const navigationTabs = [
-    { key: 'home', label: 'Home', icon: Home },
-    { key: 'newRequest', label: 'New Request', icon: Heart },
-    { key: 'myRequests', label: 'My Requests', icon: User },
-    { key: 'supportHistory', label: 'Support History', icon: History },
-    { key: 'successStories', label: 'Success Stories', icon: Award },
-    { key: 'impactHub', label: 'Impact Hub', icon: BarChart3 },
-    { key: 'messages', label: 'Messages', icon: MessageSquare },
-    { key: 'feedback', label: 'Feedback', icon: Star },
-    { key: 'settings', label: 'Settings', icon: Settings }
+    { key: 'home', label: 'Home', icon: Home, description: 'Dashboard Overview' },
+    { key: 'newRequest', label: 'New Request', icon: Heart, description: 'Create Support Request' },
+    { key: 'myRequests', label: 'My Requests', icon: User, description: 'Track Your Requests' },
+    { key: 'supportHistory', label: 'Support History', icon: History, description: 'Past Support Records' },
+    { key: 'successStories', label: 'Success Stories', icon: Award, description: 'Community Impact Stories' },
+    { key: 'impactHub', label: 'Impact Hub', icon: BarChart3, description: 'Community Impact Reports' },
+    { key: 'messages', label: 'Messages', icon: MessageSquare, description: 'Communication Center' },
+    { key: 'feedback', label: 'Feedback', icon: Star, description: 'Share Your Experience' },
+    { key: 'settings', label: 'Settings', icon: Settings, description: 'Account & Preferences' }
   ];
 
   useEffect(() => {
@@ -261,26 +261,34 @@ const CommunitySupportDashboard: React.FC = () => {
           <div className="text-white text-base font-medium flex items-center gap-2">
             <span role="img" aria-label="handshake">🤝</span>
             <span>Welcome back, {userData?.firstName || 'Community Member'}!</span>
+            <span className="text-xs text-[#eaa640] ml-4">Active: {activeTab}</span>
           </div>
           {/* Right: Profile + Logout */}
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
               <User className="h-4 w-4 text-white" />
             </div>
-            <button
-              onClick={async () => { await logout(); navigate('/login'); }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-gray-600 text-sm text-white hover:text-[#EAA640] hover:border-[#EAA640] transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </button>
+                                                         <button
+                               onClick={async () => {
+                                 try {
+                                   await logout();
+                                   navigate('/login');
+                                 } catch (error) {
+                                   console.error('Logout error:', error);
+                                 }
+                               }}
+                               className="group relative w-16 h-20 transition-all duration-300 hover:scale-110 flex flex-col items-center justify-center"
+                             >
+                               <LogOut className="h-5 w-5 text-[#eaa640] mb-1 transition-transform duration-300 group-hover:scale-110 group-hover:translate-x-1 group-hover:-translate-y-1" />
+                               <span className="text-xs text-[#eaa640] font-medium">Logout</span>
+                             </button>
           </div>
         </div>
       </div>
 
-      {/* Transparent Sidebar */}
-      <aside className="fixed top-[60px] left-0 h-full w-64 bg-black/60 backdrop-blur-md border-r border-[#eaa640]/20 z-40">
-        <div className="p-6">
+      {/* Sidebar */}
+      <div className="fixed left-0 top-[60px] bottom-0 w-64 bg-black shadow-lg border-r border-[#eaa640]/20 z-40">
+        <div className="p-4 h-full overflow-y-auto">
           <nav className="space-y-2">
             {navigationTabs.map((tab) => {
               const Icon = tab.icon;
@@ -288,23 +296,27 @@ const CommunitySupportDashboard: React.FC = () => {
                 <button
                   key={tab.key}
                   onClick={() => {
+                    console.log('Setting active tab to:', tab.key);
                     setActiveTab(tab.key as any);
                     setSelectedInitiative('');
                   }}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-all duration-300 ${
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-all duration-200 bg-transparent ${
                     activeTab === tab.key
                       ? 'bg-gradient-to-r from-[#eaa640]/20 to-[#eeb766]/20 text-[#eaa640] border-l-4 border-[#eaa640]'
                       : 'text-gray-400 hover:text-[#eaa640] hover:bg-[#eaa640]/10'
                   }`}
                 >
-                  <Icon className="h-5 w-5 flex-shrink-0" />
-                  <span className="font-medium">{tab.label}</span>
+                  <Icon className={`h-5 w-5 ${activeTab === tab.key ? 'text-[#eaa640]' : 'text-gray-400'}`} />
+                  <div className="flex-1">
+                    <div className={`font-medium ${activeTab === tab.key ? 'text-[#eaa640]' : 'text-gray-400'}`}>{tab.label}</div>
+                    <div className={`text-xs mt-0.5 ${activeTab === tab.key ? 'text-[#eaa640]/70' : 'text-gray-500'}`}>{tab.description}</div>
+                  </div>
                 </button>
               );
             })}
           </nav>
         </div>
-      </aside>
+      </div>
 
       {/* Main Content */}
       <main className="ml-64 pt-[60px]">

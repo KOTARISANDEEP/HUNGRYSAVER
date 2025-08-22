@@ -968,13 +968,20 @@ const DonorDashboard: React.FC = () => {
             <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
               <User className="h-4 w-4 text-white" />
             </div>
-            <button
-              onClick={async () => { await logout(); navigate('/login'); }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-gray-600 text-sm text-white hover:text-[#EAA640] hover:border-[#EAA640] transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </button>
+                                                         <button
+                               onClick={async () => {
+                                 try {
+                                   await logout();
+                                   navigate('/login');
+                                 } catch (error) {
+                                   console.error('Logout error:', error);
+                                 }
+                               }}
+                               className="group relative w-16 h-20 transition-all duration-300 hover:scale-110 flex flex-col items-center justify-center"
+                             >
+                               <LogOut className="h-5 w-5 text-[#eaa640] mb-1 transition-transform duration-300 group-hover:scale-110 group-hover:translate-x-1 group-hover:-translate-y-1" />
+                               <span className="text-xs text-[#eaa640] font-medium">Logout</span>
+                             </button>
           </div>
         </div>
       </div>
