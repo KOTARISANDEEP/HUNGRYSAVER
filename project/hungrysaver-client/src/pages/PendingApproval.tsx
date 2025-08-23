@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { Clock, CheckCircle, Users, Heart, BookOpen, Shield, Home, Zap, Building } from 'lucide-react';
+import { Clock, CheckCircle, Users, Heart, BookOpen, Shield, Home, Zap, Building, LogOut } from 'lucide-react';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,7 +13,7 @@ const motivationalQuotes = [
 ];
 
 const PendingApproval: React.FC = () => {
-  const { userData, currentUser } = useAuth();
+  const { userData, currentUser, logout } = useAuth();
   const [status, setStatus] = useState<'pending' | 'approved' | 'rejected' | 'loading'>('loading');
   const navigate = useNavigate();
   const [currentQuote, setCurrentQuote] = React.useState(0);
@@ -309,6 +309,30 @@ const PendingApproval: React.FC = () => {
             <p className="text-gray-400 text-sm mt-2">
               You'll be redirected automatically once approved
             </p>
+          </div>
+        </div>
+
+        {/* Logout Section */}
+        <div className="mt-12 text-center">
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4">Need to Logout?</h3>
+            <p className="text-gray-400 mb-6">
+              You can safely logout while your application is being reviewed. You'll be notified via email once approved.
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  await logout();
+                  navigate('/login');
+                } catch (error) {
+                  console.error('Logout error:', error);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 mx-auto"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </div>

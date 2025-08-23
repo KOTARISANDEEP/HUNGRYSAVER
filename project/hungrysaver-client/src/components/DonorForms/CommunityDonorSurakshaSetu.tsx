@@ -143,7 +143,7 @@ const CommunityDonorSurakshaSetu: React.FC = () => {
           originalRequestId: request.id,
         },
       };
-      const res = await fetch('/api/donations', {
+      const res = await fetch('https://hungrysaver.onrender.com/api/donations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

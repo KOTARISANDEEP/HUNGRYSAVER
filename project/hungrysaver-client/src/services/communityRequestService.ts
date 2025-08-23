@@ -1,6 +1,6 @@
 import { CommunityRequest, CommunityRequestAction } from '../types/formTypes';
 
-const API_BASE_URL = '/api/community-requests';
+const API_BASE_URL = 'https://hungrysaver.onrender.com/api/community-requests';
 
 // Get Firebase ID token for authentication
 const getIdToken = async (): Promise<string> => {
@@ -158,6 +158,13 @@ export const claimCommunityRequest = async (requestId: string, donorAddress: str
   try {
     const idToken = await getIdToken();
     
+    console.log('🔍 claimCommunityRequest - Request details:', {
+      requestId,
+      donorAddress,
+      notes,
+      hasToken: !!idToken
+    });
+    
     const response = await fetch(`${API_BASE_URL}/${requestId}/donor-claim`, {
       method: 'POST',
       headers: {
@@ -170,14 +177,20 @@ export const claimCommunityRequest = async (requestId: string, donorAddress: str
       })
     });
 
+    console.log('🔍 claimCommunityRequest - Response status:', response.status);
+    console.log('🔍 claimCommunityRequest - Response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('❌ claimCommunityRequest - Server error:', errorData);
       throw new Error(errorData.message || 'Failed to claim request');
     }
 
+    const result = await response.json();
+    console.log('✅ claimCommunityRequest - Success:', result);
     return true;
   } catch (error) {
-    console.error('Error claiming community request:', error);
+    console.error('❌ Error claiming community request:', error);
     throw error;
   }
 };

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Calendar, User, Phone, Package, Clock, CheckCircle, AlertCircle, 
   Award, TrendingUp, Heart, Home, List, Users, ClipboardCheck, 
-  Star, MessageCircle, Settings, Menu, X, Bell, LogOut,
+  Star, MessageCircle, Settings as SettingsIcon, Menu, X, Bell, LogOut,
   ChevronRight, BarChart3, Gift
 } from 'lucide-react';
 import { getTasksByLocation, updateTaskStatus } from '../services/firestoreService';
@@ -14,6 +14,7 @@ import { LiveImpactDashboard } from '../components/ImpactCounter';
 import MotivationalBanner from '../components/MotivationalBanner';
 import AnimatedEmptyState from '../components/AnimatedIllustrations';
 import CommunityRequestCard from '../components/CommunityRequestCard';
+import Settings from '../components/Settings';
 
 const VolunteerDashboard: React.FC = () => {
   const { location } = useParams<{ location: string }>();
@@ -42,7 +43,7 @@ const VolunteerDashboard: React.FC = () => {
     { id: 'reviews', label: 'Reviews', icon: Star, description: 'Community Feedback' },
     { id: 'chatbot', label: 'Chatbot', icon: MessageCircle, description: 'AI Support Assistant' },
     { id: 'success-stories', label: 'Success Stories', icon: Award, description: 'Impact Stories' },
-    { id: 'settings', label: 'Settings', icon: Settings, description: 'Account & Preferences' },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon, description: 'Account & Preferences' },
   ];
 
   useEffect(() => {
@@ -406,10 +407,13 @@ const VolunteerDashboard: React.FC = () => {
           </div>
         );
 
+      case 'settings':
+        return <Settings userType="volunteer" />;
+
       default:
         return (
           <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-12 text-center border border-gray-700">
-            <Settings className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+            <SettingsIcon className="h-16 w-16 text-gray-500 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-300 mb-2">Coming Soon</h3>
             <p className="text-gray-400">This section is under development.</p>
           </div>

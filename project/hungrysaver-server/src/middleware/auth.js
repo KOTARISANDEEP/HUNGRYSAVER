@@ -35,6 +35,14 @@ export const authenticateToken = async (req, res, next) => {
 
     const userData = userDoc.data();
     
+    console.log('🔍 authenticateToken - Firestore user data:', {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      userType: userData.userType,
+      status: userData.status,
+      firstName: userData.firstName
+    });
+    
     // Attach user info to request
     req.user = {
       uid: decodedToken.uid,
@@ -90,12 +98,25 @@ export const requireVolunteer = (req, res, next) => {
  * Check if user is donor
  */
 export const requireDonor = (req, res, next) => {
+  console.log('🔍 requireDonor middleware - User data:', {
+    uid: req.user.uid,
+    userType: req.user.userType,
+    email: req.user.email,
+    status: req.user.status
+  });
+  
   if (req.user.userType !== 'donor' && req.user.userType !== 'admin') {
+    console.error('❌ requireDonor middleware - Access denied:', {
+      userType: req.user.userType,
+      expected: 'donor or admin'
+    });
     return res.status(403).json({
       success: false,
-      message: 'Donor access required'
+      message: 'Only donors can claim community requests'
     });
   }
+  
+  console.log('✅ requireDonor middleware - Access granted');
   next();
 };
 

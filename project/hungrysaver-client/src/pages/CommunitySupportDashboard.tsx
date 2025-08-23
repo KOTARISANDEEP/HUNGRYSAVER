@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History, BarChart3, MessageSquare, Settings, Star, Award, Users, TrendingUp, Target, Lightbulb, LogOut } from 'lucide-react';
+import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History, BarChart3, MessageSquare, Settings as SettingsIcon, Star, Award, Users, TrendingUp, Target, Lightbulb, LogOut } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFormSubmission } from '../hooks/useFormSubmission';
@@ -11,6 +11,7 @@ import SurakshaSetuCommunityForm from '../components/CommunitySupportForms/Surak
 import PunarAshaCommunityForm from '../components/CommunitySupportForms/PunarAshaCommunityForm';
 import RakshaJyothiCommunityForm from '../components/CommunitySupportForms/RakshaJyothiCommunityForm';
 import JyothiNilayamCommunityForm from '../components/CommunitySupportForms/JyothiNilayamCommunityForm';
+import Settings from '../components/Settings';
 
 interface CommunityRequest {
   id?: string;
@@ -95,7 +96,7 @@ const CommunitySupportDashboard: React.FC = () => {
     { key: 'impactHub', label: 'Impact Hub', icon: BarChart3, description: 'Community Impact Reports' },
     { key: 'messages', label: 'Messages', icon: MessageSquare, description: 'Communication Center' },
     { key: 'feedback', label: 'Feedback', icon: Star, description: 'Share Your Experience' },
-    { key: 'settings', label: 'Settings', icon: Settings, description: 'Account & Preferences' }
+    { key: 'settings', label: 'Settings', icon: SettingsIcon, description: 'Account & Preferences' }
   ];
 
   useEffect(() => {
@@ -856,74 +857,7 @@ const CommunitySupportDashboard: React.FC = () => {
 
           {/* Settings */}
           {activeTab === 'settings' && (
-            <div>
-              <div className="mb-8">
-                <h2 className="text-3xl font-bold text-white mb-4">Settings</h2>
-                <p className="text-gray-300 max-w-2xl">
-                  Manage your profile information and notification preferences.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-[#eaa640]/30">
-                  <h3 className="text-xl font-bold text-white mb-6">Profile Information</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-white font-medium mb-2">Full Name</label>
-                      <input 
-                        type="text" 
-                        value={userData?.firstName || ''}
-                        className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
-                        placeholder="Enter your full name"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-white font-medium mb-2">Email</label>
-                      <input 
-                        type="email" 
-                        value={userData?.email || ''}
-                        className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
-                        placeholder="Enter your email"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-white font-medium mb-2">Phone Number</label>
-                      <input 
-                        type="tel" 
-                        className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
-                        placeholder="Enter your phone number"
-                      />
-                    </div>
-
-                    <button className="w-full bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] to-[#eeb766] text-black py-3 rounded-lg font-medium transition-all duration-300">
-                      Update Profile
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-[#eaa640]/30">
-                  <h3 className="text-xl font-bold text-white mb-6">Notification Preferences</h3>
-                  <div className="space-y-4">
-                    {[
-                      { label: "Email notifications for request updates", checked: true },
-                      { label: "SMS alerts for urgent requests", checked: true },
-                      { label: "Weekly community impact reports", checked: false },
-                      { label: "New initiative announcements", checked: true },
-                      { label: "Volunteer opportunity alerts", checked: false }
-                    ].map((setting, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                        <span className="text-white">{setting.label}</span>
-                        <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${setting.checked ? 'bg-gradient-to-r from-[#eaa640] to-[#eeb766]' : 'bg-gray-600'}`}>
-                          <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 ${setting.checked ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Settings userType="community" />
           )}
         </div>
       </main>

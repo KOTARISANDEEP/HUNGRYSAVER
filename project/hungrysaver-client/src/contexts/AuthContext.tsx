@@ -307,7 +307,7 @@ const checkIsAdmin = (email: string | null): boolean => {
 // Send registration confirmation email
 const sendRegistrationConfirmationEmail = async (userData: UserData) => {
   try {
-    const response = await fetch('/api/auth/send-confirmation-email', {
+    const response = await fetch('https://hungrysaver.onrender.com/api/auth/send-confirmation-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

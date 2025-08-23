@@ -39,7 +39,7 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true'
     // Check if emulators are available before connecting
     const checkEmulator = async () => {
       try {
-        const response = await fetch('http://localhost:8080');
+        const response = await fetch('https://hungrysaver.onrender.com');
         return response.ok;
       } catch {
         return false;
@@ -49,9 +49,9 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true'
     checkEmulator().then((emulatorAvailable) => {
       if (emulatorAvailable && !auth.emulatorConfig) {
         try {
-          connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-          connectFirestoreEmulator(db, 'localhost', 8080);
-          connectStorageEmulator(storage, 'localhost', 9199);
+          connectAuthEmulator(auth, 'https://hungrysaver.onrender.com', { disableWarnings: true });
+          connectFirestoreEmulator(db, 'hungrysaver.onrender.com', 443);
+          connectStorageEmulator(storage, 'hungrysaver.onrender.com', 443);
           console.log('Connected to Firebase emulators');
         } catch {
           console.log('Failed to connect to emulators, using production Firebase');

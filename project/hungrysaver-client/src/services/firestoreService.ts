@@ -32,7 +32,7 @@ export const submitDonation = async (data: DonationData): Promise<string> => {
     const idToken = await user.getIdToken();
     
     // Call the backend API instead of writing directly to Firestore
-    const response = await fetch('/api/donations', {
+    const response = await fetch('https://hungrysaver.onrender.com/api/donations', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,7 +74,7 @@ export const submitRequest = async (data: RequestData): Promise<string> => {
     const idToken = await user.getIdToken();
     
     // Call the backend API instead of writing directly to Firestore
-    const response = await fetch('/api/requests', {
+    const response = await fetch('https://hungrysaver.onrender.com/api/requests', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

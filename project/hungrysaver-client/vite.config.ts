@@ -13,7 +13,7 @@ export default defineConfig({
     cors: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://hungrysaver.onrender.com',
         changeOrigin: true,
       },
     },
@@ -21,6 +21,7 @@ export default defineConfig({
     historyApiFallback: true,
   },
   build: {
+    outDir: 'dist',
     rollupOptions: {
       output: {
         manualChunks: {

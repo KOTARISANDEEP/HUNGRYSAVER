@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Heart, BookOpen, Shield, Home, Zap, Building, Users, Calendar, MapPin, Clock, TrendingUp, Award, Star,
-  Menu, X, Bell, LogOut, User, Gift, History, BarChart3, MessageSquare, FileText, HelpCircle, Settings
+  Menu, X, Bell, LogOut, User, Gift, History, BarChart3, MessageSquare, FileText, HelpCircle, Settings as SettingsIcon
 } from 'lucide-react';
 import { collection, query, getDocs, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area } from 'recharts';
 
 import { CommunityRequest } from '../types/formTypes';
+import Settings from '../components/Settings';
 
 type DonorFormData =
   | AnnamitraSevaFormData
@@ -58,7 +59,7 @@ const sidebarItems = [
   { key: 'rewards' as ActiveSection, label: 'Rewards & Badges', icon: Award, description: 'Gamification – Achievements' },
   { key: 'notifications' as ActiveSection, label: 'Notifications', icon: Bell, description: 'Alerts & Updates' },
   { key: 'help' as ActiveSection, label: 'Help & Support', icon: HelpCircle, description: 'Contact & Assistance' },
-  { key: 'settings' as ActiveSection, label: 'Profile Settings', icon: Settings, description: 'Account & Preferences' }
+  { key: 'settings' as ActiveSection, label: 'Profile Settings', icon: SettingsIcon, description: 'Account & Preferences' }
 ];
 
 // Sample data for charts
@@ -208,6 +209,69 @@ const DonorDashboard: React.FC = () => {
     }
   ];
 
+  // Add user type validation
+  useEffect(() => {
+    if (userData && userData.userType !== 'donor' && userData.userType !== 'admin') {
+      console.error('❌ User type mismatch:', userData.userType, 'Expected: donor or admin');
+      // Redirect to appropriate page based on user type
+      if (userData.userType === 'volunteer') {
+        navigate('/dashboard/volunteer');
+      } else if (userData.userType === 'community') {
+        navigate('/dashboard/community');
+      } else {
+        navigate('/login');
+      }
+    }
+  }, [userData, navigate]);
+
+  // Debug: Log user data
+  useEffect(() => {
+    if (userData) {
+      console.log('🔍 DonorDashboard - User Data:', {
+        uid: userData.uid,
+        userType: userData.userType,
+        status: userData.status,
+        email: userData.email,
+        firstName: userData.firstName
+      });
+    }
+  }, [userData]);
+
+  // Function to fix user type if incorrect
+  const fixUserType = async () => {
+    if (!userData) return;
+    
+    try {
+      console.log('🔧 Attempting to fix user type for:', userData.uid);
+      
+      // Update the user's userType in Firestore
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
+      await updateDoc(doc(db, 'users', userData.uid), {
+        userType: 'donor',
+        updatedAt: new Date()
+      });
+      
+      console.log('✅ User type updated successfully');
+      
+      // Reload the page to refresh the auth context
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('❌ Error fixing user type:', error);
+      alert('Failed to update user type. Please contact support.');
+    }
+  };
+
+  // Debug function to show current user data
+  const showUserData = () => {
+    if (userData) {
+      console.log('🔍 Current User Data:', userData);
+      alert(`User Data:\nUID: ${userData.uid}\nEmail: ${userData.email}\nUser Type: ${userData.userType}\nStatus: ${userData.status}\nFirst Name: ${userData.firstName}`);
+    }
+  };
+
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     if (activeSection === 'requests') {
@@ -235,7 +299,7 @@ const DonorDashboard: React.FC = () => {
 
   // remove old manual fetch functions (using realtime subscription instead)
 
-  const handleCommunityRequestClaim = async (requestId: string, donorAddress: string, notes: string) => {
+  const handleCommunityRequestClaim = async (requestId: string, donorAddress: string, notes: string, donorName: string, donorContact: string) => {
     try {
       await claimCommunityRequest(requestId, donorAddress, notes);
       // Success is handled in ClaimForm component
@@ -948,11 +1012,57 @@ const DonorDashboard: React.FC = () => {
       case 'help':
         return renderPlaceholderSection('Help & Support', 'Get assistance and contact our support team.');
       case 'settings':
-        return renderPlaceholderSection('Profile Settings', 'Manage your account and preferences.');
+        return <Settings userType="donor" />;
       default:
         return renderHomeSection();
     }
   };
+
+  // Prevent rendering if user type is incorrect
+  if (userData && userData.userType !== 'donor' && userData.userType !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-900 pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-500 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <X className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-2">Access Denied</h1>
+          <p className="text-gray-400 mb-4">
+            This dashboard is only for donors. Your account type is: <span className="text-red-400 font-semibold">{userData.userType}</span>
+          </p>
+          <div className="space-y-3">
+            <button 
+              onClick={() => navigate('/login')} 
+              className="bg-[#eaa640] hover:bg-[#eeb766] text-black px-4 py-2 rounded-lg font-medium transition-all duration-200 mr-2"
+            >
+              Go to Login
+            </button>
+            <button 
+              onClick={() => navigate('/register')} 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 mr-2"
+            >
+              Register as Donor
+            </button>
+            <button 
+              onClick={fixUserType}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 mr-2"
+            >
+              Fix My Account Type
+            </button>
+            <button 
+              onClick={showUserData}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200"
+            >
+              Show My Data
+            </button>
+          </div>
+          <p className="text-gray-500 text-sm mt-4">
+            If you believe this is an error, you can try to fix your account type or re-register with the correct user type.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black">
@@ -1063,7 +1173,7 @@ const DonorDashboard: React.FC = () => {
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <ClaimForm onSubmit={async (addr, notes) => await handleCommunityRequestClaim(selectedRequest.id, addr, notes)} request={selectedRequest} onCancel={() => { setClaimModalOpen(false); setSelectedRequest(null); }} />
+            <ClaimForm onSubmit={async (addr, notes, donorName, donorContact) => await handleCommunityRequestClaim(selectedRequest.id, addr, notes, donorName, donorContact)} request={selectedRequest} onCancel={() => { setClaimModalOpen(false); setSelectedRequest(null); }} />
           </div>
         </div>
       )}
@@ -1074,25 +1184,29 @@ const DonorDashboard: React.FC = () => {
 export default DonorDashboard;
 
 // Lightweight inline claim form to avoid extra imports
-const ClaimForm: React.FC<{ request: CommunityRequest; onSubmit: (addr: string, notes: string) => Promise<void>; onCancel: () => void; }> = ({ request, onSubmit, onCancel }) => {
+const ClaimForm: React.FC<{ request: CommunityRequest; onSubmit: (addr: string, notes: string, donorName: string, donorContact: string) => Promise<void>; onCancel: () => void; }> = ({ request, onSubmit, onCancel }) => {
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
+  const [donorName, setDonorName] = useState('');
+  const [donorContact, setDonorContact] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!address.trim()) return;
+    if (!address.trim() || !donorName.trim() || !donorContact.trim()) return;
     
     setSubmitting(true);
     try {
-      await onSubmit(address.trim(), notes.trim());
+      await onSubmit(address.trim(), notes.trim(), donorName.trim(), donorContact.trim());
       setSuccessMessage('Request claimed successfully! A donation record has been created and linked. Volunteers will be notified for pickup coordination.');
       setSuccess(true);
       // Reset form
       setAddress('');
       setNotes('');
+      setDonorName('');
+      setDonorContact('');
     } catch (error) {
       console.error('Error claiming request:', error);
       alert('Failed to claim request. Please try again.');
@@ -1140,6 +1254,16 @@ const ClaimForm: React.FC<{ request: CommunityRequest; onSubmit: (addr: string, 
             <FileText className="h-4 w-4 text-[#eaa640]" />
             <span>{request.description}</span>
           </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">Your Name <span className="text-red-400">*</span></label>
+          <input value={donorName} onChange={(e) => setDonorName(e.target.value)} className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none transition-colors" placeholder="Enter your full name..." required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">Mobile Number <span className="text-red-400">*</span></label>
+          <input value={donorContact} onChange={(e) => setDonorContact(e.target.value)} className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none transition-colors" placeholder="Enter your mobile number..." required />
         </div>
       </div>
       <div>
