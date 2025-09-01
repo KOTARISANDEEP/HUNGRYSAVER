@@ -15,6 +15,7 @@ import MotivationalBanner from '../components/MotivationalBanner';
 import AnimatedEmptyState from '../components/AnimatedIllustrations';
 import CommunityRequestCard from '../components/CommunityRequestCard';
 import Settings from '../components/Settings';
+import SuccessMessage from '../components/SuccessMessage';
 
 
 const VolunteerDashboard: React.FC = () => {
@@ -26,7 +27,20 @@ const VolunteerDashboard: React.FC = () => {
   const [communityRequests, setCommunityRequests] = useState<CommunityRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [communityRequestsLoading, setCommunityRequestsLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null); // Track which action is loading
   const [activeTab, setActiveTab] = useState<'tasks' | 'community' | 'completed'>('tasks');
+  
+  // Success message state
+  const [successMessage, setSuccessMessage] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    actionButton?: { text: string; onClick: () => void; };
+  }>({
+    isOpen: false,
+    title: '',
+    message: ''
+  });
 
   const [activeSection, setActiveSection] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -153,6 +167,51 @@ const VolunteerDashboard: React.FC = () => {
       await updateCommunityRequestStatus({ type: action, requestId, data });
       // Refresh the community requests after action
       await fetchCommunityRequests();
+      
+      // Show beautiful success message
+      let successTitle = '';
+      let successMessage = '';
+      let actionButton = undefined;
+      
+      switch (action) {
+        case 'accept':
+          successTitle = '🤝 Request Accepted!';
+          successMessage = 'You have successfully accepted this community request. It has been added to your active tasks.';
+          actionButton = {
+            text: 'View My Tasks',
+            onClick: () => {
+              setActiveSection('task-status');
+              setSuccessMessage(prev => ({ ...prev, isOpen: false }));
+            }
+          };
+          break;
+        case 'approve':
+          successTitle = '✅ Request Approved!';
+          successMessage = 'The community request has been approved and is now available for other volunteers.';
+          break;
+        case 'mark-reached':
+          successTitle = '📍 Location Reached!';
+          successMessage = 'Great! You have marked that you have reached the location. Continue with the support task.';
+          break;
+        case 'reject':
+          successTitle = '❌ Request Rejected';
+          successMessage = 'The community request has been rejected. It will be removed from your task list.';
+          break;
+        case 'deny':
+          successTitle = '❌ Request Denied';
+          successMessage = 'The community request has been denied. It will be removed from your task list.';
+          break;
+      }
+      
+      if (successTitle && successMessage) {
+        setSuccessMessage({
+          isOpen: true,
+          title: successTitle,
+          message: successMessage,
+          actionButton
+        });
+      }
+      
     } catch (error) {
       console.error('Error handling community request action:', error);
       throw error;
@@ -161,68 +220,168 @@ const VolunteerDashboard: React.FC = () => {
 
 
 
-  const handleTaskAction = async (taskId: string, action: 'accept' | 'reject' | 'picked' | 'delivered', taskType: 'donation' | 'request') => {
-    try {
-      let newStatus;
-      let updateData: any = {};
-      
-      switch (action) {
-        case 'accept':
-          // Directly accept donation without form
-          newStatus = 'accepted';
-          updateData = { status: newStatus };
-          break;
-        case 'reject':
-          setTasks(prev => prev.filter(task => task.id !== taskId));
-          return;
-        case 'picked':
-          newStatus = 'picked';
-          updateData = { status: newStatus, pickedAt: new Date() };
-          break;
-        case 'delivered':
-          newStatus = 'delivered';
-          updateData = { status: newStatus, deliveredAt: new Date() };
-          break;
-      }
-      
-      console.log('🔄 Updating task status:', { taskId, taskType, newStatus, updateData });
-      
-      const result = await updateTaskStatus(taskId, taskType, newStatus, updateData);
-      console.log('✅ Task status update result:', result);
-      
-      // Refresh tasks from server to get updated data
-      try {
-        console.log('🔄 Refreshing tasks from server...');
-        const refreshedTasks = await getTasksByLocation(userData?.location || '');
-        
-        // Filter tasks based on status and assignment
-        const availableTasks = refreshedTasks.filter((task: any) => task.status === 'pending');
-        const myTasks = refreshedTasks.filter((task: any) => 
-          task.status !== 'pending' && 
-          (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid)
-        );
-        
-        setTasks(availableTasks);
-        setMyTasks(myTasks);
-        console.log('✅ Tasks refreshed from server. Available:', availableTasks.length, 'My Tasks:', myTasks.length);
-        
-        // Show success message for acceptance
-        if (action === 'accept') {
-          alert('Donation accepted successfully! The request has been moved to your tasks.');
-        }
-        
-      } catch (refreshError) {
-        console.error('Error refreshing tasks:', refreshError);
-        // Fallback to local state update
-        setTasks(prev => prev.filter(task => task.id !== taskId));
-        console.log('✅ Task removed from available list (fallback)');
-      }
-      
-    } catch (error) {
-      console.error('Error updating task:', error);
-      alert('Error updating task status. Please try again.');
-    }
-  };
+        const handleTaskAction = async (taskId: string, action: 'accept' | 'reject' | 'picked' | 'delivered', taskType: 'donation' | 'request') => {
+     try {
+       // Prevent multiple rapid clicks
+       if (actionLoading) {
+         console.log('⚠️ Action already in progress, please wait...');
+         return;
+       }
+
+       // Set loading state
+       setActionLoading(`${taskId}-${action}`);
+       
+       // Find the current task to check its status
+       const currentTask = [...tasks, ...myTasks].find(task => task.id === taskId);
+       if (!currentTask) {
+         console.error('Task not found:', taskId);
+         setActionLoading(null);
+         return;
+       }
+
+       // Prevent invalid status updates
+       if (currentTask.status === 'delivered' && action !== 'delivered') {
+         console.log('⚠️ Task already delivered, cannot update status');
+         setActionLoading(null);
+         return;
+       }
+
+       if (currentTask.status === 'picked' && action === 'accept') {
+         console.log('⚠️ Task already picked, cannot go back to accepted');
+         setActionLoading(null);
+         return;
+       }
+
+       let newStatus;
+       let updateData: any = {};
+       
+       switch (action) {
+         case 'accept':
+           // Directly accept donation without form
+           newStatus = 'accepted';
+           updateData = { status: newStatus };
+           break;
+         case 'reject':
+           setTasks(prev => prev.filter(task => task.id !== taskId));
+           // Show success message for rejection
+           setSuccessMessage({
+             isOpen: true,
+             title: '⏭️ Task Passed',
+             message: 'You have passed on this task. It will remain available for other volunteers to accept.',
+           });
+           setActionLoading(null);
+           return;
+         case 'picked':
+           newStatus = 'picked';
+           updateData = { status: newStatus, pickedAt: new Date() };
+           break;
+         case 'delivered':
+           newStatus = 'delivered';
+           updateData = { status: newStatus, deliveredAt: new Date() };
+           break;
+       }
+       
+       console.log('🔄 Updating task status:', { taskId, taskType, newStatus, updateData, currentStatus: currentTask.status });
+       
+       const result = await updateTaskStatus(taskId, taskType, newStatus, updateData);
+       console.log('✅ Task status update result:', result);
+       
+       // Show beautiful success message
+       let successTitle = '';
+       let successMessage = '';
+       let actionButton = undefined;
+       
+       switch (action) {
+         case 'accept':
+           successTitle = '🎉 Donation Accepted!';
+           successMessage = 'The donation request has been successfully moved to your tasks. You can now track its progress in "My Task Status".';
+           actionButton = {
+             text: 'View My Tasks',
+             onClick: () => {
+               setActiveSection('task-status');
+               setSuccessMessage(prev => ({ ...prev, isOpen: false }));
+             }
+           };
+           break;
+         case 'picked':
+           successTitle = '📦 Task Picked Up!';
+           successMessage = 'Great job! The donation has been marked as picked up. Continue to the delivery location to complete the task.';
+           break;
+         case 'delivered':
+           successTitle = '✅ Task Completed!';
+           successMessage = 'Excellent work! You have successfully delivered the donation. Thank you for making a difference in your community! 🎉';
+           actionButton = {
+             text: 'View Completed Tasks',
+             onClick: () => {
+               setActiveSection('completed-tasks');
+               setSuccessMessage(prev => ({ ...prev, isOpen: false }));
+             }
+           };
+           break;
+       }
+       
+       if (successTitle && successMessage) {
+         setSuccessMessage({
+           isOpen: true,
+           title: successTitle,
+           message: successMessage,
+           actionButton
+         });
+       }
+       
+       // Refresh tasks from server to get updated data
+       try {
+         console.log('🔄 Refreshing tasks from server...');
+         const refreshedTasks = await getTasksByLocation(userData?.location || '');
+         
+         // Filter tasks based on status and assignment
+         const availableTasks = refreshedTasks.filter((task: any) => task.status === 'pending');
+         const myTasks = refreshedTasks.filter((task: any) => 
+           task.status !== 'pending' && 
+           (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid)
+         );
+         
+         console.log('🔍 Task filtering details:', {
+           totalRefreshed: refreshedTasks.length,
+           availableTasks: availableTasks.length,
+           myTasks: myTasks.length,
+           userUid: userData?.uid,
+           sampleAvailable: availableTasks.slice(0, 2).map((t: any) => ({ id: t.id, status: t.status, type: t.type })),
+           sampleMyTasks: myTasks.slice(0, 2).map((t: any) => ({ id: t.id, status: t.status, type: t.type, assignedTo: t.assignedTo, volunteerId: t.volunteerId }))
+         });
+         
+         setTasks(availableTasks);
+         setMyTasks(myTasks);
+         console.log('✅ Tasks refreshed from server. Available:', availableTasks.length, 'My Tasks:', myTasks.length);
+         
+       } catch (refreshError) {
+         console.error('Error refreshing tasks:', refreshError);
+         // Fallback to local state update
+         if (action === 'accept') {
+           setTasks(prev => prev.filter(task => task.id !== taskId));
+           console.log('✅ Task removed from available list (fallback)');
+         }
+       }
+       
+            } catch (error) {
+         console.error('Error updating task:', error);
+         let errorMessage = 'Error updating task status. Please try again.';
+         
+         // Provide more specific error messages
+         if (error instanceof Error) {
+           if (error.message.includes('Invalid status transition')) {
+             errorMessage = 'Cannot update task status. The task may already be in a final state.';
+           } else if (error.message.includes('500')) {
+             errorMessage = 'Server error. Please try again in a moment.';
+           }
+         }
+         
+                  alert(errorMessage);
+       } finally {
+         // Always reset loading state
+         setActionLoading(null);
+       }
+     };
 
 
 
@@ -391,33 +550,13 @@ const VolunteerDashboard: React.FC = () => {
             {/* Tasks Grid - Only Available Tasks */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {tasks.filter(task => task.status === 'pending' && task.type === 'donation').map((task) => (
-                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} />
+                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} />
               ))}
             </div>
+            
 
-                         {/* My Accepted Tasks Section */}
-             {myTasks.filter(task => task.type === 'donation' && task.status === 'accepted').length > 0 && (
-               <div className="mt-12">
-                 <h3 className="text-2xl font-bold text-white mb-4">My Accepted Tasks</h3>
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                   {myTasks.filter(task => task.type === 'donation' && task.status === 'accepted').map((task) => (
-                     <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} />
-                   ))}
-                 </div>
-               </div>
-             )}
              
-             {/* Debug Information */}
-             <div className="mt-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-               <h4 className="text-lg font-semibold text-white mb-2">Debug Info</h4>
-               <div className="text-sm text-gray-300 space-y-1">
-                 <div>Total Tasks: {tasks.length + myTasks.length}</div>
-                 <div>Available Tasks: {tasks.length}</div>
-                 <div>My Tasks: {myTasks.length}</div>
-                 <div>Accepted Donations: {myTasks.filter(t => t.type === 'donation' && t.status === 'accepted').length}</div>
-                 <div>User UID: {userData?.uid}</div>
-               </div>
-             </div>
+
           </div>
         );
 
@@ -463,9 +602,9 @@ const VolunteerDashboard: React.FC = () => {
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">My Task Status</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {myTasks.filter(task => task.assignedTo === userData?.uid || task.volunteerId === userData?.uid).map((task) => (
-                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} showProgress />
-              ))}
+                             {myTasks.filter(task => task.assignedTo === userData?.uid || task.volunteerId === userData?.uid).map((task) => (
+                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} showProgress actionLoading={actionLoading} />
+               ))}
             </div>
           </div>
         );
@@ -475,9 +614,9 @@ const VolunteerDashboard: React.FC = () => {
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">Completed Tasks</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {myTasks.filter(task => task.status === 'delivered').map((task) => (
-                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} />
-              ))}
+                             {myTasks.filter(task => task.status === 'delivered').map((task) => (
+                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} />
+               ))}
             </div>
           </div>
         );
@@ -602,6 +741,14 @@ const VolunteerDashboard: React.FC = () => {
         />
       )}
 
+      {/* Success Message Modal */}
+      <SuccessMessage
+        isOpen={successMessage.isOpen}
+        onClose={() => setSuccessMessage(prev => ({ ...prev, isOpen: false }))}
+        title={successMessage.title}
+        message={successMessage.message}
+        actionButton={successMessage.actionButton}
+      />
       
     </div>
   );
@@ -613,7 +760,8 @@ const TaskCard: React.FC<{
   onAction: (taskId: string, action: 'accept' | 'reject' | 'picked' | 'delivered', taskType: 'donation' | 'request') => void;
   userData: any;
   showProgress?: boolean;
-}> = ({ task, onAction, userData, showProgress = false }) => {
+  actionLoading?: string | null;
+}> = ({ task, onAction, userData, showProgress = false, actionLoading }) => {
   const getInitiativeEmoji = (initiative: string) => {
     const emojiMap: { [key: string]: string } = {
       'annamitra-seva': '🍛',
@@ -717,40 +865,60 @@ const TaskCard: React.FC<{
 
       {/* Action Buttons */}
       <div className="flex space-x-2">
-        {task.status === 'pending' && (
-          <>
-            <button
-              onClick={() => onAction(task.id, 'accept', task.type)}
-              className="flex-1 bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] hover:to-[#eeb766] text-black py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg shadow-[#eaa640]/25"
-            >
-              Accept {task.type === 'donation' ? 'Donation' : 'Request'}
-            </button>
-            <button
-              onClick={() => onAction(task.id, 'reject', task.type)}
-              className="bg-gray-700 hover:bg-gray-600 text-white py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300"
-            >
-              Pass
-            </button>
-          </>
-        )}
+                 {task.status === 'pending' && (
+           <>
+             <button
+               onClick={() => onAction(task.id, 'accept', task.type)}
+               disabled={actionLoading === `${task.id}-accept`}
+               className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg ${
+                 actionLoading === `${task.id}-accept`
+                   ? 'bg-gray-500 cursor-not-allowed'
+                   : 'bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] hover:to-[#eeb766] text-black shadow-[#eaa640]/25'
+               }`}
+             >
+               {actionLoading === `${task.id}-accept` ? 'Accepting...' : `Accept ${task.type === 'donation' ? 'Donation' : 'Request'}`}
+             </button>
+             <button
+               onClick={() => onAction(task.id, 'reject', task.type)}
+               disabled={actionLoading === `${task.id}-reject`}
+               className={`py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 ${
+                 actionLoading === `${task.id}-reject`
+                   ? 'bg-gray-500 cursor-not-allowed'
+                   : 'bg-gray-700 hover:bg-gray-600 text-white'
+               }`}
+             >
+               {actionLoading === `${task.id}-reject` ? 'Passing...' : 'Pass'}
+             </button>
+           </>
+         )}
         
-                 {task.status === 'accepted' && (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid) && (
-          <button
-            onClick={() => onAction(task.id, 'picked', task.type)}
-            className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg shadow-orange-500/25"
-          >
-            Mark as {task.type === 'donation' ? 'Picked Up' : 'In Progress'}
-          </button>
-        )}
-        
-                 {task.status === 'picked' && (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid) && (
-          <button
-            onClick={() => onAction(task.id, 'delivered', task.type)}
-            className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg shadow-green-500/25"
-          >
-            Mark as {task.type === 'donation' ? 'Delivered' : 'Completed'}
-          </button>
-        )}
+                          {task.status === 'accepted' && (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid) && (
+           <button
+             onClick={() => onAction(task.id, 'picked', task.type)}
+             disabled={actionLoading === `${task.id}-picked`}
+             className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg ${
+               actionLoading === `${task.id}-picked`
+                 ? 'bg-gray-500 cursor-not-allowed'
+                 : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-orange-500/25'
+             }`}
+           >
+             {actionLoading === `${task.id}-picked` ? 'Updating...' : `Mark as ${task.type === 'donation' ? 'Picked Up' : 'In Progress'}`}
+           </button>
+         )}
+         
+         {task.status === 'picked' && (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid) && (
+           <button
+             onClick={() => onAction(task.id, 'delivered', task.type)}
+             disabled={actionLoading === `${task.id}-delivered`}
+             className={`flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg ${
+               actionLoading === `${task.id}-delivered`
+                 ? 'bg-gray-500 cursor-not-allowed'
+                 : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-green-500/25'
+             }`}
+           >
+             {actionLoading === `${task.id}-delivered` ? 'Completing...' : `Mark as ${task.type === 'donation' ? 'Delivered' : 'Completed'}`}
+           </button>
+         )}
         
         {task.status === 'delivered' && (
           <div className="flex-1 bg-green-500/20 text-green-400 py-3 px-4 rounded-xl text-sm font-medium text-center border border-green-500/30">

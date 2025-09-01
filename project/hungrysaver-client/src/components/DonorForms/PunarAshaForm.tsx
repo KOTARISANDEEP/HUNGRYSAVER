@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, User, Phone, Home, DollarSign } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 
@@ -22,7 +22,6 @@ interface PunarAshaFormProps {
 const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false }) => {
   const [formData, setFormData] = useState<PunarAshaFormData>({
     location: '',
-    hostel: '',
     address: '',
     donorName: '',
     donorContact: '',
@@ -31,7 +30,15 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
     estimatedValue: '',
     description: ''
   });
+  const [hostel, setHostel] = useState('');
   const [error, setError] = useState('');
+
+  // Reset hostel when location changes
+  useEffect(() => {
+    if (formData.location !== 'kalasalingam academy of research and education') {
+      setHostel('');
+    }
+  }, [formData.location]);
 
   const cities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
@@ -62,6 +69,13 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
       setError('Please fill in all required fields.');
       return false;
     }
+    
+    // Validate hostel field for Kalasalingam location
+    if (formData.location === 'kalasalingam academy of research and education' && !hostel) {
+      setError('Please select a hostel for Kalasalingam Academy location.');
+      return false;
+    }
+    
     return true;
   };
 
@@ -71,7 +85,16 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
 
     if (!validateForm()) return;
 
-    onSubmit(formData);
+    // Only include hostel field if location is Kalasalingam
+    const submissionData = { ...formData };
+    
+    if (formData.location === 'kalasalingam academy of research and education') {
+      // Add hostel field for Kalasalingam
+      submissionData.hostel = hostel;
+    }
+    // For other locations, hostel field will not exist in submissionData
+
+    onSubmit(submissionData);
   };
 
   return (
@@ -121,8 +144,8 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
             </label>
             <select
               name="hostel"
-              value={formData.hostel}
-              onChange={handleInputChange}
+              value={hostel}
+              onChange={(e) => setHostel(e.target.value)}
               className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
               required
             >

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, User, Phone, Building, DollarSign } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 
@@ -22,7 +22,6 @@ interface JyothiNilayamFormProps {
 const JyothiNilayamForm: React.FC<JyothiNilayamFormProps> = ({ onSubmit, loading = false }) => {
   const [formData, setFormData] = useState<JyothiNilayamFormData>({
     location: '',
-    hostel: '',
     address: '',
     donorName: '',
     donorContact: '',
@@ -31,7 +30,15 @@ const JyothiNilayamForm: React.FC<JyothiNilayamFormProps> = ({ onSubmit, loading
     shelterPreference: '',
     description: ''
   });
+  const [hostel, setHostel] = useState('');
   const [error, setError] = useState('');
+
+  // Reset hostel when location changes
+  useEffect(() => {
+    if (formData.location !== 'kalasalingam academy of research and education') {
+      setHostel('');
+    }
+  }, [formData.location]);
 
   const cities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
@@ -55,6 +62,12 @@ const JyothiNilayamForm: React.FC<JyothiNilayamFormProps> = ({ onSubmit, loading
       return false;
     }
     
+    // Validate hostel field for Kalasalingam location
+    if (formData.location === 'kalasalingam academy of research and education' && !hostel) {
+      setError('Please select a hostel for Kalasalingam Academy location.');
+      return false;
+    }
+    
     if (formData.donationType === 'partial' && !formData.donationAmount) {
       setError('Please specify the donation amount for partial donations.');
       return false;
@@ -69,7 +82,16 @@ const JyothiNilayamForm: React.FC<JyothiNilayamFormProps> = ({ onSubmit, loading
 
     if (!validateForm()) return;
 
-    onSubmit(formData);
+    // Only include hostel field if location is Kalasalingam
+    const submissionData = { ...formData };
+    
+    if (formData.location === 'kalasalingam academy of research and education') {
+      // Add hostel field for Kalasalingam
+      submissionData.hostel = hostel;
+    }
+    // For other locations, hostel field will not exist in submissionData
+
+    onSubmit(submissionData);
   };
 
   return (
@@ -119,8 +141,8 @@ const JyothiNilayamForm: React.FC<JyothiNilayamFormProps> = ({ onSubmit, loading
             </label>
             <select
               name="hostel"
-              value={formData.hostel}
-              onChange={handleInputChange}
+              value={hostel}
+              onChange={(e) => setHostel(e.target.value)}
               className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
               required
             >

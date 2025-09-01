@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, User, Phone, Package, Shield } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 
@@ -22,7 +22,6 @@ interface SurakshaSetuFormProps {
 const SurakshaSetuForm: React.FC<SurakshaSetuFormProps> = ({ onSubmit, loading = false }) => {
   const [formData, setFormData] = useState<SurakshaSetuFormData>({
     location: '',
-    hostel: '',
     address: '',
     donorName: '',
     donorContact: '',
@@ -31,7 +30,15 @@ const SurakshaSetuForm: React.FC<SurakshaSetuFormProps> = ({ onSubmit, loading =
     condition: '',
     description: ''
   });
+  const [hostel, setHostel] = useState('');
   const [error, setError] = useState('');
+
+  // Reset hostel when location changes
+  useEffect(() => {
+    if (formData.location !== 'kalasalingam academy of research and education') {
+      setHostel('');
+    }
+  }, [formData.location]);
 
   const cities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',

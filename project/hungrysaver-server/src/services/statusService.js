@@ -134,11 +134,28 @@ class StatusService {
           
           // Log the complete volunteer document for debugging
           logger.info(`Complete volunteer document for ${volunteerId}:`, volunteerData);
+          logger.info(`Volunteer fields check:`, {
+            firstName: volunteerData.firstName,
+            contactNumber: volunteerData.contactNumber,
+            email: volunteerData.email,
+            hasFirstName: !!volunteerData.firstName,
+            hasContactNumber: !!volunteerData.contactNumber,
+            hasEmail: !!volunteerData.email
+          });
           
           updateData.volunteerId = volunteerId;
           updateData.assignedTo = volunteerId; // Add this field for frontend compatibility
-          updateData.volunteerName = volunteerData.firstName;
-          updateData.volunteerContact = volunteerData.contactNumber;
+          updateData.volunteerName = volunteerData.firstName || 'Unknown';
+          
+          // Handle contact number with fallback
+          if (volunteerData.contactNumber && volunteerData.contactNumber.trim() !== '') {
+            updateData.volunteerContact = volunteerData.contactNumber;
+          } else {
+            // If no contact number, use email as fallback
+            updateData.volunteerContact = volunteerData.email || 'No contact info';
+            logger.warn(`Volunteer ${volunteerId} has no contact number, using email as fallback`);
+          }
+          
           updateData.acceptedAt = new Date();
           
           // Log volunteer details for debugging
@@ -161,8 +178,16 @@ class StatusService {
         updateData.deliveredAt = new Date();
       }
       
+      // Final safety check: Remove any undefined values before Firestore update
+      const finalUpdateData = {};
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] !== undefined && updateData[key] !== null) {
+          finalUpdateData[key] = updateData[key];
+        }
+      });
+      
       // Update donation
-      await donationRef.update(updateData);
+      await donationRef.update(finalUpdateData);
       
       // Log the final update data for debugging
       logger.info(`Donation ${donationId} updated with data:`, updateData);
@@ -250,10 +275,27 @@ class StatusService {
           
           // Log the complete volunteer document for debugging
           logger.info(`Complete volunteer document for request ${requestId}:`, volunteerData);
+          logger.info(`Volunteer fields check:`, {
+            firstName: volunteerData.firstName,
+            contactNumber: volunteerData.contactNumber,
+            email: volunteerData.email,
+            hasFirstName: !!volunteerData.firstName,
+            hasContactNumber: !!volunteerData.contactNumber,
+            hasEmail: !!volunteerData.email
+          });
           
           updateData.assignedTo = volunteerId;
-          updateData.volunteerName = volunteerData.firstName;
-          updateData.volunteerContact = volunteerData.contactNumber;
+          updateData.volunteerName = volunteerData.firstName || 'Unknown';
+          
+          // Handle contact number with fallback
+          if (volunteerData.contactNumber && volunteerData.contactNumber.trim() !== '') {
+            updateData.volunteerContact = volunteerData.contactNumber;
+          } else {
+            // If no contact number, use email as fallback
+            updateData.volunteerContact = volunteerData.email || 'No contact info';
+            logger.warn(`Volunteer ${volunteerId} has no contact number, using email as fallback`);
+          }
+          
           updateData.acceptedAt = new Date();
           
           // Log volunteer details for debugging
@@ -271,8 +313,16 @@ class StatusService {
         }
       }
       
+      // Final safety check: Remove any undefined values before Firestore update
+      const finalUpdateData = {};
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] !== undefined && updateData[key] !== null) {
+          finalUpdateData[key] = updateData[key];
+        }
+      });
+      
       // Update request
-      await requestRef.update(updateData);
+      await requestRef.update(finalUpdateData);
       
       // Log the final update data for debugging
       logger.info(`Request ${requestId} updated with data:`, updateData);
