@@ -6,6 +6,7 @@ import { logger } from '../utils/logger.js';
 let notificationService = null;
 let auditService = null;
 let volunteerRequestStatusService = null;
+let volunteerDetailsService = null;
 
 class StatusService {
   constructor() {
@@ -43,6 +44,16 @@ class StatusService {
           logger.info('VolunteerRequestStatusService loaded successfully');
         } catch (error) {
           logger.error('Failed to load VolunteerRequestStatusService:', error);
+        }
+      }
+      
+      if (!volunteerDetailsService) {
+        try {
+          const module = await import('./volunteerDetailsService.js');
+          volunteerDetailsService = module.default;
+          logger.info('VolunteerDetailsService loaded successfully');
+        } catch (error) {
+          logger.error('Failed to load VolunteerDetailsService:', error);
         }
       }
       

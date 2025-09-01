@@ -70,7 +70,8 @@ export const COLLECTIONS = {
   REQUESTS: 'community_requests',
   NOTIFICATIONS: 'notifications',
   AUDIT_LOGS: 'audit_logs',
-  VOLUNTEER_REQUESTS_STATUS: 'volunteer_requests_status'
+  VOLUNTEER_REQUESTS_STATUS: 'volunteer_requests_status',
+  VOLUNTEER_DETAILS: 'volunteer_details'
 };
 
 // Motivational messages

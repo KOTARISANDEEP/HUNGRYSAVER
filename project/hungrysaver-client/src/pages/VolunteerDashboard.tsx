@@ -15,6 +15,7 @@ import MotivationalBanner from '../components/MotivationalBanner';
 import AnimatedEmptyState from '../components/AnimatedIllustrations';
 import CommunityRequestCard from '../components/CommunityRequestCard';
 import Settings from '../components/Settings';
+import VolunteerDetailsForm from '../components/VolunteerDetailsForm';
 
 const VolunteerDashboard: React.FC = () => {
   const { location } = useParams<{ location: string }>();
@@ -32,6 +33,13 @@ const VolunteerDashboard: React.FC = () => {
     thisWeek: 8,
     totalTasks: 156,
     completionRate: 92
+  });
+  
+  // Volunteer details form state
+  const [volunteerDetailsForm, setVolunteerDetailsForm] = useState({
+    isOpen: false,
+    donationId: '',
+    taskType: 'donation' as 'donation' | 'request'
   });
 
   const sidebarItems = [
@@ -139,6 +147,37 @@ const VolunteerDashboard: React.FC = () => {
     }
   };
 
+  const handleVolunteerDetailsSuccess = async () => {
+    try {
+      // Update the task status to accepted after volunteer details are submitted
+      const result = await updateTaskStatus(
+        volunteerDetailsForm.donationId, 
+        volunteerDetailsForm.taskType, 
+        'accepted', 
+        { assignedTo: userData?.uid }
+      );
+      
+      console.log('✅ Task status updated after volunteer details:', result);
+      
+      // Update the local state
+      setTasks(prev => prev.map(task => 
+        task.id === volunteerDetailsForm.donationId 
+          ? { ...task, status: 'accepted', assignedTo: userData?.uid } 
+          : task
+      ));
+      
+      // Close the form
+      setVolunteerDetailsForm({
+        isOpen: false,
+        donationId: '',
+        taskType: 'donation'
+      });
+      
+    } catch (error) {
+      console.error('Error updating task status after volunteer details:', error);
+    }
+  };
+
   const handleTaskAction = async (taskId: string, action: 'accept' | 'reject' | 'picked' | 'delivered', taskType: 'donation' | 'request') => {
     try {
       let newStatus;
@@ -146,9 +185,13 @@ const VolunteerDashboard: React.FC = () => {
       
       switch (action) {
         case 'accept':
-          newStatus = 'accepted';
-          updateData = { status: newStatus, assignedTo: userData?.uid };
-          break;
+          // Open volunteer details form instead of directly updating
+          setVolunteerDetailsForm({
+            isOpen: true,
+            donationId: taskId,
+            taskType
+          });
+          return;
         case 'reject':
           setTasks(prev => prev.filter(task => task.id !== taskId));
           return;
@@ -529,6 +572,18 @@ const VolunteerDashboard: React.FC = () => {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* Volunteer Details Form */}
+      <VolunteerDetailsForm
+        isOpen={volunteerDetailsForm.isOpen}
+        onClose={() => setVolunteerDetailsForm({
+          isOpen: false,
+          donationId: '',
+          taskType: 'donation'
+        })}
+        donationId={volunteerDetailsForm.donationId}
+        onSuccess={handleVolunteerDetailsSuccess}
+      />
     </div>
   );
 };

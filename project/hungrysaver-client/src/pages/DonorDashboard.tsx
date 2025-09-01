@@ -50,6 +50,7 @@ interface DonationHistoryItem {
   createdAt: any;
   volunteerName?: string;
   volunteerContact?: string;
+  expectedArrivalTime?: string;
 }
 
 const sidebarItems = [
@@ -141,6 +142,44 @@ const formatInitiativeName = (initiative: string) => {
 
 // Donation Status Card Component
 const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donation }) => {
+  const [volunteerDetails, setVolunteerDetails] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Fetch volunteer details when component mounts if donation is accepted
+  useEffect(() => {
+    if (donation.status === 'accepted' && donation.id) {
+      fetchVolunteerDetailsForCard(donation.id);
+    }
+  }, [donation.id, donation.status]);
+
+  const fetchVolunteerDetailsForCard = async (donationId: string) => {
+    setLoadingDetails(true);
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      if (!user) return;
+      
+      const idToken = await user.getIdToken();
+      
+      const response = await fetch(`https://hungrysaver.onrender.com/api/volunteer-details/${donationId}`, {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setVolunteerDetails(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching volunteer details for card:', error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
   const getStatusStep = (status: string) => {
     switch (status) {
       case 'pending': return 1;
@@ -219,16 +258,35 @@ const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donat
       {donation.status !== 'pending' && (
         <div className="bg-[#eaa640]/10 rounded-lg p-4 mb-4 border border-[#eaa640]/20">
           <h4 className="text-[#eaa640] font-semibold mb-2">Volunteer Details</h4>
-          <div className="space-y-1 text-sm">
-            <p className="text-gray-300">
-              <span className="font-medium">Volunteer Name:</span> 
-              <span className="text-white ml-2">{donation.volunteerName || 'Assigned Volunteer'}</span>
-            </p>
-            <p className="text-gray-300">
-              <span className="font-medium">Volunteer Contact:</span> 
-              <span className="text-white ml-2">{donation.volunteerContact || '+91 XXXXX XXXXX'}</span>
-            </p>
-          </div>
+          {loadingDetails ? (
+            <div className="flex items-center justify-center py-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#eaa640]"></div>
+              <span className="text-gray-400 text-sm ml-2">Loading volunteer details...</span>
+            </div>
+          ) : (
+            <div className="space-y-2 text-sm">
+              <p className="text-gray-300">
+                <span className="font-medium">Volunteer Name:</span> 
+                <span className="text-white ml-2">
+                  {volunteerDetails?.volunteerName || donation.volunteerName || 'Assigned Volunteer'}
+                </span>
+              </p>
+              <p className="text-gray-300">
+                <span className="font-medium">Volunteer Contact:</span> 
+                <span className="text-white ml-2">
+                  {volunteerDetails?.volunteerContact || donation.volunteerContact || '+91 XXXXX XXXXX'}
+                </span>
+              </p>
+              {volunteerDetails?.expectedArrivalTime && (
+                <p className="text-gray-300">
+                  <span className="font-medium">Expected Arrival:</span> 
+                  <span className="text-white ml-2">
+                    {new Date(volunteerDetails.expectedArrivalTime).toLocaleString()}
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -512,6 +570,43 @@ const DonorDashboard: React.FC = () => {
       console.error('Error fetching donation history:', error);
     } finally {
       setDonationHistoryLoading(false);
+    }
+  };
+
+  // Function to fetch volunteer details from the new collection
+  const fetchVolunteerDetails = async (donationId: string) => {
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      if (!user) {
+        console.error('No authenticated user found');
+        return null;
+      }
+      
+      const idToken = await user.getIdToken();
+      
+      const response = await fetch(`https://hungrysaver.onrender.com/api/volunteer-details/${donationId}`, {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.log(`No volunteer details found for donation ${donationId}`);
+          return null;
+        }
+        throw new Error('Failed to fetch volunteer details');
+      }
+      
+      const data = await response.json();
+      console.log('📞 Fetched volunteer details:', data);
+      return data.data;
+    } catch (error) {
+      console.error('Error fetching volunteer details:', error);
+      return null;
     }
   };
 
