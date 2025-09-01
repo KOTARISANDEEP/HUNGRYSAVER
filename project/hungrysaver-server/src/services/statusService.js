@@ -37,9 +37,13 @@ class StatusService {
       }
       
       if (!volunteerRequestStatusService) {
-        import('./volunteerRequestStatusService.js').then(module => {
+        try {
+          const module = await import('./volunteerRequestStatusService.js');
           volunteerRequestStatusService = module.default;
-        });
+          logger.info('VolunteerRequestStatusService loaded successfully');
+        } catch (error) {
+          logger.error('Failed to load VolunteerRequestStatusService:', error);
+        }
       }
       
       this.initialized = true;
@@ -112,9 +116,18 @@ class StatusService {
           updateData.volunteerName = volunteerData.firstName;
           updateData.volunteerContact = volunteerData.contactNumber;
           updateData.acceptedAt = new Date();
+          
+          // Log volunteer details for debugging
+          logger.info(`Volunteer details fetched for donation ${donationId}:`, {
+            volunteerId,
+            volunteerName: volunteerData.firstName,
+            volunteerContact: volunteerData.contactNumber,
+            volunteerEmail: volunteerData.email
+          });
         } else {
           updateData.assignedTo = volunteerId;
           updateData.acceptedAt = new Date();
+          logger.warn(`Volunteer document not found for ID: ${volunteerId}`);
         }
       }
       
@@ -127,6 +140,9 @@ class StatusService {
       
       // Update donation
       await donationRef.update(updateData);
+      
+      // Log the final update data for debugging
+      logger.info(`Donation ${donationId} updated with data:`, updateData);
       
       // Create volunteer request status entry (if volunteer request status service is available)
       if (volunteerRequestStatusService) {
@@ -199,14 +215,26 @@ class StatusService {
           updateData.volunteerName = volunteerData.firstName;
           updateData.volunteerContact = volunteerData.contactNumber;
           updateData.acceptedAt = new Date();
+          
+          // Log volunteer details for debugging
+          logger.info(`Volunteer details fetched for request ${requestId}:`, {
+            volunteerId,
+            volunteerName: volunteerData.firstName,
+            volunteerContact: volunteerData.contactNumber,
+            volunteerEmail: volunteerData.email
+          });
         } else {
           updateData.assignedTo = volunteerId;
           updateData.acceptedAt = new Date();
+          logger.warn(`Volunteer document not found for ID: ${volunteerId}`);
         }
       }
       
       // Update request
       await requestRef.update(updateData);
+      
+      // Log the final update data for debugging
+      logger.info(`Request ${requestId} updated with data:`, updateData);
       
       // Create volunteer request status entry (if volunteer request status service is available)
       if (volunteerRequestStatusService) {

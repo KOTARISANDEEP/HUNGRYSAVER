@@ -271,60 +271,32 @@ class DonationController {
   updateDonationStatus = async (req, res) => {
     try {
       const { id } = req.params;
-      const { status, volunteerId } = req.body;
-      const userId = req.user.uid;
+      const { status, notes } = req.body;
+      const volunteerId = req.user.uid;
 
-      // Ensure status is valid
-      if (!Object.values(STATUS_STAGES).includes(status)) {
-        return res.status(400).json({ success: false, message: 'Invalid status provided.' });
-      }
-      
-      const donationRef = this.getDb().collection(COLLECTIONS.DONATIONS).doc(id);
-      const donationDoc = await donationRef.get();
+      // Import status service dynamically to avoid circular dependencies
+      const { default: statusService } = await import('../services/statusService.js');
 
-      if (!donationDoc.exists) {
-        return res.status(404).json({ success: false, message: 'Donation not found' });
-      }
-
-      const donation = donationDoc.data();
-
-      // Update the donation document
-      const updateData = {
+      // Use the status service to update donation status with proper volunteer information
+      const result = await statusService.updateDonationStatus(
+        id,
         status,
-        updatedAt: new Date(),
-        assignedTo: volunteerId || donation.assignedTo || null,
-      };
+        volunteerId,
+        { notes }
+      );
 
-      await donationRef.update(updateData);
-
-      // Create a status update entry
-      await statusService.addStatusUpdate(id, status, userId, `Status changed to ${status}`);
-
-      // Log the action
-      await auditService.logUserAction(userId, 'donation_status_updated', {
-        donationId: id,
-        newStatus: status
-      });
-
-      // Send email notifications based on status change
-      if (status === STATUS_STAGES.ACCEPTED && donation.donorEmail) {
-        await emailService.sendRequestAcceptedEmail(donation.donorEmail);
-      } else if (status === STATUS_STAGES.DELIVERED && donation.donorEmail) {
-        await emailService.sendDeliveryCompletionEmail(donation.donorEmail);
-      }
-      
-      logger.info(`Donation ${id} status updated to ${status} by user ${userId}`);
+      logger.info(`Donation ${id} status updated to ${status} by volunteer ${volunteerId}`);
 
       res.json({
         success: true,
         message: 'Donation status updated successfully',
-        data: { id, ...updateData }
+        data: result
       });
     } catch (error) {
       logger.error('Error updating donation status:', error);
       res.status(500).json({
         success: false,
-        message: 'Internal server error'
+        message: error.message || 'Internal server error'
       });
     }
   };

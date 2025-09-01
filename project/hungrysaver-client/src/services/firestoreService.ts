@@ -199,23 +199,46 @@ export const updateTaskStatus = async (
   additionalData?: any
 ) => {
   try {
-    console.log('🔄 Updating task status:', { taskId, taskType, status });
-    const collectionRef = taskType === 'donation' ? donationsCollection : requestsCollection;
-    const taskDoc = doc(collectionRef, taskId);
+    console.log('🔄 Updating task status via backend API:', { taskId, taskType, status });
     
-    const updateData = {
-      status,
-      ...additionalData,
-      updatedAt: new Date()
-    };
-
-    await updateDoc(taskDoc, updateData);
-    console.log('✅ Task status updated successfully');
+    // Get the current user's ID token for authentication
+    const { getAuth } = await import('firebase/auth');
+    const auth = getAuth();
+    const user = auth.currentUser;
     
-    return { success: true, taskId, newStatus: status };
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    const idToken = await user.getIdToken();
+    
+    // Call the backend API instead of writing directly to Firestore
+    const endpoint = taskType === 'donation' ? 'donations' : 'requests';
+    const response = await fetch(`https://hungrysaver.onrender.com/api/${endpoint}/${taskId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({
+        status,
+        ...additionalData
+      })
+    });
+    
+    if (!response.ok) {
+      const errorJson = await safeParseJson(response);
+      const message = errorJson?.message || `Failed to update task status (HTTP ${response.status})`;
+      throw new Error(message);
+    }
+    
+    const resultJson = await safeParseJson(response);
+    console.log('✅ Task status updated successfully via API:', resultJson);
+    
+    return { success: true, taskId, newStatus: status, ...resultJson };
   } catch (error) {
     console.error('❌ Error updating task status:', error);
-    throw new Error('Failed to update task status. Please try again.');
+    throw new Error(error instanceof Error ? error.message : 'Failed to update task status. Please try again.');
   }
 };
 

@@ -162,7 +162,10 @@ const VolunteerDashboard: React.FC = () => {
           break;
       }
       
-      await updateTaskStatus(taskId, taskType, newStatus, updateData);
+      console.log('🔄 Updating task status:', { taskId, taskType, newStatus, updateData });
+      
+      const result = await updateTaskStatus(taskId, taskType, newStatus, updateData);
+      console.log('✅ Task status update result:', result);
       
       setTasks(prev => prev.map(task => 
         task.id === taskId ? { ...task, status: newStatus, ...updateData } : task

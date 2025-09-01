@@ -417,6 +417,50 @@ const DonorDashboard: React.FC = () => {
     return () => { if (unsubscribe) unsubscribe(); };
   }, [activeSection, userData?.uid]);
 
+  // Add real-time listener for donation history updates
+  useEffect(() => {
+    if (!userData?.uid) return;
+    
+    const q = query(
+      collection(db, 'donations'),
+      where('userId', '==', userData.uid)
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const donations = snapshot.docs.map(doc => {
+        const data = doc.data();
+        
+        // Debug logging for real-time updates
+        console.log(`🔄 Real-time update for donation ${doc.id}:`, {
+          initiative: data.initiative,
+          status: data.status,
+          volunteerName: data.volunteerName,
+          volunteerContact: data.volunteerContact,
+          assignedTo: data.assignedTo,
+          acceptedAt: data.acceptedAt
+        });
+        
+        return {
+          id: doc.id,
+          initiative: data.initiative || 'Unknown Initiative',
+          location_lowercase: data.city || data.location_lowercase || '',
+          status: data.status || 'pending',
+          createdAt: data.createdAt,
+          volunteerName: data.volunteerName,
+          volunteerContact: data.volunteerContact
+        } as DonationHistoryItem;
+      });
+      
+      setDonationHistory(donations);
+      setDonationHistoryLoading(false);
+    }, (error) => {
+      console.error('Error listening to donation updates:', error);
+      setDonationHistoryLoading(false);
+    });
+    
+    return () => unsubscribe();
+  }, [userData?.uid]);
+
   // remove old manual fetch functions (using realtime subscription instead)
 
   const handleCommunityRequestClaim = async (requestId: string, donorAddress: string, notes: string, donorName: string, donorContact: string) => {
@@ -440,6 +484,17 @@ const DonorDashboard: React.FC = () => {
       const snapshot = await getDocs(q);
       const donations = snapshot.docs.map(doc => {
         const data = doc.data();
+        
+        // Debug logging to see what data is fetched
+        console.log(`🔍 Donation ${doc.id} data:`, {
+          initiative: data.initiative,
+          status: data.status,
+          volunteerName: data.volunteerName,
+          volunteerContact: data.volunteerContact,
+          assignedTo: data.assignedTo,
+          acceptedAt: data.acceptedAt
+        });
+        
         return {
           id: doc.id,
           initiative: data.initiative || 'Unknown Initiative',
