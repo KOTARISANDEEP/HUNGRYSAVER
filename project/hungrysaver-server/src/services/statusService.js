@@ -112,6 +112,10 @@ class StatusService {
         const volunteerDoc = await db.collection(COLLECTIONS.USERS).doc(volunteerId).get();
         if (volunteerDoc.exists) {
           const volunteerData = volunteerDoc.data();
+          
+          // Log the complete volunteer document for debugging
+          logger.info(`Complete volunteer document for ${volunteerId}:`, volunteerData);
+          
           updateData.assignedTo = volunteerId;
           updateData.volunteerName = volunteerData.firstName;
           updateData.volunteerContact = volunteerData.contactNumber;
@@ -122,7 +126,8 @@ class StatusService {
             volunteerId,
             volunteerName: volunteerData.firstName,
             volunteerContact: volunteerData.contactNumber,
-            volunteerEmail: volunteerData.email
+            volunteerEmail: volunteerData.email,
+            allFields: Object.keys(volunteerData)
           });
         } else {
           updateData.assignedTo = volunteerId;
@@ -143,6 +148,11 @@ class StatusService {
       
       // Log the final update data for debugging
       logger.info(`Donation ${donationId} updated with data:`, updateData);
+      logger.info(`Donation ${donationId} volunteer fields:`, {
+        volunteerName: updateData.volunteerName,
+        volunteerContact: updateData.volunteerContact,
+        assignedTo: updateData.assignedTo
+      });
       
       // Create volunteer request status entry (if volunteer request status service is available)
       if (volunteerRequestStatusService) {
@@ -211,6 +221,10 @@ class StatusService {
         const volunteerDoc = await db.collection(COLLECTIONS.USERS).doc(volunteerId).get();
         if (volunteerDoc.exists) {
           const volunteerData = volunteerDoc.data();
+          
+          // Log the complete volunteer document for debugging
+          logger.info(`Complete volunteer document for request ${requestId}:`, volunteerData);
+          
           updateData.assignedTo = volunteerId;
           updateData.volunteerName = volunteerData.firstName;
           updateData.volunteerContact = volunteerData.contactNumber;
@@ -221,7 +235,8 @@ class StatusService {
             volunteerId,
             volunteerName: volunteerData.firstName,
             volunteerContact: volunteerData.contactNumber,
-            volunteerEmail: volunteerData.email
+            volunteerEmail: volunteerData.email,
+            allFields: Object.keys(volunteerData)
           });
         } else {
           updateData.assignedTo = volunteerId;
@@ -235,6 +250,11 @@ class StatusService {
       
       // Log the final update data for debugging
       logger.info(`Request ${requestId} updated with data:`, updateData);
+      logger.info(`Request ${requestId} volunteer fields:`, {
+        volunteerName: updateData.volunteerName,
+        volunteerContact: updateData.volunteerContact,
+        assignedTo: updateData.assignedTo
+      });
       
       // Create volunteer request status entry (if volunteer request status service is available)
       if (volunteerRequestStatusService) {

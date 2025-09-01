@@ -437,7 +437,8 @@ const DonorDashboard: React.FC = () => {
           volunteerName: data.volunteerName,
           volunteerContact: data.volunteerContact,
           assignedTo: data.assignedTo,
-          acceptedAt: data.acceptedAt
+          acceptedAt: data.acceptedAt,
+          allFields: Object.keys(data)
         });
         
         return {
@@ -492,7 +493,8 @@ const DonorDashboard: React.FC = () => {
           volunteerName: data.volunteerName,
           volunteerContact: data.volunteerContact,
           assignedTo: data.assignedTo,
-          acceptedAt: data.acceptedAt
+          acceptedAt: data.acceptedAt,
+          allFields: Object.keys(data)
         });
         
         return {
