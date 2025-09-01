@@ -21,7 +21,7 @@ const VolunteerDashboard: React.FC = () => {
   const { location } = useParams<{ location: string }>();
   const { userData, logout } = useAuth();
   const navigate = useNavigate();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [myTasks, setMyTasks] = useState<any[]>([]);
   const [communityRequests, setCommunityRequests] = useState<CommunityRequest[]>([]);
   const [loading, setLoading] = useState(true);

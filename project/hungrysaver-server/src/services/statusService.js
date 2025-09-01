@@ -110,11 +110,19 @@ class StatusService {
       // Validate transition
       this.validateTransition(currentStatus, newStatus);
       
-      // Prepare update data
+      // Filter out undefined values BEFORE preparing update data
+      const cleanAdditionalData = {};
+      Object.keys(additionalData).forEach(key => {
+        if (additionalData[key] !== undefined && additionalData[key] !== null) {
+          cleanAdditionalData[key] = additionalData[key];
+        }
+      });
+      
+      // Prepare update data with CLEAN data
       const updateData = {
         status: newStatus,
         updatedAt: new Date(),
-        ...additionalData
+        ...cleanAdditionalData
       };
       
       // Add volunteer assignment for accepted status
@@ -127,7 +135,7 @@ class StatusService {
           // Log the complete volunteer document for debugging
           logger.info(`Complete volunteer document for ${volunteerId}:`, volunteerData);
           
-          updateData.assignedTo = volunteerId;
+          updateData.volunteerId = volunteerId;
           updateData.volunteerName = volunteerData.firstName;
           updateData.volunteerContact = volunteerData.contactNumber;
           updateData.acceptedAt = new Date();
@@ -141,9 +149,7 @@ class StatusService {
             allFields: Object.keys(volunteerData)
           });
         } else {
-          updateData.assignedTo = volunteerId;
-          updateData.acceptedAt = new Date();
-          logger.warn(`Volunteer document not found for ID: ${volunteerId}`);
+          throw new Error('Volunteer details not found. Please ensure your profile is complete.');
         }
       }
       
@@ -162,19 +168,11 @@ class StatusService {
       logger.info(`Donation ${donationId} volunteer fields:`, {
         volunteerName: updateData.volunteerName,
         volunteerContact: updateData.volunteerContact,
-        assignedTo: updateData.assignedTo
+        volunteerId: updateData.volunteerId
       });
       
       // Create volunteer request status entry (if volunteer request status service is available)
       if (volunteerRequestStatusService) {
-        // Filter out undefined values before passing to volunteerRequestStatusService
-        const cleanAdditionalData = {};
-        Object.keys(additionalData).forEach(key => {
-          if (additionalData[key] !== undefined && additionalData[key] !== null) {
-            cleanAdditionalData[key] = additionalData[key];
-          }
-        });
-        
         await volunteerRequestStatusService.createVolunteerRequestStatus(
           donationId,
           volunteerId,
@@ -185,21 +183,13 @@ class StatusService {
       
       // Log the status change (if audit service is available)
       if (auditService) {
-        // Filter out undefined values before passing to audit service
-        const cleanAuditData = {};
-        Object.keys(additionalData).forEach(key => {
-          if (additionalData[key] !== undefined && additionalData[key] !== null) {
-            cleanAuditData[key] = additionalData[key];
-          }
-        });
-        
         await auditService.logStatusChange(
           donationId,
           'donation',
           currentStatus,
           newStatus,
           volunteerId,
-          cleanAuditData
+          cleanAdditionalData
         );
       }
       
