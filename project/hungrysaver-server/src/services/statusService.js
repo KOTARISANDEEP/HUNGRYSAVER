@@ -136,6 +136,7 @@ class StatusService {
           logger.info(`Complete volunteer document for ${volunteerId}:`, volunteerData);
           
           updateData.volunteerId = volunteerId;
+          updateData.assignedTo = volunteerId; // Add this field for frontend compatibility
           updateData.volunteerName = volunteerData.firstName;
           updateData.volunteerContact = volunteerData.contactNumber;
           updateData.acceptedAt = new Date();

@@ -15,7 +15,7 @@ import MotivationalBanner from '../components/MotivationalBanner';
 import AnimatedEmptyState from '../components/AnimatedIllustrations';
 import CommunityRequestCard from '../components/CommunityRequestCard';
 import Settings from '../components/Settings';
-import VolunteerDetailsForm from '../components/VolunteerDetailsForm';
+
 
 const VolunteerDashboard: React.FC = () => {
   const { location } = useParams<{ location: string }>();
@@ -26,6 +26,7 @@ const VolunteerDashboard: React.FC = () => {
   const [communityRequests, setCommunityRequests] = useState<CommunityRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [communityRequestsLoading, setCommunityRequestsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'community' | 'completed'>('tasks');
 
   const [activeSection, setActiveSection] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,12 +37,7 @@ const VolunteerDashboard: React.FC = () => {
     completionRate: 92
   });
   
-  // Volunteer details form state
-  const [volunteerDetailsForm, setVolunteerDetailsForm] = useState({
-    isOpen: false,
-    donationId: '',
-    taskType: 'donation' as 'donation' | 'request'
-  });
+
 
   const sidebarItems = [
     { id: 'home', label: 'Home', icon: Home, description: 'Dashboard Overview' },
@@ -102,7 +98,7 @@ const VolunteerDashboard: React.FC = () => {
       const allTasks = await getTasksByLocation(volunteerLocation);
       
       // Transform tasks to include proper contact information
-      const transformedTasks = allTasks.map(task => ({
+      const transformedTasks = allTasks.map((task: any) => ({
         ...task,
         donorName: task.type === 'donation' ? task.donorName : undefined,
         donorContact: task.type === 'donation' ? task.donorContact : undefined,
@@ -111,7 +107,22 @@ const VolunteerDashboard: React.FC = () => {
         description: task.description || task.details?.description || 'No description provided'
       }));
       
-      setTasks(transformedTasks);
+      // Separate available and accepted tasks
+      const availableTasks = transformedTasks.filter((task: any) => task.status === 'pending');
+      const acceptedTasks = transformedTasks.filter((task: any) => 
+        task.status !== 'pending' && 
+        (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid)
+      );
+      
+      setTasks(availableTasks);
+      setMyTasks(acceptedTasks);
+      
+      console.log('📊 Task filtering results:', {
+        total: transformedTasks.length,
+        available: availableTasks.length,
+        accepted: acceptedTasks.length,
+        userUid: userData?.uid
+      });
     } catch (error) {
       console.error('Error fetching tasks:', error);
     } finally {
@@ -148,36 +159,7 @@ const VolunteerDashboard: React.FC = () => {
     }
   };
 
-  const handleVolunteerDetailsSuccess = async () => {
-    try {
-      // Update the task status to accepted after volunteer details are submitted
-      const result = await updateTaskStatus(
-        volunteerDetailsForm.donationId, 
-        volunteerDetailsForm.taskType, 
-        'accepted', 
-        { assignedTo: userData?.uid }
-      );
-      
-      console.log('✅ Task status updated after volunteer details:', result);
-      
-      // Update the local state
-      setTasks(prev => prev.map(task => 
-        task.id === volunteerDetailsForm.donationId 
-          ? { ...task, status: 'accepted', assignedTo: userData?.uid } 
-          : task
-      ));
-      
-      // Close the form
-      setVolunteerDetailsForm({
-        isOpen: false,
-        donationId: '',
-        taskType: 'donation'
-      });
-      
-    } catch (error) {
-      console.error('Error updating task status after volunteer details:', error);
-    }
-  };
+
 
   const handleTaskAction = async (taskId: string, action: 'accept' | 'reject' | 'picked' | 'delivered', taskType: 'donation' | 'request') => {
     try {
@@ -186,13 +168,10 @@ const VolunteerDashboard: React.FC = () => {
       
       switch (action) {
         case 'accept':
-          // Open volunteer details form instead of directly updating
-          setVolunteerDetailsForm({
-            isOpen: true,
-            donationId: taskId,
-            taskType
-          });
-          return;
+          // Directly accept donation without form
+          newStatus = 'accepted';
+          updateData = { status: newStatus };
+          break;
         case 'reject':
           setTasks(prev => prev.filter(task => task.id !== taskId));
           return;
@@ -211,12 +190,37 @@ const VolunteerDashboard: React.FC = () => {
       const result = await updateTaskStatus(taskId, taskType, newStatus, updateData);
       console.log('✅ Task status update result:', result);
       
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? { ...task, status: newStatus, ...updateData } : task
-      ));
+      // Refresh tasks from server to get updated data
+      try {
+        console.log('🔄 Refreshing tasks from server...');
+        const refreshedTasks = await getTasksByLocation(userData?.location || '');
+        
+        // Filter tasks based on status and assignment
+        const availableTasks = refreshedTasks.filter((task: any) => task.status === 'pending');
+        const myTasks = refreshedTasks.filter((task: any) => 
+          task.status !== 'pending' && 
+          (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid)
+        );
+        
+        setTasks(availableTasks);
+        setMyTasks(myTasks);
+        console.log('✅ Tasks refreshed from server. Available:', availableTasks.length, 'My Tasks:', myTasks.length);
+        
+        // Show success message for acceptance
+        if (action === 'accept') {
+          alert('Donation accepted successfully! The request has been moved to your tasks.');
+        }
+        
+      } catch (refreshError) {
+        console.error('Error refreshing tasks:', refreshError);
+        // Fallback to local state update
+        setTasks(prev => prev.filter(task => task.id !== taskId));
+        console.log('✅ Task removed from available list (fallback)');
+      }
       
     } catch (error) {
       console.error('Error updating task:', error);
+      alert('Error updating task status. Please try again.');
     }
   };
 
@@ -374,24 +378,48 @@ const VolunteerDashboard: React.FC = () => {
           </div>
         );
 
-             case 'donor-requests':
-         return (
-           <div className="space-y-6">
-             <div className="flex items-center justify-between">
-               <h2 className="text-3xl font-bold text-white">Donor Requests</h2>
-               <div className="bg-[#eaa640]/10 backdrop-blur-lg border border-[#eaa640]/30 rounded-lg px-4 py-2">
-                 <span className="text-[#eaa640] font-medium">{tasks.filter(t => t.status === 'pending' && t.type === 'donation').length} Available</span>
+                   case 'donor-requests':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold text-white">Donor Requests</h2>
+              <div className="bg-[#eaa640]/10 backdrop-blur-lg border border-[#eaa640]/30 rounded-lg px-4 py-2">
+                <span className="text-[#eaa640] font-medium">{tasks.filter(t => t.status === 'pending' && t.type === 'donation').length} Available</span>
+              </div>
+            </div>
+
+            {/* Tasks Grid - Only Available Tasks */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {tasks.filter(task => task.status === 'pending' && task.type === 'donation').map((task) => (
+                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} />
+              ))}
+            </div>
+
+                         {/* My Accepted Tasks Section */}
+             {myTasks.filter(task => task.type === 'donation' && task.status === 'accepted').length > 0 && (
+               <div className="mt-12">
+                 <h3 className="text-2xl font-bold text-white mb-4">My Accepted Tasks</h3>
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                   {myTasks.filter(task => task.type === 'donation' && task.status === 'accepted').map((task) => (
+                     <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} />
+                   ))}
+                 </div>
+               </div>
+             )}
+             
+             {/* Debug Information */}
+             <div className="mt-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+               <h4 className="text-lg font-semibold text-white mb-2">Debug Info</h4>
+               <div className="text-sm text-gray-300 space-y-1">
+                 <div>Total Tasks: {tasks.length + myTasks.length}</div>
+                 <div>Available Tasks: {tasks.length}</div>
+                 <div>My Tasks: {myTasks.length}</div>
+                 <div>Accepted Donations: {myTasks.filter(t => t.type === 'donation' && t.status === 'accepted').length}</div>
+                 <div>User UID: {userData?.uid}</div>
                </div>
              </div>
-
-             {/* Tasks Grid - Only Available Tasks */}
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-               {tasks.filter(task => task.status === 'pending' && task.type === 'donation').map((task) => (
-                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} />
-               ))}
-             </div>
-           </div>
-         );
+          </div>
+        );
 
       case 'community-requests':
         return (
@@ -435,7 +463,7 @@ const VolunteerDashboard: React.FC = () => {
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">My Task Status</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {tasks.filter(task => task.assignedTo === userData?.uid).map((task) => (
+              {myTasks.filter(task => task.assignedTo === userData?.uid || task.volunteerId === userData?.uid).map((task) => (
                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} showProgress />
               ))}
             </div>
@@ -447,7 +475,7 @@ const VolunteerDashboard: React.FC = () => {
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">Completed Tasks</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {tasks.filter(task => task.status === 'delivered').map((task) => (
+              {myTasks.filter(task => task.status === 'delivered').map((task) => (
                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} />
               ))}
             </div>
@@ -574,17 +602,7 @@ const VolunteerDashboard: React.FC = () => {
         />
       )}
 
-      {/* Volunteer Details Form */}
-      <VolunteerDetailsForm
-        isOpen={volunteerDetailsForm.isOpen}
-        onClose={() => setVolunteerDetailsForm({
-          isOpen: false,
-          donationId: '',
-          taskType: 'donation'
-        })}
-        donationId={volunteerDetailsForm.donationId}
-        onSuccess={handleVolunteerDetailsSuccess}
-      />
+      
     </div>
   );
 };
@@ -644,7 +662,7 @@ const TaskCard: React.FC<{
         </span>
       </div>
 
-      {showProgress && task.assignedTo === userData?.uid && (
+             {showProgress && (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid) && (
         <div className="mb-4 p-4 bg-[#eaa640]/10 rounded-xl border border-[#eaa640]/30">
           <div className="flex items-center space-x-4">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -716,7 +734,7 @@ const TaskCard: React.FC<{
           </>
         )}
         
-        {task.status === 'accepted' && task.assignedTo === userData?.uid && (
+                 {task.status === 'accepted' && (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid) && (
           <button
             onClick={() => onAction(task.id, 'picked', task.type)}
             className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg shadow-orange-500/25"
@@ -725,7 +743,7 @@ const TaskCard: React.FC<{
           </button>
         )}
         
-        {task.status === 'picked' && task.assignedTo === userData?.uid && (
+                 {task.status === 'picked' && (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid) && (
           <button
             onClick={() => onAction(task.id, 'delivered', task.type)}
             className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg shadow-green-500/25"
