@@ -236,11 +236,19 @@ class StatusService {
       // Validate transition
       this.validateTransition(currentStatus, newStatus);
       
-      // Prepare update data
+      // Filter out undefined values BEFORE preparing update data
+      const cleanAdditionalData = {};
+      Object.keys(additionalData).forEach(key => {
+        if (additionalData[key] !== undefined && additionalData[key] !== null) {
+          cleanAdditionalData[key] = additionalData[key];
+        }
+      });
+      
+      // Prepare update data with CLEAN data
       const updateData = {
         status: newStatus,
         updatedAt: new Date(),
-        ...additionalData
+        ...cleanAdditionalData
       };
       
       if (newStatus === STATUS_STAGES.ACCEPTED && volunteerId) {
@@ -289,7 +297,7 @@ class StatusService {
           requestId,
           volunteerId,
           newStatus,
-          additionalData
+          cleanAdditionalData
         );
       }
       
@@ -301,7 +309,7 @@ class StatusService {
           currentStatus,
           newStatus,
           volunteerId,
-          additionalData
+          cleanAdditionalData
         );
       }
       
