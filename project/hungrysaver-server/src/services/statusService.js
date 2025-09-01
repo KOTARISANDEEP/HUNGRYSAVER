@@ -17,7 +17,7 @@ class StatusService {
   /**
    * Initialize Firebase services (called lazily)
    */
-  initialize() {
+  async initialize() {
     if (this.initialized) return;
     
     try {
@@ -57,9 +57,9 @@ class StatusService {
   /**
    * Get database instance (with lazy initialization)
    */
-  getDb() {
+  async getDb() {
     if (!this.initialized) {
-      this.initialize();
+      await this.initialize();
     }
     return this.db;
   }
@@ -85,7 +85,7 @@ class StatusService {
    */
   async updateDonationStatus(donationId, newStatus, volunteerId, additionalData = {}) {
     try {
-      const db = this.getDb();
+      const db = await this.getDb();
       const donationRef = db.collection(COLLECTIONS.DONATIONS).doc(donationId);
       const donationDoc = await donationRef.get();
       
@@ -185,7 +185,7 @@ class StatusService {
    */
   async updateRequestStatus(requestId, newStatus, volunteerId, additionalData = {}) {
     try {
-      const db = this.getDb();
+      const db = await this.getDb();
       const requestRef = db.collection(COLLECTIONS.REQUESTS).doc(requestId);
       const requestDoc = await requestRef.get();
       
@@ -301,7 +301,7 @@ class StatusService {
    */
   async getStatusHistory(itemId, itemType) {
     try {
-      const db = this.getDb();
+      const db = await this.getDb();
       const auditSnapshot = await db.collection(COLLECTIONS.AUDIT_LOGS)
         .where('itemId', '==', itemId)
         .where('itemType', '==', itemType)
@@ -323,7 +323,7 @@ class StatusService {
    */
   async getItemsByStatus(status, location, itemType = 'donation') {
     try {
-      const db = this.getDb();
+      const db = await this.getDb();
       const collection = itemType === 'donation' ? COLLECTIONS.DONATIONS : COLLECTIONS.REQUESTS;
       
       let query = db.collection(collection).where('status', '==', status);
