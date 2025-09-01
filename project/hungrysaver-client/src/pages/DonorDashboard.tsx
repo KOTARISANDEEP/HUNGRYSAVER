@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Heart, BookOpen, Shield, Home, Zap, Building, Users, Calendar, MapPin, Clock, TrendingUp, Award, Star,
-  Menu, X, Bell, LogOut, User, Gift, History, BarChart3, MessageSquare, FileText, HelpCircle, Settings as SettingsIcon
+  Menu, X, Bell, LogOut, User, Gift, History, BarChart3, MessageSquare, FileText, HelpCircle, Settings as SettingsIcon,
+  CheckCircle, UserPlus, Truck, Users2
 } from 'lucide-react';
 import { collection, query, getDocs, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -47,6 +48,8 @@ interface DonationHistoryItem {
   location_lowercase?: string;
   status: 'pending' | 'accepted' | 'picked' | 'delivered';
   createdAt: any;
+  volunteerName?: string;
+  volunteerContact?: string;
 }
 
 const sidebarItems = [
@@ -120,6 +123,123 @@ function formatCreatedAt(createdAt: any) {
   }
   return '';
 }
+
+const formatInitiativeName = (initiative: string) => {
+  if (!initiative) return 'Unknown Initiative';
+  
+  const nameMap: { [key: string]: string } = {
+    'annamitra-seva': 'Annamitra Seva',
+    'vidya-jyothi': 'Vidya Jyothi',
+    'suraksha-setu': 'Suraksha Setu',
+    'punarasha': 'PunarAsha',
+    'raksha-jyothi': 'Raksha Jyothi',
+    'jyothi-nilayam': 'Jyothi Nilayam'
+  };
+  
+  return nameMap[initiative.toLowerCase()] || initiative.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+// Donation Status Card Component
+const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donation }) => {
+  const getStatusStep = (status: string) => {
+    switch (status) {
+      case 'pending': return 1;
+      case 'accepted': return 2;
+      case 'picked': return 3;
+      case 'delivered': return 4;
+      default: return 1;
+    }
+  };
+
+  const currentStep = getStatusStep(donation.status);
+
+  const statusSteps = [
+    { name: 'Waiting for Volunteer', icon: Clock, color: 'text-gray-400' },
+    { name: 'Volunteer Accepted', icon: UserPlus, color: 'text-gray-400' },
+    { name: 'Picked Up', icon: Truck, color: 'text-gray-400' },
+    { name: 'Delivered', icon: Users2, color: 'text-gray-400' }
+  ];
+
+  return (
+    <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl p-6 border border-[#eaa640]/30 hover:border-[#eaa640]/50 transition-all duration-300 transform hover:scale-105">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-xl font-bold text-white mb-1">
+            {formatInitiativeName(donation.initiative)}
+          </h3>
+          <p className="text-gray-400 text-sm">
+            📍 {donation.location_lowercase?.charAt(0).toUpperCase() + donation.location_lowercase?.slice(1) || 'Unknown Location'}
+          </p>
+        </div>
+        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+          donation.status === 'pending' ? 'bg-[#eeb766]/20 text-[#eeb766] border border-[#eeb766]' :
+          donation.status === 'accepted' ? 'bg-[#eaa640]/20 text-[#eaa640] border border-[#eaa640]' :
+          donation.status === 'picked' ? 'bg-[#ecae53]/20 text-[#ecae53] border border-[#ecae53]' :
+          donation.status === 'delivered' ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]' :
+          'bg-gray-600/20 text-gray-300 border border-gray-600'
+        }`}>
+          {donation.status ? donation.status.charAt(0).toUpperCase() + donation.status.slice(1) : ''}
+        </div>
+      </div>
+
+      {/* Status Progress */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          {statusSteps.map((step, index) => {
+            const Icon = step.icon;
+            const isActive = index < currentStep;
+            const isCurrent = index === currentStep - 1;
+            
+            return (
+              <div key={index} className="flex flex-col items-center flex-1">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
+                  isActive ? 'bg-[#eaa640] text-black' : 'bg-gray-700 text-gray-400'
+                } ${isCurrent ? 'ring-2 ring-[#eaa640] ring-offset-2 ring-offset-gray-900' : ''}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <span className={`text-xs text-center ${isActive ? 'text-[#eaa640] font-medium' : 'text-gray-500'}`}>
+                  {step.name}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Progress Bar */}
+        <div className="w-full bg-gray-700 rounded-full h-2">
+          <div 
+            className="bg-gradient-to-r from-[#eaa640] to-[#ecae53] h-2 rounded-full transition-all duration-500"
+            style={{ width: `${(currentStep / 4) * 100}%` }}
+          ></div>
+        </div>
+      </div>
+
+      {/* Volunteer Details (if accepted or beyond) */}
+      {donation.status !== 'pending' && (
+        <div className="bg-[#eaa640]/10 rounded-lg p-4 mb-4 border border-[#eaa640]/20">
+          <h4 className="text-[#eaa640] font-semibold mb-2">Volunteer Details</h4>
+          <div className="space-y-1 text-sm">
+            <p className="text-gray-300">
+              <span className="font-medium">Volunteer Name:</span> 
+              <span className="text-white ml-2">{donation.volunteerName || 'Assigned Volunteer'}</span>
+            </p>
+            <p className="text-gray-300">
+              <span className="font-medium">Volunteer Contact:</span> 
+              <span className="text-white ml-2">{donation.volunteerContact || '+91 XXXXX XXXXX'}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-between text-sm text-gray-400">
+        <span>📅 {formatCreatedAt(donation.createdAt) || 'Recently'}</span>
+        <span className="text-[#eaa640] font-medium">Thanks for your support! 🙏</span>
+      </div>
+    </div>
+  );
+};
 
 const DonorDashboard: React.FC = () => {
   const [selectedInitiative, setSelectedInitiative] = useState('');
@@ -322,10 +442,12 @@ const DonorDashboard: React.FC = () => {
         const data = doc.data();
         return {
           id: doc.id,
-          initiative: data.initiative || data.communityRequestId ? 'Community Support' : 'Direct Donation',
+          initiative: data.initiative || 'Unknown Initiative',
           location_lowercase: data.city || data.location_lowercase || '',
           status: data.status || 'pending',
-          createdAt: data.createdAt
+          createdAt: data.createdAt,
+          volunteerName: data.volunteerName,
+          volunteerContact: data.volunteerContact
         } as DonationHistoryItem;
       });
       setDonationHistory(donations);
@@ -398,6 +520,8 @@ const DonorDashboard: React.FC = () => {
     };
     return emojiMap[initiative.toLowerCase()] || '💝';
   };
+
+
 
   const selectedInitiativeData = initiatives.find(init => init.id === selectedInitiative);
   const FormComponent = selectedInitiativeData?.component;
@@ -931,45 +1055,10 @@ const DonorDashboard: React.FC = () => {
           onAction={() => setActiveSection('donate')}
         />
       ) : (
-        <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-sm border border-[#eaa640]/30 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-gray-800">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Initiative</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Created At</th>
-                </tr>
-              </thead>
-              <tbody className="bg-gray-900/80 divide-y divide-gray-700">
-                {donationHistory.map((donation: DonationHistoryItem) => (
-                  <tr key={donation.id} className="hover:bg-gray-800/50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                      {donation.initiative ? donation.initiative.replace('-', ' ') : ''}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {donation.location_lowercase || ''}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        donation.status === 'pending' ? 'bg-[#eeb766]/20 text-[#eeb766] border border-[#eeb766]' :
-                        donation.status === 'accepted' ? 'bg-[#eaa640]/20 text-[#eaa640] border border-[#eaa640]' :
-                        donation.status === 'picked' ? 'bg-[#ecae53]/20 text-[#ecae53] border border-[#ecae53]' :
-                        donation.status === 'delivered' ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]' :
-                        'bg-gray-600/20 text-gray-300 border border-gray-600'
-                      }`}>
-                        {donation.status ? donation.status.charAt(0).toUpperCase() + donation.status.slice(1) : ''}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {formatCreatedAt(donation.createdAt) || ''}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {donationHistory.map((donation: DonationHistoryItem) => (
+            <DonationStatusCard key={donation.id} donation={donation} />
+          ))}
         </div>
       )}
     </div>

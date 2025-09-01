@@ -1300,6 +1300,9 @@ const AdminDashboard: React.FC = () => {
                                  <p className="text-white font-medium">Donation Delivered</p>
                                  <p className="text-gray-400 text-sm">{String(donation.initiative || 'Unknown').replace('-', ' ')} - {String(donation.location || 'Unknown')}</p>
                                  <p className="text-white text-xs">Donor: {String(donation.donorName || donation.donorContact || donation.userName || 'Anonymous')}</p>
+                                 {String(donation.location || '').toLowerCase() === 'kalasalingam academy of research and education' && donation.hostel && (
+                                   <p className="text-[#eaa640] text-xs">Hostel: {String(donation.hostel)}</p>
+                                 )}
                                </div>
                                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium">
                                  Delivered
@@ -1340,6 +1343,9 @@ const AdminDashboard: React.FC = () => {
                                  <p className="text-white font-medium">Donation {String(donation.status || 'Unknown')}</p>
                                  <p className="text-gray-400 text-sm">{String(donation.initiative || 'Unknown').replace('-', ' ')} - {String(donation.location || 'Unknown')}</p>
                                  <p className="text-white text-xs">Donor: {String(donation.donorName || donation.donorContact || donation.userName || 'Anonymous')}</p>
+                                 {String(donation.location || '').toLowerCase() === 'kalasalingam academy of research and education' && donation.hostel && (
+                                   <p className="text-[#eaa640] text-xs">Hostel: {String(donation.hostel)}</p>
+                                 )}
                                </div>
                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(String(donation.status || 'pending'))}`}>
                                  {String(donation.status || 'pending')}

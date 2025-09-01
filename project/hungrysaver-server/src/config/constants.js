@@ -69,7 +69,8 @@ export const COLLECTIONS = {
   DONATIONS: 'donations',
   REQUESTS: 'community_requests',
   NOTIFICATIONS: 'notifications',
-  AUDIT_LOGS: 'audit_logs'
+  AUDIT_LOGS: 'audit_logs',
+  VOLUNTEER_REQUESTS_STATUS: 'volunteer_requests_status'
 };
 
 // Motivational messages

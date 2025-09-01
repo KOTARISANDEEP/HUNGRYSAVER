@@ -5,6 +5,7 @@ import { logger } from '../utils/logger.js';
 // Import services dynamically to avoid circular dependencies
 let notificationService = null;
 let auditService = null;
+let volunteerRequestStatusService = null;
 
 class StatusService {
   constructor() {
@@ -32,6 +33,12 @@ class StatusService {
       if (!auditService) {
         import('./auditService.js').then(module => {
           auditService = module.default;
+        });
+      }
+      
+      if (!volunteerRequestStatusService) {
+        import('./volunteerRequestStatusService.js').then(module => {
+          volunteerRequestStatusService = module.default;
         });
       }
       
@@ -97,8 +104,18 @@ class StatusService {
       
       // Add volunteer assignment for accepted status
       if (newStatus === STATUS_STAGES.ACCEPTED && volunteerId) {
-        updateData.assignedTo = volunteerId;
-        updateData.acceptedAt = new Date();
+        // Get volunteer details from users collection
+        const volunteerDoc = await db.collection(COLLECTIONS.USERS).doc(volunteerId).get();
+        if (volunteerDoc.exists) {
+          const volunteerData = volunteerDoc.data();
+          updateData.assignedTo = volunteerId;
+          updateData.volunteerName = volunteerData.firstName;
+          updateData.volunteerContact = volunteerData.contactNumber;
+          updateData.acceptedAt = new Date();
+        } else {
+          updateData.assignedTo = volunteerId;
+          updateData.acceptedAt = new Date();
+        }
       }
       
       // Add timestamps for other stages
@@ -110,6 +127,16 @@ class StatusService {
       
       // Update donation
       await donationRef.update(updateData);
+      
+      // Create volunteer request status entry (if volunteer request status service is available)
+      if (volunteerRequestStatusService) {
+        await volunteerRequestStatusService.createVolunteerRequestStatus(
+          donationId,
+          volunteerId,
+          newStatus,
+          additionalData
+        );
+      }
       
       // Log the status change (if audit service is available)
       if (auditService) {
@@ -164,12 +191,32 @@ class StatusService {
       };
       
       if (newStatus === STATUS_STAGES.ACCEPTED && volunteerId) {
-        updateData.assignedTo = volunteerId;
-        updateData.acceptedAt = new Date();
+        // Get volunteer details from users collection
+        const volunteerDoc = await db.collection(COLLECTIONS.USERS).doc(volunteerId).get();
+        if (volunteerDoc.exists) {
+          const volunteerData = volunteerDoc.data();
+          updateData.assignedTo = volunteerId;
+          updateData.volunteerName = volunteerData.firstName;
+          updateData.volunteerContact = volunteerData.contactNumber;
+          updateData.acceptedAt = new Date();
+        } else {
+          updateData.assignedTo = volunteerId;
+          updateData.acceptedAt = new Date();
+        }
       }
       
       // Update request
       await requestRef.update(updateData);
+      
+      // Create volunteer request status entry (if volunteer request status service is available)
+      if (volunteerRequestStatusService) {
+        await volunteerRequestStatusService.createVolunteerRequestStatus(
+          requestId,
+          volunteerId,
+          newStatus,
+          additionalData
+        );
+      }
       
       // Log the status change (if audit service is available)
       if (auditService) {

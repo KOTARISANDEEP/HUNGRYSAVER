@@ -20,6 +20,7 @@ interface UserData {
   firstName: string;
   userType: 'volunteer' | 'donor' | 'community' | 'admin';
   status: 'pending' | 'approved' | 'rejected';
+  contactNumber?: string;
   location?: string;
   education?: string;
 }
@@ -87,6 +88,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Validate volunteer-specific fields
     if (userInfo.userType === 'volunteer') {
+      if (!userInfo.contactNumber?.trim()) {
+        throw new Error('Contact number is required for volunteers');
+      }
       if (!userInfo.location?.trim()) {
         throw new Error('Location is required for volunteers');
       }
@@ -112,7 +116,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         userType: userInfo.userType,
         status: initialStatus,
         createdAt: new Date(),
-        // Only include location and education if they exist and are not empty
+        // Only include volunteer-specific fields if they exist and are not empty
+        ...(userInfo.contactNumber?.trim() && { contactNumber: userInfo.contactNumber.trim() }),
         ...(userInfo.location?.trim() && { location: userInfo.location.trim().toLowerCase() }),
         ...(userInfo.education?.trim() && { education: userInfo.education.trim() })
       };

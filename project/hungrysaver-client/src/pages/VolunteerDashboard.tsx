@@ -4,7 +4,7 @@ import {
   MapPin, Calendar, User, Phone, Package, Clock, CheckCircle, AlertCircle, 
   Award, TrendingUp, Heart, Home, List, Users, ClipboardCheck, 
   Star, MessageCircle, Settings as SettingsIcon, Menu, X, Bell, LogOut,
-  ChevronRight, BarChart3, Gift
+  ChevronRight, BarChart3, Gift, Building
 } from 'lucide-react';
 import { getTasksByLocation, updateTaskStatus } from '../services/firestoreService';
 import { getVolunteerCommunityRequests, updateCommunityRequestStatus } from '../services/communityRequestService';
@@ -621,6 +621,13 @@ const TaskCard: React.FC<{
           <MapPin className="h-4 w-4" />
           <span>{task.address}</span>
         </div>
+        {/* Show hostel information for Kalasalingam Academy donations */}
+        {task.type === 'donation' && task.location?.toLowerCase() === 'kalasalingam academy of research and education' && task.hostel && (
+          <div className="flex items-center space-x-2 text-sm text-[#eaa640]">
+            <Building className="h-4 w-4" />
+            <span className="font-medium">Hostel: {task.hostel}</span>
+          </div>
+        )}
         <div className="flex items-center space-x-2 text-sm text-gray-400">
           <Phone className="h-4 w-4" />
           <span>{task.type === 'donation' ? task.donorContact : task.beneficiaryContact}</span>

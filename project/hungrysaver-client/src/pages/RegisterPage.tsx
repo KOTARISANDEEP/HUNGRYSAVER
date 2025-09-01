@@ -10,6 +10,7 @@ const RegisterPage: React.FC = () => {
     email: '',
     password: '',
     userType: '',
+    contactNumber: '', // Added contact number field
     location: 'vijayawada', // Default to first city to prevent undefined
     education: '10th Grade', // Default to first education level
     acceptTerms: false
@@ -72,6 +73,13 @@ const RegisterPage: React.FC = () => {
       case 'userType':
         if (!value) error = 'Please select a user type';
         break;
+      case 'contactNumber':
+        if (formData.userType === 'volunteer' && !value) error = 'Contact number is required for volunteers';
+        else if (formData.userType === 'volunteer' && value) {
+          const phoneRegex = /^[6-9]\d{9}$/;
+          if (!phoneRegex.test(value as string)) error = 'Please enter a valid 10-digit mobile number';
+        }
+        break;
       case 'location':
         if (formData.userType === 'volunteer' && !value) error = 'Location is required for volunteers';
         break;
@@ -113,6 +121,7 @@ const RegisterPage: React.FC = () => {
       ...prev,
       userType,
       // Reset to defaults for volunteer fields to prevent undefined values
+      contactNumber: userType === 'volunteer' ? (prev.contactNumber || '') : '',
       location: userType === 'volunteer' ? (prev.location || 'vijayawada') : '',
       education: userType === 'volunteer' ? (prev.education || '10th Grade') : ''
     }));
@@ -121,6 +130,7 @@ const RegisterPage: React.FC = () => {
     setFieldErrors(prev => ({
       ...prev,
       userType: '',
+      contactNumber: '',
       location: '',
       education: ''
     }));
@@ -129,7 +139,7 @@ const RegisterPage: React.FC = () => {
   const validateForm = (): boolean => {
     const fields = ['firstName', 'email', 'password', 'userType', 'acceptTerms'];
     if (formData.userType === 'volunteer') {
-      fields.push('location', 'education');
+      fields.push('contactNumber', 'location', 'education');
     }
     
     let isValid = true;
@@ -157,6 +167,11 @@ const RegisterPage: React.FC = () => {
 
     // Additional validation to prevent undefined values
     if (formData.userType === 'volunteer') {
+      if (!formData.contactNumber || formData.contactNumber.trim() === '') {
+        setError('Please enter a contact number for volunteer registration.');
+        setLoading(false);
+        return;
+      }
       if (!formData.location || formData.location.trim() === '') {
         setError('Please select a location for volunteer registration.');
         setLoading(false);
@@ -176,7 +191,8 @@ const RegisterPage: React.FC = () => {
         password: formData.password,
         userType: formData.userType as 'volunteer' | 'donor' | 'community',
         status: formData.userType === 'volunteer' ? 'pending' : 'approved',
-        // Only include location and education for volunteers, and ensure they're not empty
+        // Only include volunteer-specific fields, and ensure they're not empty
+        contactNumber: formData.userType === 'volunteer' ? formData.contactNumber.trim() : undefined,
         location: formData.userType === 'volunteer' ? formData.location.trim() : undefined,
         education: formData.userType === 'volunteer' ? formData.education.trim() : undefined
       });
@@ -422,7 +438,39 @@ const RegisterPage: React.FC = () => {
 
             {/* Volunteer-specific fields */}
             {formData.userType === 'volunteer' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-green-500/10 rounded-lg border border-green-500/30">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-green-500/10 rounded-lg border border-green-500/30">
+                <div>
+                  <label htmlFor="contactNumber" className="text-white text-sm font-medium mb-2 block">
+                    Contact Number <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <input
+                      type="tel"
+                      id="contactNumber"
+                      name="contactNumber"
+                      value={formData.contactNumber}
+                      onChange={handleInputChange}
+                      onBlur={() => validateField('contactNumber', formData.contactNumber)}
+                      className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors ${
+                        fieldErrors.contactNumber 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-600 focus:ring-green-500 focus:border-transparent'
+                      }`}
+                      placeholder="Enter your mobile number"
+                      aria-invalid={!!fieldErrors.contactNumber}
+                      aria-describedby={fieldErrors.contactNumber ? 'contactNumber-error' : undefined}
+                      required
+                    />
+                  </div>
+                  {fieldErrors.contactNumber && (
+                    <p id="contactNumber-error" className="mt-2 text-sm text-red-400 flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      {fieldErrors.contactNumber}
+                    </p>
+                  )}
+                </div>
+
                 <div>
                   <label htmlFor="location" className="text-white text-sm font-medium mb-2 block">
                     Location <span className="text-red-400">*</span>

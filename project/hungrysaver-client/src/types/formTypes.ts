@@ -160,4 +160,7 @@ export interface Task {
   description: string;
   details?: Record<string, unknown>;
   assignedTo?: string;
+  volunteerName?: string;
+  volunteerContact?: string;
+  hostel?: string;
 }
