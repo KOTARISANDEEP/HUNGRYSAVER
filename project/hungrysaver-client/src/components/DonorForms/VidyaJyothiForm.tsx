@@ -4,6 +4,7 @@ import ErrorMessage from '../ErrorMessage';
 
 export interface VidyaJyothiFormData {
   location: string;
+  hostel?: string;
   address: string;
   donorName: string;
   donorContact: string;
@@ -20,6 +21,7 @@ interface VidyaJyothiFormProps {
 const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = false }) => {
   const [formData, setFormData] = useState<VidyaJyothiFormData>({
     location: '',
+    hostel: '',
     address: '',
     donorName: '',
     donorContact: '',
@@ -31,7 +33,9 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
 
   const cities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
-    'nellore', 'kurnool', 'rajahmundry', 'kadapa', 'anantapur'
+    'nellore', 'kurnool', 'rajahmundry', 'kadapa', 'anantapur',
+    'kalasalingam academy of research and education', 'krishnan koil', 
+    'srivilliputtur', 'rajapalayam', 'virudhunagar'
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -75,49 +79,76 @@ const VidyaJyothiForm: React.FC<VidyaJyothiFormProps> = ({ onSubmit, loading = f
       <ErrorMessage error={error} className="mb-6" />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Location and Address */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="text-white text-sm font-medium mb-2 block">
-              City <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <select
-                name="location"
-                value={formData.location}
-                onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Select your city</option>
-                {cities.map((city) => (
-                  <option key={city} value={city}>
-                    {city.charAt(0).toUpperCase() + city.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+        {/* Location */}
+        <div>
+          <label className="text-white text-sm font-medium mb-2 block">
+            Location <span className="text-red-400">*</span>
+          </label>
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <select
+              name="location"
+              value={formData.location}
+              onChange={handleInputChange}
+              className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Select your location</option>
+              {cities.map((city) => (
+                <option key={city} value={city}>
+                  {city.charAt(0).toUpperCase() + city.slice(1)}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
 
+        {/* Hostel (conditional) */}
+        {formData.location === 'kalasalingam academy of research and education' && (
           <div>
             <label className="text-white text-sm font-medium mb-2 block">
-              Support Type <span className="text-red-400">*</span>
+              Select Hostel <span className="text-red-400">*</span>
             </label>
             <select
-              name="supportType"
-              value={formData.supportType}
+              name="hostel"
+              value={formData.hostel}
               onChange={handleInputChange}
               className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             >
-              <option value="">Select support type</option>
-              <option value="fees">School Fees</option>
-              <option value="books">Books & Supplies</option>
-              <option value="uniforms">School Uniforms</option>
-              <option value="supplies">Educational Supplies</option>
+              <option value="">Select hostel</option>
+              <option value="Mh1">Mh1</option>
+              <option value="Mh2">Mh2</option>
+              <option value="Mh3">Mh3</option>
+              <option value="Mh4">Mh4</option>
+              <option value="Mh5">Mh5</option>
+              <option value="Mh6">Mh6</option>
+              <option value="Mh7">Mh7</option>
+              <option value="Lh2">Lh2</option>
+              <option value="Lh3">Lh3</option>
+              <option value="Lh4">Lh4</option>
             </select>
           </div>
+        )}
+
+        {/* Support Type */}
+        <div>
+          <label className="text-white text-sm font-medium mb-2 block">
+            Support Type <span className="text-red-400">*</span>
+          </label>
+          <select
+            name="supportType"
+            value={formData.supportType}
+            onChange={handleInputChange}
+            className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          >
+            <option value="">Select support type</option>
+            <option value="fees">School Fees</option>
+            <option value="books">Books & Supplies</option>
+            <option value="uniforms">School Uniforms</option>
+            <option value="supplies">Educational Supplies</option>
+          </select>
         </div>
 
         <div>

@@ -2,14 +2,19 @@
 export const VALID_CITIES = [
   'vijayawada',
   'guntur',
-  'vizag',
+  'visakhapatnam',
+  'tirupati',
+  'kakinada',
   'nellore',
   'kurnool',
-  'tirupati',
   'rajahmundry',
-  'eluru',
+  'kadapa',
   'anantapur',
-  'ongole'
+  'kalasalingam academy of research and education',
+  'krishnan koil',
+  'srivilliputtur',
+  'rajapalayam',
+  'virudhunagar'
 ];
 
 // Valid initiatives

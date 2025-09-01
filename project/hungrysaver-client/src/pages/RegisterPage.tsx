@@ -24,7 +24,9 @@ const RegisterPage: React.FC = () => {
 
   const cities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
-    'nellore', 'kurnool', 'rajahmundry', 'kadapa', 'anantapur'
+    'nellore', 'kurnool', 'rajahmundry', 'kadapa', 'anantapur',
+    'kalasalingam academy of research and education', 'krishnan koil', 
+    'srivilliputtur', 'rajapalayam', 'virudhunagar'
   ];
 
   const educationLevels = [

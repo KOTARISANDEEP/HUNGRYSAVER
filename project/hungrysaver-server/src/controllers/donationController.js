@@ -48,6 +48,7 @@ class DonationController {
 
       // Create donation document
       const donationData = {
+        ...req.body, // Spread all fields from the request body (including hostel)
         userId,
         donorEmail,
         initiative,

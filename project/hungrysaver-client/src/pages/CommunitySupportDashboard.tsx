@@ -475,7 +475,7 @@ const CommunitySupportDashboard: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="max-w-2xl">
+                <div className="max-w-2xl mx-auto">
                   {FormComponent && (
                     <>
                       <FormComponent

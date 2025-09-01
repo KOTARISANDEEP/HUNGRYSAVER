@@ -288,14 +288,23 @@ export const validateDonationData = (data: any): boolean => {
     }
   }
   
-  // Validate location is in allowed cities
+  // Validate location is in allowed cities (updated list)
   const allowedCities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
-    'nellore', 'kurnool', 'rajahmundry', 'kadapa', 'anantapur'
+    'nellore', 'kurnool', 'rajahmundry', 'kadapa', 'anantapur',
+    'kalasalingam academy of research and education', 'krishnan koil',
+    'srivilliputtur', 'rajapalayam', 'virudhunagar'
   ];
   
   if (!allowedCities.includes(data.location.toLowerCase())) {
     console.error('❌ Invalid location:', data.location);
+    return false;
+  }
+  
+  // If location is Kalasalingam Academy, hostel field is required
+  if (data.location.toLowerCase() === 'kalasalingam academy of research and education' && 
+      (!data.hostel || data.hostel.trim() === '')) {
+    console.error('❌ Hostel field is required for Kalasalingam Academy location');
     return false;
   }
   
@@ -311,6 +320,19 @@ export const validateRequestData = (data: any): boolean => {
       console.error('❌ Missing required field:', field);
       return false;
     }
+  }
+  
+  // Validate location is in allowed cities (updated list)
+  const allowedCities = [
+    'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
+    'nellore', 'kurnool', 'rajahmundry', 'kadapa', 'anantapur',
+    'kalasalingam academy of research and education', 'krishnan koil',
+    'srivilliputtur', 'rajapalayam', 'virudhunagar'
+  ];
+  
+  if (!allowedCities.includes(data.location.toLowerCase())) {
+    console.error('❌ Invalid location:', data.location);
+    return false;
   }
   
   console.log('✅ Request data validation passed');

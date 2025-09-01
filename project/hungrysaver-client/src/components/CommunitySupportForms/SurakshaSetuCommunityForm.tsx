@@ -33,7 +33,9 @@ const SurakshaSetuCommunityForm: React.FC<SurakshaSetuCommunityFormProps> = ({ o
 
   const cities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
-    'nellore', 'kurnool', 'rajahmundry', 'kadapa', 'anantapur'
+    'nellore', 'kurnool', 'rajahmundry', 'kadapa', 'anantapur',
+    'kalasalingam academy of research and education', 'krishnan koil',
+    'srivilliputtur', 'rajapalayam', 'virudhunagar'
   ];
 
   const itemTypes = [
@@ -107,7 +109,7 @@ const SurakshaSetuCommunityForm: React.FC<SurakshaSetuCommunityFormProps> = ({ o
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="text-white text-sm font-medium mb-2 block">
-              City <span className="text-red-400">*</span>
+              Location <span className="text-red-400">*</span>
             </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -118,7 +120,7 @@ const SurakshaSetuCommunityForm: React.FC<SurakshaSetuCommunityFormProps> = ({ o
                 className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                 required
               >
-                <option value="">Select city</option>
+                <option value="">Select location</option>
                 {cities.map((city) => (
                   <option key={city} value={city}>
                     {city.charAt(0).toUpperCase() + city.slice(1)}
