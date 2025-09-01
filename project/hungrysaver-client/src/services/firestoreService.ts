@@ -199,7 +199,7 @@ export const updateTaskStatus = async (
   additionalData?: any
 ) => {
   try {
-    console.log('🔄 Updating task status via backend API:', { taskId, taskType, status });
+    console.log('🔄 Updating task status via backend API:', { taskId, taskType, status, additionalData });
     
     // Get the current user's ID token for authentication
     const { getAuth } = await import('firebase/auth');
@@ -212,6 +212,16 @@ export const updateTaskStatus = async (
     
     const idToken = await user.getIdToken();
     
+    // Filter out undefined values to prevent backend errors
+    const cleanAdditionalData: any = {};
+    if (additionalData) {
+      Object.keys(additionalData).forEach(key => {
+        if (additionalData[key] !== undefined && additionalData[key] !== null) {
+          cleanAdditionalData[key] = additionalData[key];
+        }
+      });
+    }
+    
     // Call the backend API instead of writing directly to Firestore
     const endpoint = taskType === 'donation' ? 'donations' : 'requests';
     const response = await fetch(`https://hungrysaver.onrender.com/api/${endpoint}/${taskId}/status`, {
@@ -222,10 +232,10 @@ export const updateTaskStatus = async (
       },
       body: JSON.stringify({
         status,
-        ...additionalData
+        ...cleanAdditionalData
       })
     });
-    
+
     if (!response.ok) {
       const errorJson = await safeParseJson(response);
       const message = errorJson?.message || `Failed to update task status (HTTP ${response.status})`;

@@ -43,6 +43,14 @@ class VolunteerRequestStatusService {
       
       const volunteerData = volunteerDoc.data();
       
+      // Filter out undefined values to prevent Firestore errors
+      const cleanAdditionalData = {};
+      Object.keys(additionalData).forEach(key => {
+        if (additionalData[key] !== undefined && additionalData[key] !== null) {
+          cleanAdditionalData[key] = additionalData[key];
+        }
+      });
+      
       // Create volunteer request status document
       const volunteerRequestStatusData = {
         donationId,
@@ -51,7 +59,7 @@ class VolunteerRequestStatusService {
         volunteerContact: volunteerData.contactNumber,
         status,
         timestamp: new Date(),
-        ...additionalData
+        ...cleanAdditionalData
       };
       
       const docRef = await db.collection(COLLECTIONS.VOLUNTEER_REQUESTS_STATUS).add(volunteerRequestStatusData);
