@@ -230,11 +230,12 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
             <div className="relative">
               <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
-                type="datetime-local"
+                type="text"
                 name="preparationTime"
                 value={formData.preparationTime}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="e.g., 30 mins, 1 hour, 2 hours"
               />
             </div>
           </div>

@@ -281,7 +281,7 @@ const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donat
                 <p className="text-gray-300">
                   <span className="font-medium">Expected Arrival:</span> 
                   <span className="text-white ml-2">
-                    {new Date(volunteerDetails.expectedArrivalTime).toLocaleString()}
+                    {volunteerDetails.expectedArrivalTime}
                   </span>
                 </p>
               )}

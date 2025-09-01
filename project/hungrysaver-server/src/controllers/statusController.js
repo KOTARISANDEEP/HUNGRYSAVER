@@ -8,14 +8,21 @@ class StatusController {
   updateDonationStatus = async (req, res) => {
     try {
       const { id } = req.params;
-      const { status, notes } = req.body;
+      const { status, notes, ...otherData } = req.body;
       const volunteerId = req.user.uid;
+
+      // Filter out undefined values to prevent Firestore errors
+      const additionalData = { updatedBy: volunteerId };
+      if (notes !== undefined) additionalData.notes = notes;
+      if (Object.keys(otherData).length > 0) {
+        Object.assign(additionalData, otherData);
+      }
 
       const result = await statusService.updateDonationStatus(
         id,
         status,
         volunteerId,
-        { notes, updatedBy: volunteerId }
+        additionalData
       );
 
       res.json({
@@ -38,14 +45,21 @@ class StatusController {
   updateRequestStatus = async (req, res) => {
     try {
       const { id } = req.params;
-      const { status, notes } = req.body;
+      const { status, notes, ...otherData } = req.body;
       const volunteerId = req.user.uid;
+
+      // Filter out undefined values to prevent Firestore errors
+      const additionalData = { updatedBy: volunteerId };
+      if (notes !== undefined) additionalData.notes = notes;
+      if (Object.keys(otherData).length > 0) {
+        Object.assign(additionalData, otherData);
+      }
 
       const result = await statusService.updateRequestStatus(
         id,
         status,
         volunteerId,
-        { notes, updatedBy: volunteerId }
+        additionalData
       );
 
       res.json({

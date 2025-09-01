@@ -41,7 +41,7 @@ const VolunteerDetailsForm: React.FC<VolunteerDetailsFormProps> = ({
       newErrors.volunteerContact = 'Please enter a valid 10-digit phone number';
     }
 
-    if (!formData.expectedArrivalTime) {
+    if (!formData.expectedArrivalTime.trim()) {
       newErrors.expectedArrivalTime = 'Expected arrival time is required';
     }
 
@@ -69,6 +69,13 @@ const VolunteerDetailsForm: React.FC<VolunteerDetailsFormProps> = ({
       
       const idToken = await user.getIdToken();
       
+      // Log form data for debugging
+      console.log('Submitting volunteer details:', {
+        donationId,
+        formData,
+        userId: user.uid
+      });
+      
       // Submit volunteer details
       const response = await fetch(`https://hungrysaver.onrender.com/api/volunteer-details/${donationId}`, {
         method: 'POST',
@@ -81,8 +88,12 @@ const VolunteerDetailsForm: React.FC<VolunteerDetailsFormProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit volunteer details');
+        console.error('Error response data:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const responseData = await response.json();
+      console.log('Success response:', responseData);
 
       // Success - close form and notify parent
       onSuccess();
@@ -171,12 +182,13 @@ const VolunteerDetailsForm: React.FC<VolunteerDetailsFormProps> = ({
               Expected Arrival Time
             </label>
             <input
-              type="datetime-local"
+              type="text"
               value={formData.expectedArrivalTime}
               onChange={(e) => handleInputChange('expectedArrivalTime', e.target.value)}
               className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#eaa640] transition-all ${
                 errors.expectedArrivalTime ? 'border-red-500' : 'border-gray-600'
               }`}
+              placeholder="e.g., 30 mins, 1 hour, 2 hours"
             />
             {errors.expectedArrivalTime && (
               <p className="text-red-400 text-sm mt-1">{errors.expectedArrivalTime}</p>
