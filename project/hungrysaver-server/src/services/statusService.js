@@ -182,6 +182,8 @@ class StatusService {
         if (cleanAdditionalData.feedback) {
           updateData.feedback = cleanAdditionalData.feedback;
           logger.info(`Feedback added to donation ${donationId}: ${cleanAdditionalData.feedback}`);
+        } else {
+          logger.warn(`No feedback provided for completed donation ${donationId}`);
         }
       }
       
@@ -198,6 +200,7 @@ class StatusService {
       
       // Log the final update data for debugging
       logger.info(`Donation ${donationId} updated with data:`, updateData);
+      logger.info(`Donation ${donationId} additional data received:`, cleanAdditionalData);
       logger.info(`Donation ${donationId} volunteer fields:`, {
         volunteerName: updateData.volunteerName,
         volunteerContact: updateData.volunteerContact,

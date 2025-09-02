@@ -200,6 +200,7 @@ export const updateTaskStatus = async (
 ) => {
   try {
     console.log('🔄 Updating task status via backend API:', { taskId, taskType, status, additionalData });
+    console.log('🔄 Clean additional data being sent:', cleanAdditionalData);
     
     // Get the current user's ID token for authentication
     const { getAuth } = await import('firebase/auth');

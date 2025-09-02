@@ -271,21 +271,28 @@ class DonationController {
   updateDonationStatus = async (req, res) => {
     try {
       const { id } = req.params;
-      const { status, notes } = req.body;
+      const { status, notes, feedback, ...otherData } = req.body;
       const volunteerId = req.user.uid;
 
       // Import status service dynamically to avoid circular dependencies
       const { default: statusService } = await import('../services/statusService.js');
+
+      // Prepare additional data including feedback
+      const additionalData = { notes };
+      if (feedback) additionalData.feedback = feedback;
+      if (Object.keys(otherData).length > 0) {
+        Object.assign(additionalData, otherData);
+      }
 
       // Use the status service to update donation status with proper volunteer information
       const result = await statusService.updateDonationStatus(
         id,
         status,
         volunteerId,
-        { notes }
+        additionalData
       );
 
-      logger.info(`Donation ${id} status updated to ${status} by volunteer ${volunteerId}`);
+      logger.info(`Donation ${id} status updated to ${status} by volunteer ${volunteerId}`, { feedback: !!feedback });
 
       res.json({
         success: true,

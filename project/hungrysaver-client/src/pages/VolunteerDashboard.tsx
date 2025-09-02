@@ -255,6 +255,18 @@ const VolunteerDashboard: React.FC = () => {
 
       // Handle delivered action with feedback modal
       if (action === 'delivered') {
+        // First update status to 'delivered'
+        const updateData = { 
+          status: 'delivered', 
+          deliveredAt: new Date()
+        };
+        
+        console.log('🔄 Updating status to delivered:', { taskId, taskType });
+        
+        const result = await updateTaskStatus(taskId, taskType, 'delivered', updateData);
+        console.log('✅ Status updated to delivered:', result);
+        
+        // Then open feedback modal
         setFeedbackModal({
           isOpen: true,
           taskId,
@@ -404,7 +416,7 @@ const VolunteerDashboard: React.FC = () => {
     try {
       setActionLoading(`${feedbackModal.taskId}-feedback`);
       
-      // Update status to 'completed' with feedback
+      // Update status to 'completed' with feedback (task is already 'delivered')
       const updateData = { 
         status: 'completed', 
         feedback,
@@ -642,7 +654,7 @@ const VolunteerDashboard: React.FC = () => {
             {/* Tasks Grid - Only Available Tasks */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {tasks.filter(task => task.status === 'pending' && task.type === 'donation').map((task) => (
-                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} />
+                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} />
               ))}
             </div>
             
@@ -695,7 +707,7 @@ const VolunteerDashboard: React.FC = () => {
             <h2 className="text-3xl font-bold text-white">My Task Status</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                              {myTasks.filter(task => task.assignedTo === userData?.uid || task.volunteerId === userData?.uid).map((task) => (
-                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} showProgress actionLoading={actionLoading} />
+                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} showProgress actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} />
                ))}
             </div>
           </div>
@@ -707,7 +719,7 @@ const VolunteerDashboard: React.FC = () => {
             <h2 className="text-3xl font-bold text-white">Completed Tasks</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                              {myTasks.filter(task => task.status === 'completed').map((task) => (
-                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} />
+                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} />
                ))}
             </div>
           </div>
@@ -862,7 +874,8 @@ const TaskCard: React.FC<{
   userData: any;
   showProgress?: boolean;
   actionLoading?: string | null;
-}> = ({ task, onAction, userData, showProgress = false, actionLoading }) => {
+  setFeedbackModal?: (modal: { isOpen: boolean; taskId: string | null; taskType: 'donation' | 'request' | null; taskName: string }) => void;
+}> = ({ task, onAction, userData, showProgress = false, actionLoading, setFeedbackModal }) => {
   const getInitiativeEmoji = (initiative: string) => {
     const emojiMap: { [key: string]: string } = {
       'annamitra-seva': '🍛',
@@ -936,7 +949,7 @@ const TaskCard: React.FC<{
           <div className="mt-2 text-sm text-[#eaa640] font-medium">
             {task.status === 'accepted' && 'Ready for pickup'}
             {task.status === 'picked' && 'In delivery'}
-            {task.status === 'delivered' && 'Completed successfully'}
+            {task.status === 'delivered' && 'Ready for feedback'}
             {task.status === 'completed' && 'Task completed with feedback'}
           </div>
         </div>
@@ -1024,9 +1037,21 @@ const TaskCard: React.FC<{
          )}
         
         {task.status === 'delivered' && (
-          <div className="flex-1 bg-green-500/20 text-green-400 py-3 px-4 rounded-xl text-sm font-medium text-center border border-green-500/30">
-            ✅ Completed
-          </div>
+          <button
+            onClick={() => {
+              if (setFeedbackModal) {
+                setFeedbackModal({
+                  isOpen: true,
+                  taskId: task.id,
+                  taskType: task.type,
+                  taskName: task.initiative || task.type || 'this task'
+                });
+              }
+            }}
+            className="flex-1 bg-green-500/20 text-green-400 py-3 px-4 rounded-xl text-sm font-medium text-center border border-green-500/30 hover:bg-green-500/30 transition-colors"
+          >
+            📝 Submit Feedback
+          </button>
         )}
         
         {task.status === 'completed' && (

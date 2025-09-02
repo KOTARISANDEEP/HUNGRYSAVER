@@ -525,7 +525,8 @@ const DonorDashboard: React.FC = () => {
           status: data.status || 'pending',
           createdAt: data.createdAt,
           volunteerName: data.volunteerName,
-          volunteerContact: data.volunteerContact
+          volunteerContact: data.volunteerContact,
+          feedback: data.feedback // Include feedback field
         } as DonationHistoryItem;
       });
       
@@ -581,7 +582,8 @@ const DonorDashboard: React.FC = () => {
           status: data.status || 'pending',
           createdAt: data.createdAt,
           volunteerName: data.volunteerName,
-          volunteerContact: data.volunteerContact
+          volunteerContact: data.volunteerContact,
+          feedback: data.feedback // Include feedback field
         } as DonationHistoryItem;
       });
       setDonationHistory(donations);
