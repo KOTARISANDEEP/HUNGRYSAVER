@@ -407,7 +407,7 @@ const VolunteerDashboard: React.FC = () => {
      };
 
   // Handle feedback submission
-  const handleFeedbackSubmit = async (feedback: string) => {
+  const handleFeedbackSubmit = async (feedback: string, imageUrl?: string) => {
     if (!feedbackModal.taskId || !feedbackModal.taskType) {
       console.error('Missing task information for feedback submission');
       return;
@@ -416,17 +416,23 @@ const VolunteerDashboard: React.FC = () => {
     try {
       setActionLoading(`${feedbackModal.taskId}-feedback`);
       
-      // Update status to 'completed' with feedback (task is already 'delivered')
-      const updateData = { 
+      // Update status to 'completed' with feedback and image URL (task is already 'delivered')
+      const updateData: any = { 
         status: 'completed', 
         feedback,
         completedAt: new Date()
       };
       
+      // Add image URL if provided
+      if (imageUrl) {
+        updateData.feedbackImageUrl = imageUrl;
+      }
+      
       console.log('🔄 Submitting feedback and completing task:', { 
         taskId: feedbackModal.taskId, 
         taskType: feedbackModal.taskType, 
-        feedback 
+        feedback,
+        imageUrl 
       });
       
       const result = await updateTaskStatus(
@@ -956,6 +962,26 @@ const TaskCard: React.FC<{
       )}
 
       <p className="text-gray-300 mb-4 leading-relaxed">{task.description}</p>
+
+      {/* Food Image Display */}
+      {task.type === 'donation' && task.initiative === 'annamitra-seva' && task.imageUrl && (
+        <div className="mb-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="text-sm font-medium text-gray-300">Food Image:</span>
+          </div>
+          <div className="relative">
+            <img
+              src={task.imageUrl}
+              alt="Food donation"
+              className="w-36 h-36 object-cover rounded-lg border border-gray-600 shadow-lg"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2 mb-4">
         <div className="flex items-center space-x-2 text-sm text-gray-400">

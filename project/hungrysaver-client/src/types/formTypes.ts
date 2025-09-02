@@ -6,6 +6,7 @@ export interface DonationData {
   address: string;
   donorName: string;
   donorContact: string;
+  imageUrl?: string; // Optional image URL for food donations
   details: {
     // Annamitra Seva fields
     foodType?: 'veg' | 'non-veg';

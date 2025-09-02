@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, User, Phone, Clock, Package } from 'lucide-react';
+import { MapPin, User, Phone, Clock, Package, Upload, X } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
+import { uploadImageToImgBB, validateImageFile, formatFileSize } from '../../services/imageUploadService';
 
 export interface AnnamitraSevaFormData {
   location: string;
@@ -12,6 +13,7 @@ export interface AnnamitraSevaFormData {
   quantity: string;
   preparationTime: string;
   description: string;
+  imageUrl?: string;
 }
 
 interface AnnamitraSevaFormProps {
@@ -32,6 +34,9 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
   });
   const [hostel, setHostel] = useState('');
   const [error, setError] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Reset hostel when location changes
   useEffect(() => {
@@ -39,6 +44,32 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
       setHostel('');
     }
   }, [formData.location]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!validateImageFile(file)) {
+      setError('Please select a valid image file (JPEG, PNG, GIF, WebP) smaller than 32MB.');
+      return;
+    }
+
+    setSelectedFile(file);
+    setError('');
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setSelectedFile(null);
+    setImagePreview(null);
+    setFormData(prev => ({ ...prev, imageUrl: undefined }));
+  };
 
   const cities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
@@ -71,22 +102,41 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (!validateForm()) return;
 
-    // Only include hostel field if location is Kalasalingam
-    const submissionData = { ...formData };
-    
-    if (formData.location === 'kalasalingam academy of research and education') {
-      // Add hostel field for Kalasalingam
-      submissionData.hostel = hostel;
-    }
-    // For other locations, hostel field will not exist in submissionData
+    try {
+      // Upload image if selected
+      let imageUrl: string | undefined;
+      if (selectedFile) {
+        setUploadingImage(true);
+        imageUrl = await uploadImageToImgBB(selectedFile);
+        setFormData(prev => ({ ...prev, imageUrl }));
+      }
 
-    onSubmit(submissionData);
+      // Only include hostel field if location is Kalasalingam
+      const submissionData = { ...formData };
+      
+      if (formData.location === 'kalasalingam academy of research and education') {
+        // Add hostel field for Kalasalingam
+        submissionData.hostel = hostel;
+      }
+      
+      // Add image URL if uploaded
+      if (imageUrl) {
+        submissionData.imageUrl = imageUrl;
+      }
+
+      onSubmit(submissionData);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setError(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   return (
@@ -279,15 +329,79 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
           />
         </div>
 
+        {/* Image Upload */}
+        <div>
+          <label className="text-white text-sm font-medium mb-2 block">
+            Food Image (Optional)
+          </label>
+          <div className="space-y-4">
+            {/* File Input */}
+            <div className="relative">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+                id="food-image-upload"
+                disabled={uploadingImage}
+              />
+              <label
+                htmlFor="food-image-upload"
+                className={`flex items-center justify-center w-full p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                  uploadingImage
+                    ? 'border-gray-500 bg-gray-700 cursor-not-allowed'
+                    : 'border-gray-400 bg-gray-700 hover:border-green-500 hover:bg-gray-600'
+                }`}
+              >
+                <div className="text-center">
+                  <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-300 text-sm">
+                    {uploadingImage ? 'Uploading...' : 'Click to upload food image'}
+                  </p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    JPEG, PNG, GIF, WebP (max 32MB)
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {/* Image Preview */}
+            {imagePreview && (
+              <div className="relative">
+                <div className="relative inline-block">
+                  <img
+                    src={imagePreview}
+                    alt="Food preview"
+                    className="w-32 h-32 object-cover rounded-lg border border-gray-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-colors"
+                    disabled={uploadingImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {selectedFile && (
+                  <p className="text-gray-400 text-xs mt-2">
+                    {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || uploadingImage}
           className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-800 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
         >
-          {loading ? (
+          {loading || uploadingImage ? (
             <>
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-              Submitting...
+              {uploadingImage ? 'Uploading Image...' : 'Submitting...'}
             </>
           ) : (
             'Submit Food Donation'

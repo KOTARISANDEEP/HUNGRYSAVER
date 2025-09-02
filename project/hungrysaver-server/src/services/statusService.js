@@ -185,6 +185,12 @@ class StatusService {
         } else {
           logger.warn(`No feedback provided for completed donation ${donationId}`);
         }
+        
+        // Handle feedback image URL
+        if (cleanAdditionalData.feedbackImageUrl) {
+          updateData.feedbackImageUrl = cleanAdditionalData.feedbackImageUrl;
+          logger.info(`Feedback image URL added to donation ${donationId}: ${cleanAdditionalData.feedbackImageUrl}`);
+        }
       }
       
       // Final safety check: Remove any undefined values before Firestore update

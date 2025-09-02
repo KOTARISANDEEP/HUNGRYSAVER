@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { X, Send } from 'lucide-react';
+import { X, Send, Upload, Image } from 'lucide-react';
+import { uploadImageToImgBB, validateImageFile, formatFileSize } from '../services/imageUploadService';
 
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (feedback: string) => void;
+  onSubmit: (feedback: string, imageUrl?: string) => void;
   loading?: boolean;
   taskName?: string;
 }
@@ -17,17 +18,64 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
   taskName = 'this task'
 }) => {
   const [feedback, setFeedback] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!validateImageFile(file)) {
+      setError('Please select a valid image file (JPEG, PNG, GIF, WebP) smaller than 32MB.');
+      return;
+    }
+
+    setSelectedFile(file);
+    setError('');
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setSelectedFile(null);
+    setImagePreview(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (feedback.trim()) {
-      onSubmit(feedback.trim());
+    if (!feedback.trim()) return;
+
+    try {
+      let imageUrl: string | undefined;
+      
+      // Upload image if selected
+      if (selectedFile) {
+        setUploadingImage(true);
+        imageUrl = await uploadImageToImgBB(selectedFile);
+      }
+
+      onSubmit(feedback.trim(), imageUrl);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setError(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
   const handleClose = () => {
-    if (!loading) {
+    if (!loading && !uploadingImage) {
       setFeedback('');
+      setSelectedFile(null);
+      setImagePreview(null);
+      setError('');
       onClose();
     }
   };
@@ -72,6 +120,75 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
               />
             </div>
 
+            {/* Image Upload Section */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Proof of Donation Image (Optional)
+              </label>
+              <div className="space-y-3">
+                {/* File Input */}
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="proof-image-upload"
+                    disabled={loading || uploadingImage}
+                  />
+                  <label
+                    htmlFor="proof-image-upload"
+                    className={`flex items-center justify-center w-full p-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                      loading || uploadingImage
+                        ? 'border-gray-500 bg-gray-800 cursor-not-allowed'
+                        : 'border-gray-600 bg-gray-800 hover:border-[#eaa640] hover:bg-gray-700'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <Upload className="h-6 w-6 text-gray-400 mx-auto mb-1" />
+                      <p className="text-gray-300 text-sm">
+                        {uploadingImage ? 'Uploading...' : 'Upload proof image (happy faces)'}
+                      </p>
+                      <p className="text-gray-400 text-xs mt-1">
+                        JPEG, PNG, GIF, WebP (max 32MB)
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Image Preview */}
+                {imagePreview && (
+                  <div className="relative">
+                    <div className="relative inline-block">
+                      <img
+                        src={imagePreview}
+                        alt="Proof preview"
+                        className="w-24 h-24 object-cover rounded-lg border border-gray-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-colors"
+                        disabled={loading || uploadingImage}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                    {selectedFile && (
+                      <p className="text-gray-400 text-xs mt-1">
+                        {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {error && (
+                  <p className="text-red-400 text-xs">{error}</p>
+                )}
+              </div>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex space-x-3">
               <button
@@ -84,13 +201,13 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={loading || !feedback.trim()}
+                disabled={loading || !feedback.trim() || uploadingImage}
                 className="flex-1 py-2 px-4 bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] hover:to-[#eeb766] text-black rounded-lg font-medium transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
-                {loading ? (
+                {loading || uploadingImage ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
-                    <span>Submitting...</span>
+                    <span>{uploadingImage ? 'Uploading Image...' : 'Submitting...'}</span>
                   </>
                 ) : (
                   <>

@@ -52,6 +52,7 @@ interface DonationHistoryItem {
   volunteerContact?: string;
   expectedArrivalTime?: string;
   feedback?: string;
+  feedbackImageUrl?: string;
 }
 
 const sidebarItems = [
@@ -302,9 +303,29 @@ const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donat
             Volunteer Feedback
           </h4>
           <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-            <p className="text-gray-300 text-sm leading-relaxed italic">
+            <p className="text-gray-300 text-sm leading-relaxed italic mb-3">
               "{donation.feedback}"
             </p>
+            
+            {/* Feedback Image */}
+            {donation.feedbackImageUrl && (
+              <div className="mt-3">
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="text-sm font-medium text-gray-300">📸 Proof of Donation:</span>
+                </div>
+                <div className="relative">
+                  <img
+                    src={donation.feedbackImageUrl}
+                    alt="Proof of donation"
+                    className="w-32 h-32 object-cover rounded-lg border border-gray-600 shadow-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -526,7 +547,8 @@ const DonorDashboard: React.FC = () => {
           createdAt: data.createdAt,
           volunteerName: data.volunteerName,
           volunteerContact: data.volunteerContact,
-          feedback: data.feedback // Include feedback field
+          feedback: data.feedback, // Include feedback field
+          feedbackImageUrl: data.feedbackImageUrl // Include feedback image URL
         } as DonationHistoryItem;
       });
       
@@ -583,7 +605,8 @@ const DonorDashboard: React.FC = () => {
           createdAt: data.createdAt,
           volunteerName: data.volunteerName,
           volunteerContact: data.volunteerContact,
-          feedback: data.feedback // Include feedback field
+          feedback: data.feedback, // Include feedback field
+          feedbackImageUrl: data.feedbackImageUrl // Include feedback image URL
         } as DonationHistoryItem;
       });
       setDonationHistory(donations);
