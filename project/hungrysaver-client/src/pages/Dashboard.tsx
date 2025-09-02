@@ -150,9 +150,9 @@ const Dashboard: React.FC = () => {
       'annamitra-seva': '🍛',
       'vidya-jyothi': '📚',
       'suraksha-setu': '🛡️',
-      'punarasha': '🏠',
+      'punarasha': '♻️',
       'raksha-jyothi': '⚡',
-      'jyothi-nilayam': '🏛️'
+      'jyothi-nilayam': '🏠'
     };
     return emojiMap[initiative.toLowerCase()] || '💝';
   };

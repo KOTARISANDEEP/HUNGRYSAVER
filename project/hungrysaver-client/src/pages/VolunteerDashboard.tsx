@@ -950,9 +950,9 @@ const TaskCard: React.FC<{
       'annamitra-seva': '🍛',
       'vidya-jyothi': '📚',
       'suraksha-setu': '🛡️',
-      'punarasha': '🏠',
+      'punarasha': '♻️',
       'raksha-jyothi': '⚡',
-      'jyothi-nilayam': '🏛️'
+      'jyothi-nilayam': '🏠'
     };
     return emojiMap[initiative.toLowerCase()] || '💝'; };
 
@@ -1015,16 +1015,18 @@ const TaskCard: React.FC<{
         </div>
       )}
 
-      {/* Food Image Display */}
-      {task.type === 'donation' && task.initiative === 'annamitra-seva' && task.imageUrl && (
+      {/* Image Display for all donations */}
+      {task.type === 'donation' && task.imageUrl && (
         <div className="mb-4">
           <div className="flex items-center space-x-2 mb-2">
-            <span className="text-sm font-medium text-gray-300">Food Image:</span>
+            <span className="text-sm font-medium text-gray-300">
+              {task.initiative === 'annamitra-seva' ? 'Food Image:' : 'Donation Image:'}
+            </span>
           </div>
           <div className="relative">
             <img
               src={task.imageUrl}
-              alt="Food donation"
+              alt={`${task.initiative} donation`}
               className="w-36 h-36 object-cover rounded-lg border border-gray-600 shadow-lg cursor-zoom-in"
               onClick={() => {
                 if (setImageViewer) {

@@ -95,7 +95,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen">
       {/* Entire Body */}
-      <div className="relative bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/assets/images/background1.jpg)' }}>
+      <div className="relative bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/assets/images/download.jpg)' }}>
         <div className="absolute inset-0 bg-black/40"></div>
         
         {/* Hero Section */}
