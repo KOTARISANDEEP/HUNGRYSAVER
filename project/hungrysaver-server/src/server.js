@@ -50,28 +50,35 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Middleware
+// CORS must be the first middleware so preflight (OPTIONS) always gets headers
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [
+      'https://hungrysaver.netlify.app',
+      'https://hungeysaver.netlify.app', // legacy/typo domain if used anywhere
+      'https://your-frontend-domain.com'
+    ]
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin like mobile apps or curl
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('CORS: Origin not allowed: ' + origin));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+};
+
+app.use(cors(corsOptions));
+// Explicitly handle preflight across all routes
+app.options('*', cors(corsOptions));
+
+// Remaining middleware
 app.use(helmet());
 app.use(compression());
 app.use(limiter);
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [
-        'https://hungeysaver.netlify.app',
-        'https://hungrysaver.netlify.app',
-        'https://your-frontend-domain.com'
-      ] 
-    : ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With',
-    'Accept',
-    'Origin'
-  ]
-}));
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
