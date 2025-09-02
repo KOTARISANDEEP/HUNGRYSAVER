@@ -354,6 +354,7 @@ const DonorDashboard: React.FC = () => {
   const [approvedCommunityRequests, setApprovedCommunityRequests] = useState<CommunityRequest[]>([]);
   const [claimModalOpen, setClaimModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<CommunityRequest | null>(null);
+  const [imageViewer, setImageViewer] = useState<{ isOpen: boolean; images: string[]; initialIndex: number }>({ isOpen: false, images: [], initialIndex: 0 });
   const navigate = useNavigate();
 
   // Hide global site navbar while on donor dashboard
@@ -365,6 +366,18 @@ const DonorDashboard: React.FC = () => {
       if (nav instanceof HTMLElement) nav.style.display = originalDisplay;
     };
   }, []);
+
+  // Prevent background scroll when modals are open
+  useEffect(() => {
+    const shouldLock = claimModalOpen || imageViewer.isOpen || sidebarOpen;
+    if (shouldLock) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [claimModalOpen, imageViewer.isOpen, sidebarOpen]);
 
   const initiatives = [
     {
@@ -1095,7 +1108,7 @@ const DonorDashboard: React.FC = () => {
           onAction={() => setActiveSection('donate')}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
           {approvedCommunityRequests.map((request) => (
             <div key={request.id} className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 hover:shadow-lg transition-all duration-300 border border-[#eaa640]/30 hover:border-[#eaa640] transform hover:scale-105">
               <div className="flex items-start justify-between mb-4">
@@ -1115,6 +1128,27 @@ const DonorDashboard: React.FC = () => {
                 <div><span className="font-semibold">Contact Number:</span> {request.beneficiaryContact || '-'}</div>
               </div>
               <p className="text-gray-300 mb-4 leading-relaxed">{request.description}</p>
+
+              {/* Images (if present) */}
+              {((request as any).imageUrl || (Array.isArray((request as any).imageUrls) && (request as any).imageUrls.length > 0)) && (
+                <div className="mb-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="text-sm font-medium text-gray-300">Images:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {(((request as any).imageUrls as string[]) || [(request as any).imageUrl]).map((url: string, idx: number) => (
+                      <img
+                        key={idx}
+                        src={url}
+                        alt={`Request image ${idx + 1}`}
+                        className="w-20 h-20 object-cover rounded-lg border border-gray-600 shadow-lg cursor-zoom-in"
+                        onClick={() => setImageViewer({ isOpen: true, images: (((request as any).imageUrls as string[]) || [(request as any).imageUrl]), initialIndex: idx })}
+                        onError={(e) => { const t = e.target as HTMLImageElement; t.style.display = 'none'; }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2 mb-4">
                 <div className="flex items-center space-x-2 text-sm text-gray-400">
                   <MapPin className="h-4 w-4" />
@@ -1351,12 +1385,7 @@ const DonorDashboard: React.FC = () => {
     );
   }
 
-  // Image viewer modal state
-  const [imageViewer, setImageViewer] = useState<{ isOpen: boolean; images: string[]; initialIndex: number }>({
-    isOpen: false,
-    images: [],
-    initialIndex: 0
-  });
+  // (imageViewer state declared earlier)
 
   return (
     <div className="min-h-screen bg-black">
@@ -1454,8 +1483,8 @@ const DonorDashboard: React.FC = () => {
 
       {/* Claim Modal inline import to avoid circular deps */}
       {claimModalOpen && selectedRequest && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl w-full max-w-md mx-auto border border-gray-700">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl w-full max-w-3xl mx-auto border border-gray-700">
             <div className="flex items-center justify-between p-6 border-b border-gray-700">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-[#eaa640]/20 rounded-lg">
@@ -1467,7 +1496,19 @@ const DonorDashboard: React.FC = () => {
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <ClaimForm onSubmit={async (addr, notes, donorName, donorContact) => await handleCommunityRequestClaim(selectedRequest.id, addr, notes, donorName, donorContact)} request={selectedRequest} onCancel={() => { setClaimModalOpen(false); setSelectedRequest(null); }} />
+            <div className="max-h-[85vh] overflow-y-auto p-6">
+              <ClaimForm
+                onSubmit={async (addr, notes, donorName, donorContact) => {
+                  try {
+                    await handleCommunityRequestClaim(selectedRequest.id, addr, notes, donorName, donorContact);
+                  } catch (e: any) {
+                    alert(e?.message || 'Failed to submit. Please try again.');
+                  }
+                }}
+                request={selectedRequest}
+                onCancel={() => { setClaimModalOpen(false); setSelectedRequest(null); }}
+              />
+            </div>
           </div>
         </div>
       )}

@@ -49,10 +49,11 @@ export const getVolunteerRequests = async (req, res) => {
       .get();
 
     // Get requests that this volunteer has accepted or is working on
+    // Include later stages so the assigned volunteer can still track after approval/claim
     const volunteerRequests = await db
       .collection('community_requests')
       .where('volunteerId', '==', uid)
-      .where('status', 'in', ['VOLUNTEER_ACCEPTED', 'REACHED_COMMUNITY'])
+      .where('status', 'in', ['VOLUNTEER_ACCEPTED', 'REACHED_COMMUNITY', 'APPROVED_BY_VOLUNTEER', 'DONOR_CLAIMED'])
       .get();
 
     const requests = [];
@@ -512,12 +513,23 @@ export const donorClaim = async (req, res) => {
 
       // Create linked donation document
       const donationData = {
+        // Link
         communityRequestId: id,
+        // Donor info
         donorId: uid,
         donorAddress,
         donorNotes: notes || '',
+        // Core donation fields expected by volunteer dashboards
         status: 'pending',
+        initiative: requestData.initiative || 'annamitra-seva',
+        description: requestData.description || '',
+        // Ensure location_lowercase exists (volunteer queries depend on it)
+        location_lowercase: requestData.location_lowercase || (requestData.location || '').toLowerCase(),
+        // Back-compat: keep city too if used elsewhere
         city: requestData.location_lowercase || requestData.location,
+        // Surface images if present on the original request
+        ...(Array.isArray(requestData.imageUrls) && requestData.imageUrls.length > 0 ? { imageUrls: requestData.imageUrls, imageUrl: requestData.imageUrls[0] } : (requestData.imageUrl ? { imageUrl: requestData.imageUrl } : {})),
+        // Timestamps
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       };

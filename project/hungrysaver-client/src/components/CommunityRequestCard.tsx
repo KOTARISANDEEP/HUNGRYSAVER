@@ -5,6 +5,7 @@ import {
   Check, X, Navigation, ThumbsUp, ThumbsDown, AlertTriangle, Shield, Home, Building
 } from 'lucide-react';
 import { CommunityRequest, CommunityRequestStatus } from '../types/formTypes';
+import ImageViewerModal from './ImageViewerModal';
 
 interface CommunityRequestCardProps {
   request: CommunityRequest;
@@ -18,6 +19,11 @@ const CommunityRequestCard: React.FC<CommunityRequestCardProps> = ({ request, on
   const [showDecisionModal, setShowDecisionModal] = useState(false);
   const [denyReason, setDenyReason] = useState('');
   const [decisionNotes, setDecisionNotes] = useState('');
+  const [imageViewer, setImageViewer] = useState<{ isOpen: boolean; images: string[]; initialIndex: number }>({
+    isOpen: false,
+    images: [],
+    initialIndex: 0
+  });
 
   const getStatusInfo = (status: CommunityRequestStatus) => {
     switch (status) {
@@ -185,6 +191,30 @@ const CommunityRequestCard: React.FC<CommunityRequestCardProps> = ({ request, on
           <div className="bg-gray-700/30 rounded-lg p-3">
             <p className="text-gray-300 text-sm">{request.description}</p>
           </div>
+
+          {/* Images (if provided) */}
+          {(request as any).imageUrl || (Array.isArray((request as any).imageUrls) && (request as any).imageUrls.length > 0) ? (
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="text-sm font-medium text-gray-300">Images:</span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {(((request as any).imageUrls as string[]) || [(request as any).imageUrl]).map((url: string, idx: number) => (
+                  <img
+                    key={idx}
+                    src={url}
+                    alt={`Request image ${idx + 1}`}
+                    className="w-24 h-24 object-cover rounded-lg border border-gray-600 shadow-lg cursor-zoom-in"
+                    onClick={() => setImageViewer({ isOpen: true, images: (((request as any).imageUrls as string[]) || [(request as any).imageUrl]), initialIndex: idx })}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Action Buttons */}
@@ -257,6 +287,14 @@ const CommunityRequestCard: React.FC<CommunityRequestCardProps> = ({ request, on
           )}
         </div>
       </div>
+
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        isOpen={imageViewer.isOpen}
+        images={imageViewer.images}
+        initialIndex={imageViewer.initialIndex}
+        onClose={() => setImageViewer({ isOpen: false, images: [], initialIndex: 0 })}
+      />
 
       {/* Deny Modal */}
       {showDenyModal && (

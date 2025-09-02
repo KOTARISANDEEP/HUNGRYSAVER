@@ -164,18 +164,24 @@ export const claimCommunityRequest = async (requestId: string, donorAddress: str
       notes,
       hasToken: !!idToken
     });
-    
+    // Add a timeout to prevent endless pending state
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+
     const response = await fetch(`${API_BASE_URL}/${requestId}/donor-claim`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${idToken}`,
         'Content-Type': 'application/json'
       },
+      signal: controller.signal,
       body: JSON.stringify({
         donorAddress,
         notes: notes || ''
       })
     });
+
+    clearTimeout(timeoutId);
 
     console.log('🔍 claimCommunityRequest - Response status:', response.status);
     console.log('🔍 claimCommunityRequest - Response headers:', Object.fromEntries(response.headers.entries()));
@@ -191,6 +197,10 @@ export const claimCommunityRequest = async (requestId: string, donorAddress: str
     return true;
   } catch (error) {
     console.error('❌ Error claiming community request:', error);
+    // Provide clearer error messages for aborted/timeout requests
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
     throw error;
   }
 };
