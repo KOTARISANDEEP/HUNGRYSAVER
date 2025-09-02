@@ -154,7 +154,7 @@ export const updateCommunityRequestStatus = async (action: CommunityRequestActio
 };
 
 // Donor claims an approved community request
-export const claimCommunityRequest = async (requestId: string, donorAddress: string, notes?: string): Promise<boolean> => {
+export const claimCommunityRequest = async (requestId: string, donorAddress: string, notes?: string, donorName?: string, donorContact?: string): Promise<boolean> => {
   try {
     const idToken = await getIdToken();
     
@@ -177,7 +177,9 @@ export const claimCommunityRequest = async (requestId: string, donorAddress: str
       signal: controller.signal,
       body: JSON.stringify({
         donorAddress,
-        notes: notes || ''
+        notes: notes || '',
+        donorName: donorName || '',
+        donorContact: donorContact || ''
       })
     });
 

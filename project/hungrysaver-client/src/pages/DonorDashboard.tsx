@@ -209,9 +209,17 @@ const DonationStatusCard: React.FC<{ donation: DonationHistoryItem; onOpenImage?
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-xl font-bold text-white mb-1">
-            {formatInitiativeName(donation.initiative)}
-          </h3>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-xl font-bold text-white">
+              {formatInitiativeName(donation.initiative)}
+            </h3>
+            {/** Badge if this donation originated from a community request */}
+            {(donation as any).communityRequestId && (
+              <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40">
+                Community Request
+              </span>
+            )}
+          </div>
           <p className="text-gray-400 text-sm">
             📍 {donation.location_lowercase?.charAt(0).toUpperCase() + donation.location_lowercase?.slice(1) || 'Unknown Location'}
           </p>
@@ -355,6 +363,7 @@ const DonorDashboard: React.FC = () => {
   const [claimModalOpen, setClaimModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<CommunityRequest | null>(null);
   const [imageViewer, setImageViewer] = useState<{ isOpen: boolean; images: string[]; initialIndex: number }>({ isOpen: false, images: [], initialIndex: 0 });
+  const [contribFilter, setContribFilter] = useState<'all' | 'community' | 'direct'>('all');
   const navigate = useNavigate();
 
   // Hide global site navbar while on donor dashboard
@@ -1273,6 +1282,28 @@ const DonorDashboard: React.FC = () => {
           Track all your donations and see their current status.
         </p>
       </div>
+      {/* Filter Pills */}
+      <div className="flex items-center justify-center gap-3 mb-6">
+        {(
+          [
+            { key: 'all', label: 'All' },
+            { key: 'community', label: 'Community Requests' },
+            { key: 'direct', label: 'Direct Donations' }
+          ] as const
+        ).map(pill => (
+          <button
+            key={pill.key}
+            onClick={() => setContribFilter(pill.key)}
+            className={`px-4 py-2 rounded-full text-sm border transition-colors ${
+              contribFilter === pill.key
+                ? 'bg-[#eaa640] text-black border-[#eaa640]'
+                : 'bg-transparent text-gray-300 border-gray-600 hover:border-[#eaa640] hover:text-[#eaa640]'
+            }`}
+          >
+            {pill.label}
+          </button>
+        ))}
+      </div>
       {donationHistoryLoading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#eaa640] mx-auto mb-4"></div>
@@ -1288,9 +1319,17 @@ const DonorDashboard: React.FC = () => {
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {donationHistory.map((donation: DonationHistoryItem) => (
-            <DonationStatusCard key={donation.id} donation={donation} onOpenImage={(images, idx = 0) => setImageViewer({ isOpen: true, images, initialIndex: idx })} />
-          ))}
+          {donationHistory
+            .filter((d: any) =>
+              contribFilter === 'all'
+                ? true
+                : contribFilter === 'community'
+                ? !!d.communityRequestId
+                : !d.communityRequestId
+            )
+            .map((donation: DonationHistoryItem) => (
+              <DonationStatusCard key={donation.id} donation={donation} onOpenImage={(images, idx = 0) => setImageViewer({ isOpen: true, images, initialIndex: idx })} />
+            ))}
         </div>
       )}
     </div>

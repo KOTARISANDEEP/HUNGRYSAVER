@@ -468,7 +468,7 @@ export const donorClaim = async (req, res) => {
   try {
     const { uid, userType } = req.user;
     const { id } = req.params;
-    const { donorAddress, notes } = req.body;
+    const { donorAddress, notes, donorName, donorContact } = req.body;
 
     if (userType !== 'donor') {
       return res.status(403).json({
@@ -507,6 +507,8 @@ export const donorClaim = async (req, res) => {
         donorId: uid,
         donorAddress,
         donorNotes: notes || '',
+        donorName: donorName || '',
+        donorContact: donorContact || '',
         claimedAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
@@ -519,6 +521,8 @@ export const donorClaim = async (req, res) => {
         donorId: uid,
         donorAddress,
         donorNotes: notes || '',
+        donorName: donorName || '',
+        donorContact: donorContact || '',
         // Core donation fields expected by volunteer dashboards
         status: 'pending',
         initiative: requestData.initiative || 'annamitra-seva',

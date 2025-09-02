@@ -215,6 +215,44 @@ const CommunityRequestCard: React.FC<CommunityRequestCardProps> = ({ request, on
               </div>
             </div>
           ) : null}
+
+          {/* Donor details once the request is approved/claimed */}
+          {(request.status === 'APPROVED_BY_VOLUNTEER' || request.status === 'DONOR_CLAIMED') && (
+            <div className="mt-2 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <div className="flex items-center space-x-2 text-sm text-blue-300 mb-1">
+                <ThumbsUp className="h-4 w-4" />
+                <span className="font-medium">Donor Engagement</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center space-x-2 text-gray-300">
+                  <User className="h-4 w-4 text-[#eaa640]" />
+                  <span>{(request as any).donorName || 'Donor'}</span>
+                </div>
+                <div className="flex items-center space-x-2 text-gray-300">
+                  <Phone className="h-4 w-4 text-[#eaa640]" />
+                  {((request as any).donorContact) ? (
+                    <a href={`tel:${(request as any).donorContact}`} className="text-blue-300 hover:text-blue-200 underline">
+                      {(request as any).donorContact}
+                    </a>
+                  ) : (
+                    <span>—</span>
+                  )}
+                </div>
+                {(request as any).donorAddress && (
+                  <div className="md:col-span-2 flex items-start space-x-2 text-gray-300">
+                    <MapPin className="h-4 w-4 text-[#eaa640] mt-0.5" />
+                    <span>{(request as any).donorAddress}</span>
+                  </div>
+                )}
+                {(request as any).donorNotes && (
+                  <div className="md:col-span-2 flex items-start space-x-2 text-gray-300">
+                    <ClipboardCheck className="h-4 w-4 text-[#eaa640] mt-0.5" />
+                    <span>{(request as any).donorNotes}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}
