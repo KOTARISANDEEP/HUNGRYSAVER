@@ -1,9 +1,7 @@
 import { STATUS_STAGES, VALID_TRANSITIONS, COLLECTIONS } from '../config/constants.js';
 import { getFirestore } from '../config/firebase.js';
 import { logger } from '../utils/logger.js';
-import EmailService from './emailService.js';
-
-const emailService = new EmailService();
+import emailService from './emailService.js';
 
 // Import services dynamically to avoid circular dependencies
 let notificationService = null;
