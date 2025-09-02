@@ -129,6 +129,15 @@ const CommunityRequestCard: React.FC<CommunityRequestCardProps> = ({ request, on
   const StatusIcon = statusInfo.icon;
   const InitiativeIcon = getInitiativeIcon(request.initiative);
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard?.writeText(text);
+      alert('Address copied');
+    } catch (e) {
+      console.warn('Clipboard unavailable');
+    }
+  };
+
   // Don't show rejected requests
   if (request.status === 'REJECTED_BY_VOLUNTEER') {
     return null;
@@ -164,27 +173,50 @@ const CommunityRequestCard: React.FC<CommunityRequestCardProps> = ({ request, on
 
         {/* Content */}
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2 text-gray-300">
-              <MapPin className="h-4 w-4 text-[#eaa640]" />
-              <span className="text-sm">{request.address}</span>
+          {/* Requester Details at top */}
+          <div className="bg-gray-700/20 border border-gray-600/40 rounded-lg p-3">
+            <div className="flex items-center space-x-2 text-sm text-gray-300 mb-2">
+              <Users className="h-4 w-4 text-[#eaa640]" />
+              <span className="font-medium">Requester Details</span>
             </div>
-            <div className="flex items-center space-x-2 text-gray-300">
-              <User className="h-4 w-4 text-[#eaa640]" />
-              <span className="text-sm">{request.beneficiaryName}</span>
-            </div>
-            <div className="flex items-center space-x-2 text-gray-300">
-              <Phone className="h-4 w-4 text-[#eaa640]" />
-              <span className="text-sm">{request.beneficiaryContact}</span>
-            </div>
-            <div className="flex items-center space-x-2 text-gray-300">
-              <Calendar className="h-4 w-4 text-[#eaa640]" />
-              <span className="text-sm">
-                {request.createdAt?.toDate ? 
-                  request.createdAt.toDate().toLocaleDateString() : 
-                  new Date(request.createdAt).toLocaleDateString()
-                }
-              </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-center space-x-2 text-gray-300">
+                <User className="h-4 w-4 text-[#eaa640]" />
+                <span>{request.beneficiaryName}</span>
+              </div>
+              <div className="flex items-center space-x-2 text-gray-300">
+                <Phone className="h-4 w-4 text-[#eaa640]" />
+                {request.beneficiaryContact ? (
+                  <a href={`tel:${request.beneficiaryContact}`} className="text-blue-300 hover:text-blue-200 underline">
+                    {request.beneficiaryContact}
+                  </a>
+                ) : (
+                  <span>—</span>
+                )}
+              </div>
+              <div className="md:col-span-2 flex items-start justify-between text-gray-300">
+                <div className="flex items-start space-x-2">
+                  <MapPin className="h-4 w-4 text-[#eaa640] mt-0.5" />
+                  <span>{request.address}</span>
+                </div>
+                {request.address && (
+                  <button
+                    onClick={() => copyToClipboard(request.address)}
+                    className="ml-3 px-2 py-1 text-xs rounded-md bg-gray-700 hover:bg-gray-600 text-gray-200"
+                  >
+                    Copy
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center space-x-2 text-gray-300">
+                <Calendar className="h-4 w-4 text-[#eaa640]" />
+                <span>
+                  {request.createdAt?.toDate ? 
+                    request.createdAt.toDate().toLocaleDateString() : 
+                    new Date(request.createdAt).toLocaleDateString()
+                  }
+                </span>
+              </div>
             </div>
           </div>
 
@@ -221,7 +253,7 @@ const CommunityRequestCard: React.FC<CommunityRequestCardProps> = ({ request, on
             <div className="mt-2 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
               <div className="flex items-center space-x-2 text-sm text-blue-300 mb-1">
                 <ThumbsUp className="h-4 w-4" />
-                <span className="font-medium">Donor Engagement</span>
+                <span className="font-medium">Donor Engagement / Pickup Details</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                 <div className="flex items-center space-x-2 text-gray-300">
@@ -239,9 +271,17 @@ const CommunityRequestCard: React.FC<CommunityRequestCardProps> = ({ request, on
                   )}
                 </div>
                 {(request as any).donorAddress && (
-                  <div className="md:col-span-2 flex items-start space-x-2 text-gray-300">
-                    <MapPin className="h-4 w-4 text-[#eaa640] mt-0.5" />
-                    <span>{(request as any).donorAddress}</span>
+                  <div className="md:col-span-2 flex items-start justify-between text-gray-300">
+                    <div className="flex items-start space-x-2">
+                      <MapPin className="h-4 w-4 text-[#eaa640] mt-0.5" />
+                      <span>{(request as any).donorAddress}</span>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard((request as any).donorAddress)}
+                      className="ml-3 px-2 py-1 text-xs rounded-md bg-gray-700 hover:bg-gray-600 text-gray-200"
+                    >
+                      Copy
+                    </button>
                   </div>
                 )}
                 {(request as any).donorNotes && (

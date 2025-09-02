@@ -468,7 +468,13 @@ export const donorClaim = async (req, res) => {
   try {
     const { uid, userType } = req.user;
     const { id } = req.params;
-    const { donorAddress, notes, donorName, donorContact } = req.body;
+    // Accept multiple possible keys for robustness (mobile, phone, name)
+    let { donorAddress, notes, donorName, donorContact } = req.body;
+    donorName = (typeof donorName === 'string' && donorName.trim()) || (typeof req.body.name === 'string' && req.body.name.trim()) || '';
+    donorContact = (typeof donorContact === 'string' && donorContact.trim())
+      || (typeof req.body.mobile === 'string' && req.body.mobile.trim())
+      || (typeof req.body.phone === 'string' && req.body.phone.trim())
+      || '';
 
     if (userType !== 'donor') {
       return res.status(403).json({
