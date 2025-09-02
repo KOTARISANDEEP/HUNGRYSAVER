@@ -54,7 +54,6 @@ const limiter = rateLimit({
 // Always allow our Netlify domains plus localhost; optionally merge ALLOWED_ORIGINS env (comma-separated)
 const baseAllowed = [
   'https://hungrysaver.netlify.app',
-  'https://hungeysaver.netlify.app', // legacy/typo domain
   'http://localhost:5173',
   'http://localhost:3000'
 ];

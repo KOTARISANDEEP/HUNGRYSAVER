@@ -19,8 +19,8 @@ app.use(cors({
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? [
-        'https://hungeysaver.netlify.app',    // ✅ Your actual domain
-        'https://hungrysaver.netlify.app',    // ✅ Alternative domain
+        'https://hungrysaver.netlify.app',    // ✅ Your main domain
+'https://hungrysaver.netlify.app',    // ✅ Alternative domain
         'https://your-frontend-domain.com'    // ✅ Fallback
       ] 
     : ['http://localhost:5173', 'http://localhost:3000'],
@@ -52,7 +52,7 @@ git push origin main
 - The deployment should take 2-5 minutes
 
 ### **Step 3: Test the Fix**
-1. Go to your frontend: `https://hungeysaver.netlify.app/donor-dashboard`
+1. Go to your frontend: `https://hungrysaver.netlify.app/donor-dashboard`
 2. Try submitting the food donation form
 3. Check the browser console - CORS errors should be gone
 
@@ -66,7 +66,7 @@ git push origin main
 ## 🌐 **Allowed Origins:**
 
 **Production:**
-- `https://hungeysaver.netlify.app` (Your main domain)
+- `https://hungrysaver.netlify.app` (Your main domain)
 - `https://hungrysaver.netlify.app` (Alternative domain)
 - `https://your-frontend-domain.com` (Fallback)
 
