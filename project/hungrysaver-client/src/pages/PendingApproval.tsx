@@ -192,7 +192,7 @@ const PendingApproval: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header Section */}
         <div className="text-center mb-12">
-          <div className="bg-yellow-500 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+          <div className="bg-[#eaa640] p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
             <Clock className="h-10 w-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-4">
@@ -204,7 +204,7 @@ const PendingApproval: React.FC = () => {
         </div>
 
         {/* Motivational Quote Carousel */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-8 mb-12 text-center">
+        <div className="bg-gradient-to-r from-[#eaa640] to-[#d4963a] rounded-xl p-8 mb-12 text-center">
           <div className="h-16 flex items-center justify-center">
             <p className="text-xl text-white italic font-medium transition-all duration-500">
               "{motivationalQuotes[currentQuote]}"
@@ -243,11 +243,11 @@ const PendingApproval: React.FC = () => {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                    <div className="absolute top-4 left-4 bg-green-500 p-3 rounded-full shadow-lg">
+                    <div className="absolute top-4 left-4 bg-[#eaa640] p-3 rounded-full shadow-lg">
                       <Icon className="h-6 w-6 text-white" />
                     </div>
                     <div className="absolute bottom-4 left-4 right-4">
-                      <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium inline-block">
+                      <div className="bg-[#eaa640] text-white px-3 py-1 rounded-full text-sm font-medium inline-block">
                         {initiative.impact}
                       </div>
                     </div>
@@ -275,7 +275,7 @@ const PendingApproval: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="bg-yellow-500 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <div className="bg-[#eaa640] p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <Clock className="h-8 w-8 text-white" />
               </div>
               <h4 className="text-lg font-semibold text-white mb-2">Review Process</h4>
@@ -283,7 +283,7 @@ const PendingApproval: React.FC = () => {
             </div>
             
             <div className="text-center">
-              <div className="bg-green-500 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <div className="bg-[#eaa640] p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <CheckCircle className="h-8 w-8 text-white" />
               </div>
               <h4 className="text-lg font-semibold text-white mb-2">Approval Notification</h4>
@@ -291,7 +291,7 @@ const PendingApproval: React.FC = () => {
             </div>
             
             <div className="text-center">
-              <div className="bg-blue-500 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <div className="bg-[#eaa640] p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <Users className="h-8 w-8 text-white" />
               </div>
               <h4 className="text-lg font-semibold text-white mb-2">Start Volunteering</h4>
@@ -328,7 +328,7 @@ const PendingApproval: React.FC = () => {
                   console.error('Logout error:', error);
                 }
               }}
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 mx-auto"
+              className="bg-[#eaa640] hover:bg-[#d4963a] text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 mx-auto"
             >
               <LogOut className="h-5 w-5" />
               <span>Logout</span>

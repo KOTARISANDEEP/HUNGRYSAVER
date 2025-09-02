@@ -231,19 +231,19 @@ const RegisterPage: React.FC = () => {
   const passwordStrength = getPasswordStrength(formData.password);
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="relative min-h-[120vh] md:min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="absolute inset-0 z-0">
         <img
-          src="https://images.pexels.com/photos/6646918/pexels-photo-6646918.jpeg"
+          src="/assets/images/download.jpg"
           alt="Community Registration"
           className="w-full h-full object-cover"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-black/70" />
+        <div className="absolute inset-0 bg-black/60" />
       </div>
 
       <div className="relative z-10 max-w-2xl w-full space-y-8">
-        <div className="bg-gray-800/90 backdrop-blur-sm p-8 rounded-xl shadow-2xl">
+        <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-white/20">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-white mb-2">Join Our Mission</h2>
             <p className="text-gray-300">Create your account to start making a difference</p>
@@ -309,10 +309,10 @@ const RegisterPage: React.FC = () => {
                     value={formData.firstName}
                     onChange={handleInputChange}
                     onBlur={() => validateField('firstName', formData.firstName)}
-                    className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors ${
+                    className={`w-full pl-10 pr-4 py-3 bg-white/10 border rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 transition-colors ${
                       fieldErrors.firstName 
                         ? 'border-red-500 focus:ring-red-500' 
-                        : 'border-gray-600 focus:ring-green-500 focus:border-transparent'
+                        : 'border-white/20 focus:ring-[#eaa640] focus:border-transparent'
                     }`}
                     placeholder="Enter your first name"
                     aria-invalid={!!fieldErrors.firstName}
@@ -341,10 +341,10 @@ const RegisterPage: React.FC = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     onBlur={() => validateField('email', formData.email)}
-                    className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors ${
+                    className={`w-full pl-10 pr-4 py-3 bg-white/10 border rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 transition-colors ${
                       fieldErrors.email 
                         ? 'border-red-500 focus:ring-red-500' 
-                        : 'border-gray-600 focus:ring-green-500 focus:border-transparent'
+                        : 'border-white/20 focus:ring-[#eaa640] focus:border-transparent'
                     }`}
                     placeholder="Enter your email"
                     aria-invalid={!!fieldErrors.email}
@@ -374,10 +374,10 @@ const RegisterPage: React.FC = () => {
                   value={formData.password}
                   onChange={handleInputChange}
                   onBlur={() => validateField('password', formData.password)}
-                  className={`w-full pl-10 pr-12 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors ${
+                  className={`w-full pl-10 pr-12 py-3 bg-white/10 border rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 transition-colors ${
                     fieldErrors.password 
                       ? 'border-red-500 focus:ring-red-500' 
-                      : 'border-gray-600 focus:ring-green-500 focus:border-transparent'
+                      : 'border-white/20 focus:ring-[#eaa640] focus:border-transparent'
                   }`}
                   placeholder="Create a strong password"
                   aria-invalid={!!fieldErrors.password}
@@ -438,7 +438,7 @@ const RegisterPage: React.FC = () => {
 
             {/* Volunteer-specific fields */}
             {formData.userType === 'volunteer' && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-green-500/10 rounded-lg border border-green-500/30">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-[#eaa640]/10 rounded-lg border border-[#eaa640]/30">
                 <div>
                   <label htmlFor="contactNumber" className="text-white text-sm font-medium mb-2 block">
                     Contact Number <span className="text-red-400">*</span>
@@ -452,10 +452,10 @@ const RegisterPage: React.FC = () => {
                       value={formData.contactNumber}
                       onChange={handleInputChange}
                       onBlur={() => validateField('contactNumber', formData.contactNumber)}
-                      className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors ${
+                      className={`w-full pl-10 pr-4 py-3 bg-white/10 border rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 transition-colors ${
                         fieldErrors.contactNumber 
                           ? 'border-red-500 focus:ring-red-500' 
-                          : 'border-gray-600 focus:ring-green-500 focus:border-transparent'
+                          : 'border-white/20 focus:ring-[#eaa640] focus:border-transparent'
                       }`}
                       placeholder="Enter your mobile number"
                       aria-invalid={!!fieldErrors.contactNumber}
@@ -483,10 +483,10 @@ const RegisterPage: React.FC = () => {
                       value={formData.location}
                       onChange={handleInputChange}
                       onBlur={() => validateField('location', formData.location)}
-                      className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg text-white focus:outline-none focus:ring-2 transition-colors ${
+                      className={`w-full pl-10 pr-4 py-3 bg-white/10 border rounded-lg text-white focus:outline-none focus:ring-2 transition-colors ${
                         fieldErrors.location 
                           ? 'border-red-500 focus:ring-red-500' 
-                          : 'border-gray-600 focus:ring-green-500 focus:border-transparent'
+                          : 'border-white/20 focus:ring-[#eaa640] focus:border-transparent'
                       }`}
                       aria-invalid={!!fieldErrors.location}
                       aria-describedby={fieldErrors.location ? 'location-error' : undefined}
@@ -519,10 +519,10 @@ const RegisterPage: React.FC = () => {
                       value={formData.education}
                       onChange={handleInputChange}
                       onBlur={() => validateField('education', formData.education)}
-                      className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg text-white focus:outline-none focus:ring-2 transition-colors ${
+                      className={`w-full pl-10 pr-4 py-3 bg-white/10 border rounded-lg text-white focus:outline-none focus:ring-2 transition-colors ${
                         fieldErrors.education 
                           ? 'border-red-500 focus:ring-red-500' 
-                          : 'border-gray-600 focus:ring-green-500 focus:border-transparent'
+                          : 'border-white/20 focus:ring-[#eaa640] focus:border-transparent'
                       }`}
                       aria-invalid={!!fieldErrors.education}
                       aria-describedby={fieldErrors.education ? 'education-error' : undefined}
@@ -553,7 +553,7 @@ const RegisterPage: React.FC = () => {
                   name="acceptTerms"
                   checked={formData.acceptTerms}
                   onChange={handleInputChange}
-                  className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-600 rounded bg-gray-700"
+                  className="mt-1 h-4 w-4 text-black focus:ring-[#eaa640] border-white/30 rounded bg-white/10"
                   aria-describedby={fieldErrors.acceptTerms ? 'terms-error' : undefined}
                   required
                 />
@@ -580,7 +580,7 @@ const RegisterPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
+              className="w-full bg-[#eaa640] hover:bg-[#ecae53] disabled:bg-[#a0782d] disabled:cursor-not-allowed text-black py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
               aria-describedby="submit-help"
             >
               {loading ? (

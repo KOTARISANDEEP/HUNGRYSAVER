@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History, BarChart3, MessageSquare, Settings as SettingsIcon, Star, Award, Users, TrendingUp, Target, Lightbulb, LogOut } from 'lucide-react';
+import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History, BarChart3, MessageSquare, Settings as SettingsIcon, Star, Award, Users, TrendingUp, Target, Lightbulb, LogOut, X } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFormSubmission } from '../hooks/useFormSubmission';
@@ -35,12 +35,55 @@ interface CommunityRequest {
 
 const CommunitySupportDashboard: React.FC = () => {
   const [selectedInitiative, setSelectedInitiative] = useState('');
+  const InitiativeCard: React.FC<{ initiative: any; onClick: () => void }> = ({ initiative, onClick }) => {
+    const Icon = initiative.icon;
+    const slideshowImages: string[] = initiative.images || [initiative.image];
+    const [idx, setIdx] = React.useState(0);
+    const [prevIdx, setPrevIdx] = React.useState<number | null>(null);
+    React.useEffect(() => {
+      if (!slideshowImages || slideshowImages.length <= 1) return;
+      const t = setInterval(() => {
+        setPrevIdx(idx);
+        setIdx((p) => (p + 1) % slideshowImages.length);
+      }, 8000);
+      return () => clearInterval(t);
+    }, [slideshowImages?.length]);
+    return (
+      <button
+        onClick={onClick}
+        className="group relative w-full text-left bg-gray-900 rounded-xl p-0 transition transform hover:scale-105 hover:shadow-lg border border-gray-700 hover:border-[#eaa640] overflow-hidden hover:bg-[#eaa640]/10 active:bg-[#eaa640]/20"
+      >
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-[#eaa640] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="relative h-64 w-full">
+          {(slideshowImages || []).map((src: string, i: number) => (
+            <img
+              key={i}
+              src={src}
+              alt={initiative.title}
+              className={`absolute inset-0 w-full h-64 object-cover rounded-t-xl transition-all ease-in-out ${i === idx ? 'opacity-100' : i === prevIdx ? 'opacity-0' : 'opacity-0'} ${i === idx ? 'filter blur-0 scale-100' : i === prevIdx ? 'filter blur-md scale-[1.02]' : ''}`}
+              style={{ zIndex: i === idx ? 2 : i === prevIdx ? 1 : 0, transitionDuration: '1000ms' }}
+            />
+          ))}
+        </div>
+        <div className="p-4">
+          <div className="flex items-center space-x-2">
+            <div className={`p-2 rounded-full bg-[#eaa640]/20 group-hover:bg-[#eaa640]/30 transition-all duration-300 ring-0 group-hover:ring-4 ring-[#eaa640]/30`}>
+              <Icon className="h-4 w-4 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">{initiative.title}</h3>
+          </div>
+          <p className="text-sm text-gray-400 mt-1">{initiative.description}</p>
+        </div>
+      </button>
+    );
+  };
   const [activeTab, setActiveTab] = useState<'home' | 'newRequest' | 'myRequests' | 'supportHistory' | 'successStories' | 'impactHub' | 'messages' | 'feedback' | 'settings'>('home');
   const { submitForm, loading, error, success, resetForm } = useFormSubmission('community');
   const [requestHistory, setRequestHistory] = useState<CommunityRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const { userData, logout } = useAuth();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const initiatives = [
     {
@@ -48,42 +91,82 @@ const CommunitySupportDashboard: React.FC = () => {
       icon: Heart,
       title: "🍛 Annamitra Seva",
       description: "Request food assistance for families in need. We connect surplus food with hungry families in your community.",
-      component: AnnamitraCommunityForm
+      component: AnnamitraCommunityForm,
+      images: [
+        '/assets/images/annamitra1.png',
+        '/assets/images/annamitra2.png',
+        '/assets/images/annamitra3.png',
+        '/assets/images/annamitra4.png',
+        '/assets/images/annamitra5.png'
+      ]
     },
     {
       id: 'vidya-jyothi',
       icon: BookOpen,
       title: "📚 Vidya Jyothi",
       description: "Educational support for children including books, fees, uniforms, and school supplies.",
-      component: VidyaJyothiCommunityForm
+      component: VidyaJyothiCommunityForm,
+      images: [
+        '/assets/images/vidya1.png',
+        '/assets/images/vidya2.png',
+        '/assets/images/vidya3.png',
+        '/assets/images/vidya4.png',
+        '/assets/images/vidya5.png'
+      ]
     },
     {
       id: 'suraksha-setu',
       icon: Shield,
       title: "🤝 Suraksha Setu",
       description: "Emergency support during crisis situations. Safety net for vulnerable community members.",
-      component: SurakshaSetuCommunityForm
+      component: SurakshaSetuCommunityForm,
+      images: [
+        '/assets/images/suraksha1.png',
+        '/assets/images/suraksha2.png',
+        '/assets/images/suraksha3.png',
+        '/assets/images/suraksha4.png'
+      ]
     },
     {
       id: 'punarasha',
       icon: Home,
       title: "🔄 PunarAsha",
       description: "Rehabilitation support to help families rebuild their lives with dignity and hope.",
-      component: PunarAshaCommunityForm
+      component: PunarAshaCommunityForm,
+      images: [
+        '/assets/images/punar1.png',
+        '/assets/images/punar2.png',
+        '/assets/images/punar3.png',
+        '/assets/images/punar4.png'
+      ]
     },
     {
       id: 'raksha-jyothi',
       icon: Zap,
       title: "🚨 Raksha Jyothi",
       description: "Emergency response for humans and animals during critical situations requiring immediate assistance.",
-      component: RakshaJyothiCommunityForm
+      component: RakshaJyothiCommunityForm,
+      images: [
+        '/assets/images/raksha1.png',
+        '/assets/images/rakshs2.png',
+        '/assets/images/raksha3.png',
+        '/assets/images/raksha4.png'
+      ]
     },
     {
       id: 'jyothi-nilayam',
       icon: Building,
       title: "🏠 Jyothi Nilayam",
       description: "Support for shelters caring for humans and animals in need of safe sanctuary.",
-      component: JyothiNilayamCommunityForm
+      component: JyothiNilayamCommunityForm,
+      images: [
+        '/assets/images/nilayam1.png',
+        '/assets/images/nilayam2.png',
+        '/assets/images/nilayam3.png',
+        '/assets/images/nilayam4.png',
+        '/assets/images/nilayam5.png',
+        '/assets/images/nilayam6.png'
+      ]
     }
   ];
 
@@ -114,6 +197,15 @@ const CommunitySupportDashboard: React.FC = () => {
       if (nav instanceof HTMLElement) nav.style.display = originalDisplay;
     };
   }, []);
+
+  // Lock background scroll when sidebar/modal is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = originalOverflow; };
+    }
+  }, [sidebarOpen]);
 
   const fetchRequestHistory = async () => {
     if (!userData?.uid) return;
@@ -286,38 +378,50 @@ const CommunitySupportDashboard: React.FC = () => {
         className="fixed top-0 left-0 right-0 z-50 bg-transparent h-[60px]"
       >
         <div className="h-full flex items-center justify-between px-5">
-          {/* Left: Welcome with emoji */}
-          <div className="text-white text-base font-medium flex items-center gap-2">
-            <span role="img" aria-label="handshake">🤝</span>
-            <span>Welcome back, {userData?.firstName || 'Community Member'}!</span>
-          </div>
-          {/* Right: Profile + Logout */}
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
-              <User className="h-4 w-4 text-white" />
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden px-3 py-2 rounded-md border border-[#eaa640]/40 text-[#eaa640] hover:bg-[#eaa640]/10 transition-colors"
+            >
+              ☰ Dashboard
+            </button>
+            <div className="flex items-center space-x-2 text-gray-200">
+              <div className="h-8 w-8 rounded-full border border-gray-400/60 flex items-center justify-center">
+                <User className="h-4 w-4 text-gray-300" />
+              </div>
+              <span className="text-sm">Community</span>
             </div>
-                                                         <button
-                               onClick={async () => {
-                                 try {
-                                   await logout();
-                                   navigate('/login');
-                                 } catch (error) {
-                                   console.error('Logout error:', error);
-                                 }
-                               }}
-                               className="group relative w-16 h-20 transition-all duration-300 hover:scale-110 flex flex-col items-center justify-center"
-                             >
-                               <LogOut className="h-5 w-5 text-[#eaa640] mb-1 transition-transform duration-300 group-hover:scale-110 group-hover:translate-x-1 group-hover:-translate-y-1" />
-                               <span className="text-xs text-[#eaa640] font-medium">Logout</span>
-                             </button>
           </div>
+          <button
+            onClick={async () => {
+              try {
+                await logout();
+                navigate('/login');
+              } catch (error) {
+                console.error('Logout error:', error);
+              }
+            }}
+            className="bg-[#eaa640] hover:bg-[#eeb766] text-black px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </button>
         </div>
       </div>
 
       {/* Sidebar */}
-      <div className="fixed left-0 top-[60px] bottom-0 w-64 bg-black shadow-lg border-r border-[#eaa640]/20 z-40">
-        <div className="p-4 h-full overflow-y-auto">
-          <nav className="space-y-2">
+      <div className={`fixed left-0 top-[60px] bottom-0 w-64 bg-black shadow-lg border-r border-[#eaa640]/20 transform transition-transform duration-300 ease-in-out z-40 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0`}>
+        <div className="p-4 h-full overflow-y-auto relative">
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden absolute top-3 right-3 text-gray-300 hover:text-white"
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <nav className="space-y-2 mt-6 lg:mt-0">
             {navigationTabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -327,6 +431,7 @@ const CommunitySupportDashboard: React.FC = () => {
                     console.log('Setting active tab to:', tab.key);
                     setActiveTab(tab.key as any);
                     setSelectedInitiative('');
+                    setSidebarOpen(false);
                   }}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-all duration-200 bg-transparent ${
                     activeTab === tab.key
@@ -346,8 +451,16 @@ const CommunitySupportDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Main Content */}
-      <main className="ml-64 pt-[60px]">
+      <main className="pt-[60px] lg:ml-64">
         <div className="p-8">
           {/* Home Dashboard */}
           {activeTab === 'home' && (
@@ -453,25 +566,14 @@ const CommunitySupportDashboard: React.FC = () => {
                       Select an initiative to submit a support request. Each initiative addresses specific community needs.
                     </p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {initiatives.map((initiative) => {
-                      const Icon = initiative.icon;
-                      return (
-                        <button
-                          key={initiative.id}
-                          onClick={() => setSelectedInitiative(initiative.id)}
-                          className="w-full text-left p-6 rounded-lg border-2 border-gray-600 bg-gray-900/60 hover:border-[#eaa640] hover:bg-[#eaa640]/10 transition-all hover:scale-105 shadow-lg backdrop-blur-sm"
-                        >
-                          <div className="flex items-start space-x-3">
-                            <Icon className="h-6 w-6 text-[#eaa640] mt-1 flex-shrink-0" />
-                            <div>
-                              <h3 className="text-white font-medium text-xl mb-2">{initiative.title}</h3>
-                              <p className="text-gray-300 text-sm">{initiative.description}</p>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                    {initiatives.map((initiative) => (
+                      <InitiativeCard
+                        key={initiative.id}
+                        initiative={initiative}
+                        onClick={() => setSelectedInitiative(initiative.id)}
+                      />
+                    ))}
                   </div>
                 </div>
               ) : (

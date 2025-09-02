@@ -35,7 +35,7 @@ const HomePage: React.FC = () => {
       icon: Heart,
       title: "🍛 Annamitra Seva",
       description: "Connecting surplus food with hungry families. Every meal counts in our mission to eliminate hunger and food waste.",
-      image: "/assets/images/Annamitra.png",
+      image: "/assets/images/annamitra4.png",
       impact: "2,847 meals served today",
       color: "from-green-500 to-green-600"
     },
@@ -43,7 +43,7 @@ const HomePage: React.FC = () => {
       icon: BookOpen,
       title: "📚 Vidya Jyothi",
       description: "Illuminating young minds through education support. Providing books, fees, and resources to deserving students.",
-      image: "/assets/images/VidyaJyothi.png",
+      image: "/assets/images/vidya4.png",
       impact: "156 students supported",
       color: "from-blue-500 to-blue-600"
     },
@@ -51,7 +51,7 @@ const HomePage: React.FC = () => {
       icon: Shield,
       title: "🛡️ Suraksha Setu",
       description: "Building bridges of safety for vulnerable communities. Emergency support when it matters most.",
-      image: "/assets/images/surakshasethu.png",
+      image: "/assets/images/suraksha3.png",
       impact: "89 families protected",
       color: "from-purple-500 to-purple-600"
     },
@@ -59,7 +59,7 @@ const HomePage: React.FC = () => {
       icon: Home,
       title: "🏠 PunarAsha",
       description: "Restoring hope through rehabilitation. Supporting families in rebuilding their lives with dignity.",
-      image: "/assets/images/punarasha1.png",
+      image: "/assets/images/punar3.png",
       impact: "45 lives rebuilt",
       color: "from-pink-500 to-pink-600"
     },
@@ -67,7 +67,7 @@ const HomePage: React.FC = () => {
       icon: Zap,
       title: "⚡ Raksha Jyothi",
       description: "Emergency response for humans and animals. Rapid assistance during critical situations.",
-      image: "/assets/images/RakshaJyothi.png",
+      image: "/assets/images/raksha1.png",
       impact: "24/7 emergency response",
       color: "from-red-500 to-red-600"
     },
@@ -75,7 +75,7 @@ const HomePage: React.FC = () => {
       icon: Building,
       title: "🏛️ Jyothi Nilayam",
       description: "Creating sanctuaries of hope. Supporting shelters for both humans and animals in need.",
-      image: "/assets/images/Jyothi Nilayam.png",
+      image: "/assets/images/nilayam2.png",
       impact: "12 shelters supported",
       color: "from-orange-500 to-orange-600"
     }
@@ -146,6 +146,8 @@ const HomePage: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {/* Existing motivational banner below stays; only images were updated in its component. */}
 
         {/* Impact Section */}
         <section className="py-12 relative z-10">

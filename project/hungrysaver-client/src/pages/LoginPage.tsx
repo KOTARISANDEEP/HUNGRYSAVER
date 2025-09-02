@@ -89,16 +89,16 @@ const LoginPage: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="absolute inset-0 z-0">
           <img
-            src="https://images.pexels.com/photos/6646917/pexels-photo-6646917.jpeg"
+            src="/assets/images/download.jpg"
             alt="Community Support"
             className="w-full h-full object-cover"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-black/70" />
+          <div className="absolute inset-0 bg-black/60" />
         </div>
 
         <div className="relative z-10 max-w-md w-full">
-          <div className="bg-gray-800/90 backdrop-blur-sm p-8 rounded-xl shadow-2xl text-center">
+          <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-2xl text-center border border-white/20">
             <div className="bg-green-500 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <Mail className="h-8 w-8 text-white" />
             </div>
@@ -108,7 +108,7 @@ const LoginPage: React.FC = () => {
             </p>
             <button
               onClick={() => setResetEmailSent(false)}
-              className="text-green-400 hover:text-green-300 font-medium"
+              className="text-[#eaa640] hover:text-[#ecae53] font-medium"
             >
               Back to Login
             </button>
@@ -122,16 +122,16 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="absolute inset-0 z-0">
         <img
-          src="https://images.pexels.com/photos/6646917/pexels-photo-6646917.jpeg"
+          src="/assets/images/download.jpg"
           alt="Community Support"
           className="w-full h-full object-cover"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-black/70" />
+        <div className="absolute inset-0 bg-black/60" />
       </div>
 
       <div className="relative z-10 max-w-md w-full space-y-8">
-        <div className="bg-gray-800/90 backdrop-blur-sm p-8 rounded-xl shadow-2xl">
+        <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-white/20">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
             <p className="text-gray-300 mb-8">Every login feeds hope</p>
@@ -151,7 +151,7 @@ const LoginPage: React.FC = () => {
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#eaa640] focus:border-transparent transition-colors"
                   placeholder="Enter your email"
                   required
                   autoComplete="email"
@@ -170,7 +170,7 @@ const LoginPage: React.FC = () => {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#eaa640] focus:border-transparent transition-colors"
                   placeholder="Enter your password"
                   required
                   autoComplete="current-password"
@@ -192,7 +192,7 @@ const LoginPage: React.FC = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-600 rounded bg-gray-700"
+                  className="h-4 w-4 text-black focus:ring-[#eaa640] border-white/30 rounded bg-white/10"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-300">
                   Remember me
@@ -203,7 +203,7 @@ const LoginPage: React.FC = () => {
                 type="button"
                 onClick={handleForgotPassword}
                 disabled={loading}
-                className="text-sm text-green-400 hover:text-green-300 disabled:text-gray-500 transition-colors"
+                className="text-sm text-[#eaa640] hover:text-[#ecae53] disabled:text-gray-500 transition-colors"
               >
                 Forgot password?
               </button>
@@ -212,7 +212,7 @@ const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
+              className="w-full bg-[#eaa640] hover:bg-[#ecae53] disabled:bg-[#a0782d] disabled:cursor-not-allowed text-black py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
             >
               {loading ? (
                 <>
@@ -231,7 +231,7 @@ const LoginPage: React.FC = () => {
                 <div className="w-full border-t border-gray-600" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-800 text-gray-400">Or continue with</span>
+                <span className="px-2 bg-transparent text-gray-300">Or continue with</span>
               </div>
             </div>
 
@@ -248,7 +248,7 @@ const LoginPage: React.FC = () => {
           <div className="mt-6 text-center">
             <p className="text-gray-400">
               Don't have an account?{' '}
-              <Link to="/register" className="text-green-400 hover:text-green-300 font-medium transition-colors">
+              <Link to="/register" className="text-[#eaa640] hover:text-[#ecae53] font-medium transition-colors">
                 Register here
               </Link>
             </p>

@@ -15,35 +15,35 @@ interface ImpactSlide {
 const impactSlides: ImpactSlide[] = [
   {
     id: 1,
-    image: "/assets/images/h1.jpg",
+    image: "/assets/images/download.jpg",
     title: "Family Support",
     subtitle: "Supporting families through challenging times with comprehensive aid programs. Building stronger communities one family at a time.",
     badge: "156 Families Helped This Week"
   },
   {
     id: 2,
-    image: "/assets/images/h2.jpg",
+    image: "/assets/images/nilayam2.png",
     title: "Hunger Relief",
     subtitle: "Providing immediate food assistance to families facing food insecurity. Every meal delivered brings hope and nourishment.",
     badge: "2,847 Lives Touched Today"
   },
   {
     id: 3,
-    image: "/assets/images/h3.jpg",
+    image: "/assets/images/suraksha1.png",
     title: "Community Growth",
     subtitle: "Fostering sustainable community development through collaborative initiatives. Empowering neighborhoods to thrive together.",
     badge: "89% Community Engagement Rate"
   },
   {
     id: 4,
-    image: "/assets/images/h4.jpg",
+    image: "/assets/images/suraksha3.png",
     title: "Nutrition Aid",
     subtitle: "Ensuring access to healthy, nutritious meals for children and families. Promoting wellness and long-term health outcomes.",
     badge: "1,200+ Meals Served Daily"
   },
   {
     id: 5,
-    image: "/assets/images/h6.jpeg",
+    image: "/assets/images/vidya2.png",
     title: "Volunteer Impact",
     subtitle: "Celebrating the incredible dedication of our volunteers who make everything possible. Their compassion drives our mission forward.",
     badge: "450+ Active Volunteers"

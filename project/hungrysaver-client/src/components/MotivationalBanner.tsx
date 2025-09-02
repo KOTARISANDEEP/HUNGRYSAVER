@@ -31,6 +31,15 @@ const motivationalMessages = [
 const MotivationalBanner = () => {
   const [currentMessage, setCurrentMessage] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
+  const bannerImages = [
+    '/assets/images/download.jpg',
+    '/assets/images/nilayam2.png',
+    '/assets/images/suraksha1.png',
+    '/assets/images/suraksha3.png',
+    '/assets/images/vidya2.png'
+  ];
+  const [imgIdx, setImgIdx] = useState(0);
+  const [prevIdx, setPrevIdx] = useState<number | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -40,14 +49,35 @@ const MotivationalBanner = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const t = setInterval(() => {
+      setPrevIdx(imgIdx);
+      setImgIdx((p) => (p + 1) % bannerImages.length);
+    }, 7000);
+    return () => clearInterval(t);
+  }, [bannerImages.length, imgIdx]);
+
   const message = motivationalMessages[currentMessage];
 
   if (!isVisible) return null;
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-r from-[#EAA640] via-[#F5E3C3] to-[#FAF9F6] rounded-2xl p-8 mb-8 shadow-2xl">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
+      {/* Background slideshow */}
+      <div className="absolute inset-0 overflow-hidden rounded-2xl">
+        {(bannerImages || []).map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt="motivation background"
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out ${i === imgIdx ? 'opacity-40 blur-0 scale-100' : i === prevIdx ? 'opacity-0 blur-md scale-[1.02]' : 'opacity-0'}`}
+            style={{ zIndex: i === imgIdx ? 1 : 0 }}
+          />
+        ))}
+      </div>
+
+      {/* Animated overlay elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-4 -right-4 w-24 h-24 bg-[#EAA640]/10 rounded-full animate-pulse"></div>
         <div className="absolute top-1/2 -left-8 w-16 h-16 bg-[#EAA640]/5 rounded-full animate-bounce"></div>
         <div className="absolute bottom-4 right-1/3 w-12 h-12 bg-[#EAA640]/10 rounded-full animate-pulse delay-1000"></div>

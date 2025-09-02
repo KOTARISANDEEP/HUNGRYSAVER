@@ -4,7 +4,7 @@ import {
   MapPin, Calendar, User, Phone, Package, Clock, CheckCircle, AlertCircle, 
   Award, TrendingUp, Heart, Home, List, Users, ClipboardCheck, 
   Star, MessageCircle, Settings as SettingsIcon, Menu, X, Bell, LogOut,
-  ChevronRight, BarChart3, Gift, Building
+  ChevronRight, BarChart3, Gift, Building, ThumbsUp
 } from 'lucide-react';
 import { getTasksByLocation, updateTaskStatus } from '../services/firestoreService';
 import { getVolunteerCommunityRequests, updateCommunityRequestStatus } from '../services/communityRequestService';
@@ -113,6 +113,15 @@ const VolunteerDashboard: React.FC = () => {
       if (nav instanceof HTMLElement) nav.style.display = originalDisplay;
     };
   }, []);
+
+  // Lock background scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (sidebarOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = originalOverflow; };
+    }
+  }, [sidebarOpen]);
 
   const fetchTasks = async () => {
     try {
@@ -657,7 +666,7 @@ const VolunteerDashboard: React.FC = () => {
 
                    case 'donor-requests':
         return (
-          <div className="space-y-6">
+          <div className="space-y-10">
             <div className="flex items-center justify-between">
               <h2 className="text-3xl font-bold text-white">Donor Requests</h2>
               <div className="bg-[#eaa640]/10 backdrop-blur-lg border border-[#eaa640]/30 rounded-lg px-4 py-2">
@@ -665,16 +674,32 @@ const VolunteerDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Tasks Grid - Only Available Tasks */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {tasks.filter(task => task.status === 'pending' && task.type === 'donation').map((task) => (
-                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} setImageViewer={setImageViewer} />
-              ))}
+            {/* Community-linked Requests */}
+            {tasks.some(task => task.status === 'pending' && task.type === 'donation' && (task.communityRequestId || task.communityBeneficiaryName || task.communityAddress)) && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-semibold text-white">Community-linked Requests</h3>
+                <span className="text-sm text-gray-400">Pickup from donor, deliver to community address</span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {tasks.filter(task => task.status === 'pending' && task.type === 'donation' && (task.communityRequestId || task.communityBeneficiaryName || task.communityAddress)).map((task) => (
+                  <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} setImageViewer={setImageViewer} />
+                ))}
+              </div>
             </div>
-            
+            )}
 
-             
-
+            {/* Direct Donations */}
+            {tasks.some(task => task.status === 'pending' && task.type === 'donation' && !(task.communityRequestId || task.communityBeneficiaryName || task.communityAddress)) && (
+            <div>
+              <h3 className="text-xl font-semibold text-white mb-3">Direct Donations</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {tasks.filter(task => task.status === 'pending' && task.type === 'donation' && !(task.communityRequestId || task.communityBeneficiaryName || task.communityAddress)).map((task) => (
+                  <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} setImageViewer={setImageViewer} />
+                ))}
+              </div>
+            </div>
+            )}
           </div>
         );
 
@@ -719,11 +744,20 @@ const VolunteerDashboard: React.FC = () => {
         return (
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">My Task Status</h2>
+            {(() => {
+              const statusTasks = myTasks.filter(task => task.assignedTo === userData?.uid || task.volunteerId === userData?.uid);
+              const linkedRequestIds = new Set(statusTasks
+                .filter(t => t.type === 'donation' && t.communityRequestId)
+                .map(t => t.communityRequestId));
+              const deduped = statusTasks.filter(t => !(t.type === 'request' && linkedRequestIds.has(t.id)));
+              return (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {myTasks.filter(task => task.assignedTo === userData?.uid || task.volunteerId === userData?.uid).map((task) => (
+              {deduped.map((task) => (
                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} showProgress actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} setImageViewer={setImageViewer} />
               ))}
             </div>
+              );
+            })()}
           </div>
         );
 
@@ -768,10 +802,18 @@ const VolunteerDashboard: React.FC = () => {
       </div>
 
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full w-64 bg-black shadow-lg border-r border-[#eaa640]/20 transform transition-transform duration-300 z-40 ${
+      <div className={`fixed left-0 top-0 h-full w-64 bg-black shadow-lg border-r border-[#eaa640]/20 transform transition-transform duration-300 ease-in-out z-40 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } lg:translate-x-0`}>
-        <div className="p-4 h-full overflow-y-auto">
+      } lg:translate-x-0 lg:top-0`}>
+        <div className="p-4 h-full overflow-y-auto relative">
+          {/* Close button (mobile) */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden absolute top-3 right-3 text-gray-300 hover:text-white"
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
           {/* Logo */}
           <div className="flex items-center space-x-3 mb-8">
             <div className="w-10 h-10 bg-gradient-to-br from-[#eaa640] to-[#eeb766] rounded-lg flex items-center justify-center">
@@ -782,7 +824,6 @@ const VolunteerDashboard: React.FC = () => {
               <p className="text-xs text-gray-400">Dashboard</p>
             </div>
           </div>
-
           {/* Navigation */}
           <nav className="space-y-2">
             {sidebarItems.map((item) => {
@@ -814,38 +855,41 @@ const VolunteerDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Top bar with mobile toggle */}
       <div className="lg:ml-64 min-h-screen">
-                 {/* Navbar */}
-         <div className="bg-transparent h-[60px]">
-           <div className="h-full flex items-center justify-between px-5">
-             {/* Left: Welcome with emoji */}
-             <div className="text-white text-base font-medium flex items-center gap-2">
-               <span role="img" aria-label="handshake">🤝</span>
-               <span>Welcome {userData?.location} volunteer! {userData?.firstName} 👋</span>
-             </div>
-             {/* Right: Profile + Logout */}
-             <div className="flex items-center gap-3">
-               <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
-                 <User className="h-4 w-4 text-white" />
-               </div>
-                                                               <button
-                                  onClick={async () => {
-                                    try {
-                                      await logout();
-                                      navigate('/login');
-                                    } catch (error) {
-                                      console.error('Logout error:', error);
-                                    }
-                                  }}
-                                  className="group relative w-16 h-20 transition-all duration-300 hover:scale-110 flex flex-col items-center justify-center"
-                                >
-                                  <LogOut className="h-5 w-5 text-[#eaa640] mb-1 transition-transform duration-300 group-hover:scale-110 group-hover:translate-x-1 group-hover:-translate-y-1" />
-                                  <span className="text-xs text-[#eaa640] font-medium">Logout</span>
-                                </button>
-             </div>
-           </div>
-         </div>
+        {/* Navbar */}
+        <div className="bg-black border-b border-[#eaa640]/20 h-[60px]">
+          <div className="h-full flex items-center justify-between px-5">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden px-3 py-2 rounded-md border border-[#eaa640]/40 text-[#eaa640] hover:bg-[#eaa640]/10 transition-colors"
+              >
+                ☰ Dashboard
+              </button>
+              <div className="flex items-center space-x-2 text-gray-200">
+                <div className="h-8 w-8 rounded-full border border-gray-400/60 flex items-center justify-center">
+                  <User className="h-4 w-4 text-gray-300" />
+                </div>
+                <span className="text-sm">Volunteer</span>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await logout();
+                  navigate('/login');
+                } catch (error) {
+                  console.error('Logout error:', error);
+                }
+              }}
+              className="bg-[#eaa640] hover:bg-[#eeb766] text-black px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
 
         {/* Page Content */}
         <div className="p-6">
@@ -901,8 +945,8 @@ const TaskCard: React.FC<{
   setFeedbackModal?: (modal: { isOpen: boolean; taskId: string | null; taskType: 'donation' | 'request' | null; taskName: string }) => void;
   setImageViewer?: (viewer: { isOpen: boolean; images: string[]; initialIndex: number }) => void;
 }> = ({ task, onAction, userData, showProgress = false, actionLoading, setFeedbackModal, setImageViewer }) => {
-  const getInitiativeEmoji = (initiative: string) => {
-    const emojiMap: { [key: string]: string } = {
+  const getInitiativeEmoji = (initiative: string) =>
+    { const emojiMap: { [key: string]: string } = {
       'annamitra-seva': '🍛',
       'vidya-jyothi': '📚',
       'suraksha-setu': '🛡️',
@@ -910,8 +954,7 @@ const TaskCard: React.FC<{
       'raksha-jyothi': '⚡',
       'jyothi-nilayam': '🏛️'
     };
-    return emojiMap[initiative.toLowerCase()] || '💝';
-  };
+    return emojiMap[initiative.toLowerCase()] || '💝'; };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -924,63 +967,53 @@ const TaskCard: React.FC<{
     }
   };
 
+  const copyToClipboard = async (text: string) => {
+    try { await navigator.clipboard?.writeText(text); alert('Address copied'); } catch {}
+  };
+
   return (
     <div className="bg-gray-900/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700 hover:border-[#eaa640]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-[#eaa640]/10">
+      {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="text-3xl">{getInitiativeEmoji(task.initiative)}</div>
+          <div className="text-2xl">{getInitiativeEmoji(task.initiative || '')}</div>
           <div>
-            <div className="flex items-center space-x-2 mb-1">
-              <h3 className="text-lg font-semibold text-white capitalize">{task.initiative.replace('-', ' ')}</h3>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                task.type === 'donation' ? 'bg-[#eaa640]/20 text-[#eaa640]' : 'bg-blue-500/20 text-blue-400'
-              }`}>
-                {task.type === 'donation' ? '🎁 Donation' : '🆘 Request'}
-              </span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-400">
-              <User className="h-4 w-4" />
-              <span>{task.type === 'donation' ? task.donorName : task.beneficiaryName}</span>
-            </div>
+            <h3 className="text-lg font-semibold text-white capitalize">{task.initiative?.replace('-', ' ') || 'Donation'}</h3>
+            <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getStatusColor(task.status)}`}>{(task.status || 'pending').toUpperCase()}</span>
           </div>
         </div>
-        
-        <span className={`px-3 py-1 rounded-full text-xs border font-medium ${getStatusColor(task.status)}`}>
-          {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-        </span>
       </div>
 
-             {showProgress && (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid) && (
-        <div className="mb-4 p-4 bg-[#eaa640]/10 rounded-xl border border-[#eaa640]/30">
-          <div className="flex items-center space-x-4">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              ['accepted', 'picked', 'delivered', 'completed'].includes(task.status) ? 'bg-[#eaa640] text-black' : 'bg-gray-600 text-gray-400'
-            }`}>
-              <Package className="h-4 w-4" />
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              ['picked', 'delivered', 'completed'].includes(task.status) ? 'bg-[#eaa640] text-black' : 'bg-gray-600 text-gray-400'
-            }`}>
-              <Clock className="h-4 w-4" />
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              ['delivered', 'completed'].includes(task.status) ? 'bg-[#eaa640] text-black' : 'bg-gray-600 text-gray-400'
-            }`}>
-              <CheckCircle className="h-4 w-4" />
-            </div>
+      {/* Community-linked: Requester Details at top */}
+      {task.type === 'donation' && (task.communityRequestId || task.communityBeneficiaryName || task.communityAddress) && (
+        <div className="mb-4 bg-gray-700/20 border border-gray-600/40 rounded-lg p-3">
+          <div className="flex items-center space-x-2 text-sm text-gray-300 mb-2">
+            <Users className="h-4 w-4 text-[#eaa640]" />
+            <span className="font-medium">Requester Details</span>
           </div>
-          <div className="mt-2 text-sm text-[#eaa640] font-medium">
-            {task.status === 'accepted' && 'Ready for pickup'}
-            {task.status === 'picked' && 'In delivery'}
-            {task.status === 'delivered' && 'Ready for feedback'}
-            {task.status === 'completed' && 'Task completed with feedback'}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div className="flex items-center space-x-2 text-gray-300">
+              <User className="h-4 w-4 text-[#eaa640]" />
+              <span>{task.communityBeneficiaryName || '-'}</span>
+            </div>
+            <div className="flex items-center space-x-2 text-gray-300">
+              <Phone className="h-4 w-4 text-[#eaa640]" />
+              {task.communityBeneficiaryContact ? (
+                <a href={`tel:${task.communityBeneficiaryContact}`} className="text-blue-300 hover:text-blue-200 underline">{task.communityBeneficiaryContact}</a>
+              ) : (<span>—</span>)}
+            </div>
+            {task.communityAddress && (
+              <div className="md:col-span-2 flex items-start justify-between text-gray-300">
+                <div className="flex items-start space-x-2">
+                  <MapPin className="h-4 w-4 text-[#eaa640] mt-0.5" />
+                  <span>{task.communityAddress}</span>
+                </div>
+                <button onClick={() => copyToClipboard(task.communityAddress)} className="ml-3 px-2 py-1 text-xs rounded-md bg-gray-700 hover:bg-gray-600 text-gray-200">Copy</button>
+              </div>
+            )}
           </div>
         </div>
       )}
-
-      <p className="text-gray-300 mb-4 leading-relaxed">{task.description}</p>
 
       {/* Food Image Display */}
       {task.type === 'donation' && task.initiative === 'annamitra-seva' && task.imageUrl && (
@@ -1004,6 +1037,45 @@ const TaskCard: React.FC<{
                 target.style.display = 'none';
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Donor Engagement / Pickup Details at bottom for both community-linked and direct donations */}
+      {task.type === 'donation' && (task.donorName || task.donorContact || task.donorAddress || task.donorNotes) && (
+        <div className="mt-2 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
+          <div className="flex items-center space-x-2 text-sm text-blue-300 mb-1">
+            <ThumbsUp className="h-4 w-4" />
+            <span className="font-medium">Donor Engagement / Pickup Details</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div className="flex items-center space-x-2 text-gray-300">
+              <User className="h-4 w-4 text-[#eaa640]" />
+              <span>{task.donorName || 'Donor'}</span>
+            </div>
+            <div className="flex items-center space-x-2 text-gray-300">
+              <Phone className="h-4 w-4 text-[#eaa640]" />
+              {task.donorContact ? (
+                <a href={`tel:${task.donorContact}`} className="text-blue-300 hover:text-blue-200 underline">{task.donorContact}</a>
+              ) : (
+                <span>—</span>
+              )}
+            </div>
+            {task.donorAddress && (
+              <div className="md:col-span-2 flex items-start justify-between text-gray-300">
+                <div className="flex items-start space-x-2">
+                  <MapPin className="h-4 w-4 text-[#eaa640] mt-0.5" />
+                  <span>{task.donorAddress}</span>
+                </div>
+                <button onClick={() => copyToClipboard(task.donorAddress)} className="ml-3 px-2 py-1 text-xs rounded-md bg-gray-700 hover:bg-gray-600 text-gray-200">Copy</button>
+              </div>
+            )}
+            {task.donorNotes && (
+              <div className="md:col-span-2 flex items-start space-x-2 text-gray-300">
+                <ClipboardCheck className="h-4 w-4 text-[#eaa640] mt-0.5" />
+                <span>{task.donorNotes}</span>
+              </div>
+            )}
           </div>
         </div>
       )}

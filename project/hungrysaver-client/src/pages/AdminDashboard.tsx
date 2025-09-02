@@ -121,6 +121,15 @@ const AdminDashboard: React.FC = () => {
     };
   }, []);
 
+  // Lock scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (sidebarOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = originalOverflow; };
+    }
+  }, [sidebarOpen]);
+
   const fetchDashboardData = async () => {
     try {
       console.log('🔄 Fetching dashboard data...');
@@ -732,12 +741,16 @@ const AdminDashboard: React.FC = () => {
         <div className="min-h-screen bg-black flex">
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-black transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 border-r border-[#eaa640]/20`}>
-        <div className="flex items-center justify-center h-16 bg-black border-b border-[#eaa640]/20">
-          <Crown className="h-8 w-8 text-[#eaa640]" />
-          <span className="ml-2 text-xl font-bold text-white">Admin Panel</span>
-        </div>
-        <nav className="mt-8">
-          <div className="px-4 space-y-2">
+        <div className="p-4 h-full overflow-y-auto relative">
+          {/* Close button (mobile) */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden absolute top-3 right-3 text-gray-300 hover:text-white"
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <nav className="space-y-2 mt-6 lg:mt-0">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -758,8 +771,8 @@ const AdminDashboard: React.FC = () => {
                 </button>
               );
             })}
-          </div>
-        </nav>
+          </nav>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -771,7 +784,7 @@ const AdminDashboard: React.FC = () => {
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="lg:hidden p-2 rounded-md text-gray-300 hover:text-[#eaa640] hover:bg-gray-800/50 transition-all duration-200"
             >
-              <Menu className="h-6 w-6" />
+              ☰ Dashboard
             </button>
             <div className="ml-4 lg:ml-0">
               <h1 className="text-xl font-semibold text-white">Welcome Admin</h1>
@@ -1401,7 +1414,7 @@ const AdminDashboard: React.FC = () => {
              {/* Sidebar Overlay */}
        {sidebarOpen && (
          <div 
-           className="fixed inset-0 bg-black opacity-50 z-40 lg:hidden" 
+           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" 
            onClick={() => setSidebarOpen(false)}
          ></div>
        )}
