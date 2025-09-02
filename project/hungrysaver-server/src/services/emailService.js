@@ -339,7 +339,7 @@ class EmailService {
 
               <!-- CTA Button -->
               <div style="text-align: center; margin: 35px 0;">
-                <a href="${process.env.FRONTEND_URL || 'https://hungrysaver.com'}" 
+                <a href="https://hungrysaver.netlify.app" 
                    style="background-color: #16a34a; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
                   Access Your Dashboard
                 </a>
@@ -458,11 +458,11 @@ class EmailService {
                     </div>
                   </div>
                   <div style="text-align: center; margin: 30px 0;">
-                    <a href="${process.env.FRONTEND_URL || 'https://hungrysaver.com'}/dashboard/${donation.location}" 
+                    <a href="https://hungrysaver.netlify.app/dashboard/${donation.location}" 
                        style="background-color: #16a34a; color: white; padding: 15px 25px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; margin-right: 10px;">
                       ✅ Accept Donation
                     </a>
-                    <a href="${process.env.FRONTEND_URL || 'https://hungrysaver.com'}/dashboard/${donation.location}"
+                    <a href="https://hungrysaver.netlify.app/dashboard/${donation.location}"
                        style="background-color: #6b7280; color: white; padding: 15px 25px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
                       👀 View Details
                     </a>
@@ -541,14 +541,14 @@ class EmailService {
                 <!-- Action Buttons -->
                 <div style="text-align: center; margin: 30px 0;">
                   <div style="margin-bottom: 15px;">
-                    <a href="${process.env.FRONTEND_URL || 'https://hungrysaver.com'}/dashboard/${donation.location}" 
-                       style="background-color: #16a34a; color: white; padding: 15px 25px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; margin-right: 10px;">
-                      ✅ Accept Donation
-                    </a>
-                    <a href="${process.env.FRONTEND_URL || 'https://hungrysaver.com'}/dashboard/${donation.location}" 
-                       style="background-color: #6b7280; color: white; padding: 15px 25px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
-                      👀 View Details
-                    </a>
+                                      <a href="https://hungrysaver.netlify.app/dashboard/${donation.location}" 
+                     style="background-color: #16a34a; color: white; padding: 15px 25px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; margin-right: 10px;">
+                    ✅ Accept Donation
+                  </a>
+                  <a href="https://hungrysaver.netlify.app/dashboard/${donation.location}" 
+                     style="background-color: #6b7280; color: white; padding: 15px 25px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
+                    👀 View Details
+                  </a>
                   </div>
                   <p style="color: #6b7280; font-size: 12px; margin: 0;">
                     Click "Accept Donation" to coordinate pickup and delivery
@@ -877,7 +877,7 @@ class EmailService {
               
               <!-- CTA Button -->
               <div style="text-align: center; margin: 35px 0;">
-                <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard/${request.location_lowercase}" 
+                <a href="https://hungrysaver.netlify.app/dashboard/${request.location_lowercase}" 
                    style="background: linear-gradient(135deg, #eaa640 0%, #ecae53 100%); color: white; padding: 18px 40px; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 18px; display: inline-block; box-shadow: 0 4px 15px rgba(234, 166, 64, 0.4); transition: all 0.3s ease;">
                   📱 View Request in Dashboard
                 </a>
