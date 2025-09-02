@@ -82,10 +82,10 @@ class StatusService {
     const allowedTransitions = VALID_TRANSITIONS[currentStatus] || [];
     
     if (!allowedTransitions.includes(newStatus)) {
-      throw new Error(
-        `Invalid status transition from ${currentStatus} to ${newStatus}. ` +
-        `Allowed transitions: ${allowedTransitions.join(', ')}`
-      );
+      const errorMsg = `Invalid status transition from ${currentStatus} to ${newStatus}. ` +
+        `Allowed transitions: ${allowedTransitions.join(', ')}`;
+      logger.error(errorMsg);
+      throw new Error(errorMsg);
     }
     
     return true;

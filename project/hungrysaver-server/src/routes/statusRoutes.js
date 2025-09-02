@@ -12,7 +12,7 @@ router.patch('/donation/:id',
   requireVolunteer,
   [
     param('id').isLength({ min: 1 }).trim(),
-    body('status').isIn(['accepted', 'picked', 'delivered']),
+    body('status').isIn(['accepted', 'picked', 'delivered', 'completed']),
     body('notes').optional().isLength({ max: 500 }).trim()
   ],
   validateRequest,
@@ -25,7 +25,7 @@ router.patch('/request/:id',
   requireVolunteer,
   [
     param('id').isLength({ min: 1 }).trim(),
-    body('status').isIn(['accepted', 'picked', 'delivered']),
+    body('status').isIn(['accepted', 'picked', 'delivered', 'completed']),
     body('notes').optional().isLength({ max: 500 }).trim()
   ],
   validateRequest,
@@ -47,7 +47,7 @@ router.get('/history/:itemType/:itemId',
 router.get('/items/:status',
   authenticateToken,
   [
-    param('status').isIn(['pending', 'accepted', 'picked', 'delivered']),
+    param('status').isIn(['pending', 'accepted', 'picked', 'delivered', 'completed']),
     query('location').optional().isLength({ min: 1 }).trim(),
     query('itemType').optional().isIn(['donation', 'request']),
     query('limit').optional().isInt({ min: 1, max: 100 }),

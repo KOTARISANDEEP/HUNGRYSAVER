@@ -26,7 +26,7 @@ router.get('/location/:location',
   authenticateToken,
   [
     param('location').isLength({ min: 1 }).trim(),
-    query('status').optional().isIn(['pending', 'accepted', 'picked', 'delivered']),
+    query('status').optional().isIn(['pending', 'accepted', 'picked', 'delivered', 'completed']),
     query('limit').optional().isInt({ min: 1, max: 100 }),
     query('offset').optional().isInt({ min: 0 })
   ],
@@ -59,7 +59,7 @@ router.patch('/:id/status',
   authenticateToken,
   [
     param('id').isLength({ min: 1 }).trim(),
-    body('status').isIn(['accepted', 'picked', 'delivered']),
+    body('status').isIn(['accepted', 'picked', 'delivered', 'completed']),
     body('volunteerId').optional().isLength({ min: 1 }).trim()
   ],
   validateRequest,
