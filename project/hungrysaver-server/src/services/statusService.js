@@ -1,6 +1,9 @@
 import { STATUS_STAGES, VALID_TRANSITIONS, COLLECTIONS } from '../config/constants.js';
 import { getFirestore } from '../config/firebase.js';
 import { logger } from '../utils/logger.js';
+import EmailService from './emailService.js';
+
+const emailService = new EmailService();
 
 // Import services dynamically to avoid circular dependencies
 let notificationService = null;
@@ -203,6 +206,29 @@ class StatusService {
       
       // Update donation
       await donationRef.update(finalUpdateData);
+      
+      // Send completion email to donor if status is completed
+      if (newStatus === STATUS_STAGES.COMPLETED) {
+        try {
+          // Get the updated donation data for email
+          const updatedDonationDoc = await donationRef.get();
+          if (updatedDonationDoc.exists) {
+            const donationData = updatedDonationDoc.data();
+            
+            // Only send email if donor email exists
+            if (donationData.donorEmail) {
+              logger.info(`Sending completion email to donor ${donationData.donorEmail} for donation ${donationId}`);
+              await emailService.sendDonationCompletionEmail(donationData);
+              logger.info(`Completion email sent successfully to ${donationData.donorEmail}`);
+            } else {
+              logger.warn(`No donor email found for donation ${donationId}, skipping completion email`);
+            }
+          }
+        } catch (emailError) {
+          logger.error(`Error sending completion email for donation ${donationId}:`, emailError);
+          // Don't fail the status update if email fails
+        }
+      }
       
       // Log the final update data for debugging
       logger.info(`Donation ${donationId} updated with data:`, updateData);

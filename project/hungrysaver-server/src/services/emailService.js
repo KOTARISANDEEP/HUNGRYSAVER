@@ -67,8 +67,135 @@ class EmailService {
   }
 
   /**
-   * Send welcome confirmation email for new user registration
+   * Send donation completion email to donor
    */
+  async sendDonationCompletionEmail(donation) {
+    try {
+      const initiativeNames = {
+        'annamitra-seva': 'Annamitra Seva (Food Distribution)',
+        'vidya-jyothi': 'Vidya Jyothi (Educational Support)',
+        'suraksha-setu': 'Suraksha Setu (Emergency Support)',
+        'punarasha': 'PunarAsha (Rehabilitation Support)',
+        'raksha-jyothi': 'Raksha Jyothi (Emergency Response)',
+        'jyothi-nilayam': 'Jyothi Nilayam (Shelter Support)'
+      };
+
+      const initiativeName = initiativeNames[donation.initiative] || donation.initiative;
+
+      const mailOptions = {
+        to: donation.donorEmail,
+        subject: `🎉 Your ${initiativeName} Donation Has Been Delivered Successfully!`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #eaa640 0%, #d4963a 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">
+                🍛 Hungry Saver
+              </h1>
+              <p style="color: #fef3c7; margin: 10px 0 0 0; font-size: 16px;">
+                Your Generosity Has Reached Its Destination! 🎯
+              </p>
+            </div>
+
+            <!-- Main Content -->
+            <div style="background-color: white; padding: 40px 30px;">
+              <h2 style="color: #eaa640; margin-top: 0; font-size: 24px;">
+                🎉 Donation Successfully Delivered!
+              </h2>
+              
+              <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+                Dear ${donation.donorName},
+              </p>
+              
+              <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+                Great news! Your <strong>${initiativeName}</strong> donation has been successfully delivered to the beneficiary. 
+                Your generosity has made a real difference in someone's life today.
+              </p>
+
+              <!-- Donation Details -->
+              <div style="background-color: #fef3c7; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #eaa640;">
+                <h3 style="color: #92400e; margin-top: 0; font-size: 18px;">
+                  📦 Donation Details
+                </h3>
+                <div style="color: #a16207; font-size: 15px; line-height: 1.5;">
+                  <p><strong>Initiative:</strong> ${initiativeName}</p>
+                  <p><strong>Description:</strong> ${donation.description}</p>
+                  <p><strong>Location:</strong> ${donation.location}</p>
+                  <p><strong>Delivery Date:</strong> ${new Date(donation.deliveredAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              <!-- Volunteer Feedback -->
+              ${donation.feedback ? `
+              <div style="background-color: #f0fdf4; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #16a34a;">
+                <h3 style="color: #15803d; margin-top: 0; font-size: 18px;">
+                  💬 Volunteer Feedback
+                </h3>
+                <p style="color: #166534; margin: 0; font-size: 15px; line-height: 1.5; font-style: italic;">
+                  "${donation.feedback}"
+                </p>
+                ${donation.feedbackImageUrl ? `
+                <div style="margin-top: 15px;">
+                  <img src="${donation.feedbackImageUrl}" alt="Delivery Proof" style="max-width: 200px; border-radius: 8px; border: 2px solid #16a34a;" />
+                  <p style="color: #166534; margin: 5px 0 0 0; font-size: 12px;">📸 Delivery Proof Image</p>
+                </div>
+                ` : ''}
+              </div>
+              ` : ''}
+
+              <!-- Impact Message -->
+              <div style="background-color: #e0e7ff; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #6366f1;">
+                <h3 style="color: #3730a3; margin-top: 0; font-size: 18px;">
+                  🌟 Your Impact
+                </h3>
+                <p style="color: #4338ca; margin: 0; font-size: 15px; line-height: 1.5;">
+                  Because of your donation, a family or individual in need has received essential support. 
+                  Your act of kindness has created a ripple effect of hope and compassion in our community.
+                </p>
+              </div>
+
+              <!-- Thank You Message -->
+              <div style="text-align: center; margin: 30px 0; padding: 25px; background-color: #fef3c7; border-radius: 8px;">
+                <h3 style="color: #92400e; margin-top: 0; font-size: 20px;">
+                  🙏 Thank You for Your Generosity!
+                </h3>
+                <p style="color: #a16207; margin: 0; font-size: 16px; line-height: 1.6;">
+                  Your donation has been successfully delivered to those who needed it most. 
+                  Together, we're building stronger, more compassionate communities.
+                </p>
+              </div>
+
+              <!-- Call to Action -->
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="https://hungrysaver.netlify.app" 
+                   style="display: inline-block; background: linear-gradient(135deg, #eaa640 0%, #d4963a 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                  🌐 Visit Our Website
+                </a>
+                <p style="color: #6b7280; margin: 10px 0 0 0; font-size: 14px;">
+                  Track your impact and make more donations
+                </p>
+              </div>
+
+              <!-- Footer -->
+              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+                <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                  Hungry Saver - Building Bridges of Hope Across Communities
+                </p>
+                <p style="color: #9ca3af; font-size: 12px; margin: 5px 0 0 0;">
+                  This is an automated message. Please do not reply to this email.
+                </p>
+              </div>
+            </div>
+          </div>
+        `
+      };
+
+      return await this.sendEmail(mailOptions);
+    } catch (error) {
+      logger.error('Error sending donation completion email:', error);
+      throw error;
+    }
+  }
   async sendUserRegistrationConfirmation(user) {
     try {
       const userTypeMessages = {
