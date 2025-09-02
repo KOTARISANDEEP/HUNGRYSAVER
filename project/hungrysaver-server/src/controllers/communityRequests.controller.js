@@ -531,6 +531,10 @@ export const donorClaim = async (req, res) => {
         donorNotes: notes || '',
         donorName: donorName || '',
         donorContact: donorContact || '',
+        // Community requester info to guide volunteers on donor requests
+        communityBeneficiaryName: requestData.beneficiaryName || '',
+        communityBeneficiaryContact: requestData.beneficiaryContact || '',
+        communityAddress: requestData.address || '',
         // Core donation fields expected by volunteer dashboards
         status: 'pending',
         initiative: requestData.initiative || 'annamitra-seva',

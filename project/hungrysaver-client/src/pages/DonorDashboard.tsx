@@ -590,7 +590,7 @@ const DonorDashboard: React.FC = () => {
 
   const handleCommunityRequestClaim = async (requestId: string, donorAddress: string, notes: string, donorName: string, donorContact: string) => {
     try {
-      await claimCommunityRequest(requestId, donorAddress, notes);
+      await claimCommunityRequest(requestId, donorAddress, notes, donorName, donorContact);
       // Success is handled in ClaimForm component
     } catch (error) {
       console.error('Error claiming community request:', error);
