@@ -517,6 +517,8 @@ export const donorClaim = async (req, res) => {
       const donationData = {
         // Link
         communityRequestId: id,
+        // Query owner for donor dashboards
+        userId: uid,
         // Donor info
         donorId: uid,
         donorAddress,

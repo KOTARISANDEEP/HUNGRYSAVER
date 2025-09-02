@@ -178,8 +178,8 @@ export const claimCommunityRequest = async (requestId: string, donorAddress: str
       body: JSON.stringify({
         donorAddress,
         notes: notes || '',
-        donorName: donorName || '',
-        donorContact: donorContact || ''
+        donorName: donorName ?? '',
+        donorContact: donorContact ?? ''
       })
     });
 
