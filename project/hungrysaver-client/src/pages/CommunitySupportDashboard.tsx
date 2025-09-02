@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History, BarChart3, MessageSquare, Settings as SettingsIcon, Star, Award, Users, TrendingUp, Target, Lightbulb, LogOut, X } from 'lucide-react';
+import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History, BarChart3, MessageSquare, Settings as SettingsIcon, Star, Award, Users, TrendingUp, Target, Lightbulb, LogOut, X, Recycle } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useFormSubmission } from '../hooks/useFormSubmission';
@@ -129,7 +129,7 @@ const CommunitySupportDashboard: React.FC = () => {
     },
     {
       id: 'punarasha',
-      icon: Home,
+      icon: Recycle,
       title: "🔄 PunarAsha",
       description: "Rehabilitation support to help families rebuild their lives with dignity and hope.",
       component: PunarAshaCommunityForm,
@@ -155,7 +155,7 @@ const CommunitySupportDashboard: React.FC = () => {
     },
     {
       id: 'jyothi-nilayam',
-      icon: Building,
+      icon: Home,
       title: "🏠 Jyothi Nilayam",
       description: "Support for shelters caring for humans and animals in need of safe sanctuary.",
       component: JyothiNilayamCommunityForm,

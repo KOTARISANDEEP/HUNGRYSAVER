@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Heart, BookOpen, Shield, Home, Zap, Building, Users, Calendar, MapPin, Clock, TrendingUp, Award, Star,
+  Heart, BookOpen, Shield, Home, Zap, Building, Users, Calendar, MapPin, Clock, TrendingUp, Award, Star, Recycle,
   Menu, X, Bell, LogOut, User, Gift, History, BarChart3, MessageSquare, FileText, HelpCircle, Settings as SettingsIcon,
   CheckCircle, UserPlus, Truck, Users2
 } from 'lucide-react';
@@ -441,7 +441,7 @@ const DonorDashboard: React.FC = () => {
     },
     {
       id: 'punarasha',
-      icon: Home,
+      icon: Recycle,
       title: "🔄 PunarAsha",
       description: "Donate electronics, furniture, and other items for rehabilitation support.",
       component: PunarAshaForm,
@@ -473,7 +473,7 @@ const DonorDashboard: React.FC = () => {
     },
     {
       id: 'jyothi-nilayam',
-      icon: Building,
+      icon: Home,
       title: "🏠 Jyothi Nilayam",
       description: "Support shelters for humans and animals with full or partial donations.",
       component: JyothiNilayamForm,
