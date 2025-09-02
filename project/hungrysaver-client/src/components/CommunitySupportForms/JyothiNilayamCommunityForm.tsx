@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { MapPin, User, Phone, Building, Clock } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
+import ImageUploadSection from '../ImageUploadSection';
+import { uploadImageToImgBB } from '../../services/imageUploadService';
 
 interface JyothiNilayamCommunityFormData {
   location: string;
@@ -32,6 +34,8 @@ const JyothiNilayamCommunityForm: React.FC<JyothiNilayamCommunityFormProps> = ({
     description: ''
   });
   const [error, setError] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const cities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
@@ -55,16 +59,41 @@ const JyothiNilayamCommunityForm: React.FC<JyothiNilayamCommunityFormProps> = ({
       setError('Please fill in all required fields.');
       return false;
     }
+    if (selectedFiles.length === 0) {
+      setError('Please upload at least one image.');
+      return false;
+    }
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (!validateForm()) return;
 
-    onSubmit(formData);
+    try {
+      let imageUrls: string[] = [];
+      if (selectedFiles.length > 0) {
+        setUploadingImage(true);
+        for (const file of selectedFiles) {
+          const url = await uploadImageToImgBB(file);
+          imageUrls.push(url);
+        }
+      }
+
+      const submissionData: any = { ...formData };
+      if (imageUrls.length > 0) {
+        submissionData.imageUrls = imageUrls;
+        submissionData.imageUrl = imageUrls[0];
+      }
+      onSubmit(submissionData);
+    } catch (err) {
+      console.error('Error uploading images:', err);
+      setError(err instanceof Error ? err.message : 'Failed to upload images. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   return (
@@ -272,20 +301,28 @@ const JyothiNilayamCommunityForm: React.FC<JyothiNilayamCommunityFormProps> = ({
             <span className="text-yellow-400 font-medium">Shelter Request Information</span>
           </div>
           <p className="text-yellow-200 text-sm">
-            We will connect you with verified shelters in your area. Volunteers will coordinate 
-            the placement and ensure appropriate care is provided.
+            We will connect you with verified shelters in your area. 
+            Volunteers will coordinate the placement and ensure appropriate care is provided.
           </p>
         </div>
 
+        <ImageUploadSection
+          label="Upload relevant images (max 3)"
+          maxImages={3}
+          disabled={uploadingImage}
+          value={selectedFiles}
+          onChange={setSelectedFiles}
+        />
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || uploadingImage}
           className="w-full bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
         >
-          {loading ? (
+          {(loading || uploadingImage) ? (
             <>
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-              Submitting Request...
+              {uploadingImage ? 'Uploading Images...' : 'Submitting Request...'}
             </>
           ) : (
             'Submit Shelter Support Request'

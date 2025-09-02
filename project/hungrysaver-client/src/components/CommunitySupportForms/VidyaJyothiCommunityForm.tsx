@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { MapPin, User, Phone, BookOpen, GraduationCap } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
+import ImageUploadSection from '../ImageUploadSection';
+import { uploadImagesToImgBB } from '../../services/imageUploadService';
 
 interface VidyaJyothiCommunityFormData {
   location: string;
@@ -44,6 +46,8 @@ const VidyaJyothiCommunityForm: React.FC<VidyaJyothiCommunityFormProps> = ({ onS
     description: ''
   });
   const [error, setError] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const cities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
@@ -86,16 +90,39 @@ const VidyaJyothiCommunityForm: React.FC<VidyaJyothiCommunityFormProps> = ({ onS
       return false;
     }
 
+    if (selectedFiles.length === 0) {
+      setError('Please upload at least one image.');
+      return false;
+    }
+
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (!validateForm()) return;
 
-    onSubmit(formData);
+    try {
+      let imageUrls: string[] = [];
+      if (selectedFiles.length > 0) {
+        setUploadingImage(true);
+        imageUrls = await uploadImagesToImgBB(selectedFiles);
+      }
+
+      const submissionData: any = { ...formData };
+      if (imageUrls.length > 0) {
+        submissionData.imageUrls = imageUrls;
+        submissionData.imageUrl = imageUrls[0];
+      }
+      onSubmit(submissionData);
+    } catch (err) {
+      console.error('Error uploading images:', err);
+      setError(err instanceof Error ? err.message : 'Failed to upload images. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   return (
@@ -259,7 +286,7 @@ const VidyaJyothiCommunityForm: React.FC<VidyaJyothiCommunityFormProps> = ({ onS
                   name="schoolName"
                   value={formData.schoolName}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="School name"
                 />
               </div>
@@ -325,15 +352,23 @@ const VidyaJyothiCommunityForm: React.FC<VidyaJyothiCommunityFormProps> = ({ onS
           />
         </div>
 
+        <ImageUploadSection
+          label="Upload relevant images (max 3)"
+          maxImages={3}
+          disabled={uploadingImage}
+          value={selectedFiles}
+          onChange={setSelectedFiles}
+        />
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || uploadingImage}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
         >
-          {loading ? (
+          {(loading || uploadingImage) ? (
             <>
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-              Submitting Request...
+              {uploadingImage ? 'Uploading Images...' : 'Submitting Request...'}
             </>
           ) : (
             'Submit Educational Support Request'

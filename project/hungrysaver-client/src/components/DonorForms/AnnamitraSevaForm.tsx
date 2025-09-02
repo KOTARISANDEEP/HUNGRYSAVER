@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, User, Phone, Clock, Package, Upload, X } from 'lucide-react';
+import { MapPin, User, Phone, Clock, Package } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
-import { uploadImageToImgBB, validateImageFile, formatFileSize } from '../../services/imageUploadService';
+import { uploadImagesToImgBB } from '../../services/imageUploadService';
+import ImageUploadSection from '../ImageUploadSection';
 
 export interface AnnamitraSevaFormData {
   location: string;
@@ -34,8 +35,7 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
   });
   const [hostel, setHostel] = useState('');
   const [error, setError] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Reset hostel when location changes
@@ -45,31 +45,7 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
     }
   }, [formData.location]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!validateImageFile(file)) {
-      setError('Please select a valid image file (JPEG, PNG, GIF, WebP) smaller than 32MB.');
-      return;
-    }
-
-    setSelectedFile(file);
-    setError('');
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const removeImage = () => {
-    setSelectedFile(null);
-    setImagePreview(null);
-    setFormData(prev => ({ ...prev, imageUrl: undefined }));
-  };
+  
 
   const cities = [
     'vijayawada', 'guntur', 'visakhapatnam', 'tirupati', 'kakinada',
@@ -92,6 +68,10 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
       setError('Please fill in all required fields.');
       return false;
     }
+    if (selectedFiles.length === 0) {
+      setError('Please upload at least one image.');
+      return false;
+    }
     
     // Validate hostel field for Kalasalingam location
     if (formData.location === 'kalasalingam academy of research and education' && !hostel) {
@@ -109,12 +89,11 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
     if (!validateForm()) return;
 
     try {
-      // Upload image if selected
-      let imageUrl: string | undefined;
-      if (selectedFile) {
+      // Upload images if selected
+      let imageUrls: string[] = [];
+      if (selectedFiles.length > 0) {
         setUploadingImage(true);
-        imageUrl = await uploadImageToImgBB(selectedFile);
-        setFormData(prev => ({ ...prev, imageUrl }));
+        imageUrls = await uploadImagesToImgBB(selectedFiles);
       }
 
       // Only include hostel field if location is Kalasalingam
@@ -125,9 +104,11 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
         submissionData.hostel = hostel;
       }
       
-      // Add image URL if uploaded
-      if (imageUrl) {
-        submissionData.imageUrl = imageUrl;
+      // Add image URLs if uploaded
+      if (imageUrls.length > 0) {
+        (submissionData as any).imageUrls = imageUrls;
+        // Keep backward compatibility
+        (submissionData as any).imageUrl = imageUrls[0];
       }
 
       onSubmit(submissionData);
@@ -330,68 +311,13 @@ const AnnamitraSevaForm: React.FC<AnnamitraSevaFormProps> = ({ onSubmit, loading
         </div>
 
         {/* Image Upload */}
-        <div>
-          <label className="text-white text-sm font-medium mb-2 block">
-            Food Image (Optional)
-          </label>
-          <div className="space-y-4">
-            {/* File Input */}
-            <div className="relative">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-                id="food-image-upload"
-                disabled={uploadingImage}
-              />
-              <label
-                htmlFor="food-image-upload"
-                className={`flex items-center justify-center w-full p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                  uploadingImage
-                    ? 'border-gray-500 bg-gray-700 cursor-not-allowed'
-                    : 'border-gray-400 bg-gray-700 hover:border-green-500 hover:bg-gray-600'
-                }`}
-              >
-                <div className="text-center">
-                  <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-300 text-sm">
-                    {uploadingImage ? 'Uploading...' : 'Click to upload food image'}
-                  </p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    JPEG, PNG, GIF, WebP (max 32MB)
-                  </p>
-                </div>
-              </label>
-            </div>
-
-            {/* Image Preview */}
-            {imagePreview && (
-              <div className="relative">
-                <div className="relative inline-block">
-                  <img
-                    src={imagePreview}
-                    alt="Food preview"
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-600"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-colors"
-                    disabled={uploadingImage}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                {selectedFile && (
-                  <p className="text-gray-400 text-xs mt-2">
-                    {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        <ImageUploadSection
+          label="Upload relevant images (max 3)"
+          maxImages={3}
+          disabled={uploadingImage}
+          value={selectedFiles}
+          onChange={setSelectedFiles}
+        />
 
         <button
           type="submit"

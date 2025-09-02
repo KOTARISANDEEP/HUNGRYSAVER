@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, User, Phone, Home, DollarSign } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
+import ImageUploadSection from '../ImageUploadSection';
+import { uploadImagesToImgBB } from '../../services/imageUploadService';
 
 export interface PunarAshaFormData {
   location: string;
@@ -32,6 +34,8 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
   });
   const [hostel, setHostel] = useState('');
   const [error, setError] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Reset hostel when location changes
   useEffect(() => {
@@ -69,32 +73,46 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
       setError('Please fill in all required fields.');
       return false;
     }
-    
-    // Validate hostel field for Kalasalingam location
     if (formData.location === 'kalasalingam academy of research and education' && !hostel) {
       setError('Please select a hostel for Kalasalingam Academy location.');
+      return false;
+    }
+    if (selectedFiles.length === 0) {
+      setError('Please upload at least one image.');
       return false;
     }
     
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (!validateForm()) return;
 
-    // Only include hostel field if location is Kalasalingam
-    const submissionData = { ...formData };
-    
-    if (formData.location === 'kalasalingam academy of research and education') {
-      // Add hostel field for Kalasalingam
-      submissionData.hostel = hostel;
-    }
-    // For other locations, hostel field will not exist in submissionData
+    try {
+      let imageUrls: string[] = [];
+      if (selectedFiles.length > 0) {
+        setUploadingImage(true);
+        imageUrls = await uploadImagesToImgBB(selectedFiles);
+      }
 
-    onSubmit(submissionData);
+      const submissionData: any = { ...formData };
+      if (formData.location === 'kalasalingam academy of research and education') {
+        submissionData.hostel = hostel;
+      }
+      if (imageUrls.length > 0) {
+        submissionData.imageUrls = imageUrls;
+        submissionData.imageUrl = imageUrls[0];
+      }
+      onSubmit(submissionData);
+    } catch (err) {
+      console.error('Error uploading images:', err);
+      setError(err instanceof Error ? err.message : 'Failed to upload images. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   return (
@@ -304,15 +322,23 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
           />
         </div>
 
+        <ImageUploadSection
+          label="Upload relevant images (max 3)"
+          maxImages={3}
+          disabled={uploadingImage}
+          value={selectedFiles}
+          onChange={setSelectedFiles}
+        />
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || uploadingImage}
           className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
         >
-          {loading ? (
+          {(loading || uploadingImage) ? (
             <>
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-              Submitting...
+              {uploadingImage ? 'Uploading Images...' : 'Submitting...'}
             </>
           ) : (
             'Submit Rehabilitation Support Donation'

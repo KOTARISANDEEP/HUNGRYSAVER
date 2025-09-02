@@ -16,6 +16,7 @@ import AnimatedEmptyState from '../components/AnimatedIllustrations';
 import CommunityRequestCard from '../components/CommunityRequestCard';
 import Settings from '../components/Settings';
 import SuccessMessage from '../components/SuccessMessage';
+import ImageViewerModal from '../components/ImageViewerModal';
 import FeedbackModal from '../components/FeedbackModal';
 
 
@@ -50,6 +51,13 @@ const VolunteerDashboard: React.FC = () => {
     thisWeek: 8,
     totalTasks: 156,
     completionRate: 92
+  });
+  
+  // Image viewer modal state
+  const [imageViewer, setImageViewer] = useState<{ isOpen: boolean; images: string[]; initialIndex: number }>({
+    isOpen: false,
+    images: [],
+    initialIndex: 0
   });
   
   // Feedback modal state
@@ -660,7 +668,7 @@ const VolunteerDashboard: React.FC = () => {
             {/* Tasks Grid - Only Available Tasks */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {tasks.filter(task => task.status === 'pending' && task.type === 'donation').map((task) => (
-                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} />
+                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} setImageViewer={setImageViewer} />
               ))}
             </div>
             
@@ -712,9 +720,9 @@ const VolunteerDashboard: React.FC = () => {
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">My Task Status</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                             {myTasks.filter(task => task.assignedTo === userData?.uid || task.volunteerId === userData?.uid).map((task) => (
-                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} showProgress actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} />
-               ))}
+              {myTasks.filter(task => task.assignedTo === userData?.uid || task.volunteerId === userData?.uid).map((task) => (
+                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} showProgress actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} setImageViewer={setImageViewer} />
+              ))}
             </div>
           </div>
         );
@@ -724,9 +732,9 @@ const VolunteerDashboard: React.FC = () => {
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">Completed Tasks</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                             {myTasks.filter(task => task.status === 'completed').map((task) => (
-                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} />
-               ))}
+              {myTasks.filter(task => task.status === 'completed').map((task) => (
+                <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} setImageViewer={setImageViewer} />
+              ))}
             </div>
           </div>
         );
@@ -747,6 +755,8 @@ const VolunteerDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black">
+      {/* Image Viewer Modal state at page scope */}
+      
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
@@ -869,6 +879,14 @@ const VolunteerDashboard: React.FC = () => {
         taskName={feedbackModal.taskName}
       />
       
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        isOpen={imageViewer.isOpen}
+        images={imageViewer.images}
+        initialIndex={imageViewer.initialIndex}
+        onClose={() => setImageViewer({ isOpen: false, images: [], initialIndex: 0 })}
+      />
+      
     </div>
   );
 };
@@ -881,7 +899,8 @@ const TaskCard: React.FC<{
   showProgress?: boolean;
   actionLoading?: string | null;
   setFeedbackModal?: (modal: { isOpen: boolean; taskId: string | null; taskType: 'donation' | 'request' | null; taskName: string }) => void;
-}> = ({ task, onAction, userData, showProgress = false, actionLoading, setFeedbackModal }) => {
+  setImageViewer?: (viewer: { isOpen: boolean; images: string[]; initialIndex: number }) => void;
+}> = ({ task, onAction, userData, showProgress = false, actionLoading, setFeedbackModal, setImageViewer }) => {
   const getInitiativeEmoji = (initiative: string) => {
     const emojiMap: { [key: string]: string } = {
       'annamitra-seva': '🍛',
@@ -973,7 +992,13 @@ const TaskCard: React.FC<{
             <img
               src={task.imageUrl}
               alt="Food donation"
-              className="w-36 h-36 object-cover rounded-lg border border-gray-600 shadow-lg"
+              className="w-36 h-36 object-cover rounded-lg border border-gray-600 shadow-lg cursor-zoom-in"
+              onClick={() => {
+                if (setImageViewer) {
+                  const images: string[] = Array.isArray(task.imageUrls) && task.imageUrls.length > 0 ? task.imageUrls : [task.imageUrl];
+                  setImageViewer({ isOpen: true, images, initialIndex: 0 });
+                }
+              }}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.style.display = 'none';

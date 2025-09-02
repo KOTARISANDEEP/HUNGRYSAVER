@@ -391,7 +391,7 @@ export const getUserRequests = async (req, res) => {
 export const createRequest = async (req, res) => {
   try {
     const { uid, userType } = req.user;
-    const { initiative, location, address, beneficiaryName, beneficiaryContact, description, urgency } = req.body;
+    const { initiative, location, address, beneficiaryName, beneficiaryContact, description, urgency, imageUrl, imageUrls } = req.body;
 
     if (userType !== 'community') {
       return res.status(403).json({
@@ -418,6 +418,9 @@ export const createRequest = async (req, res) => {
       beneficiaryContact,
       description,
       urgency: urgency || 'medium',
+      // Optional image fields when provided by client
+      ...(Array.isArray(imageUrls) && imageUrls.length > 0 ? { imageUrls } : {}),
+      ...(typeof imageUrl === 'string' && imageUrl ? { imageUrl } : {}),
       status: 'pending',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()

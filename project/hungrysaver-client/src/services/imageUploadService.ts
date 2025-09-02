@@ -109,3 +109,11 @@ export const formatFileSize = (bytes: number): string => {
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
+
+/**
+ * Upload multiple images to ImgBB in parallel and return their URLs
+ */
+export const uploadImagesToImgBB = async (files: File[]): Promise<string[]> => {
+  const uploads = files.map(async (file) => await uploadImageToImgBB(file));
+  return Promise.all(uploads);
+};

@@ -11,6 +11,7 @@ import { useFormSubmission } from '../hooks/useFormSubmission';
 import { getApprovedCommunityRequests, claimCommunityRequest } from '../services/communityRequestService';
 import ImpactSection from '../components/ImpactSection';
 import SuccessStories from '../components/SuccessStories';
+import ImageViewerModal from '../components/ImageViewerModal';
 import AnimatedEmptyState from '../components/AnimatedIllustrations';
 import DonorCommunityRequestCard from '../components/DonorCommunityRequestCard';
 import AnnamitraSevaForm from '../components/DonorForms/AnnamitraSevaForm';
@@ -143,7 +144,7 @@ const formatInitiativeName = (initiative: string) => {
 };
 
 // Donation Status Card Component
-const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donation }) => {
+const DonationStatusCard: React.FC<{ donation: DonationHistoryItem; onOpenImage?: (images: string[], initialIndex?: number) => void }> = ({ donation, onOpenImage }) => {
   const [volunteerDetails, setVolunteerDetails] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
@@ -317,7 +318,8 @@ const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donat
                   <img
                     src={donation.feedbackImageUrl}
                     alt="Proof of donation"
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-600 shadow-lg"
+                    className="w-32 h-32 object-cover rounded-lg border border-gray-600 shadow-lg cursor-zoom-in"
+                    onClick={() => onOpenImage && onOpenImage([donation.feedbackImageUrl!], 0)}
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
@@ -1253,7 +1255,7 @@ const DonorDashboard: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {donationHistory.map((donation: DonationHistoryItem) => (
-            <DonationStatusCard key={donation.id} donation={donation} />
+            <DonationStatusCard key={donation.id} donation={donation} onOpenImage={(images, idx = 0) => setImageViewer({ isOpen: true, images, initialIndex: idx })} />
           ))}
         </div>
       )}
@@ -1348,6 +1350,13 @@ const DonorDashboard: React.FC = () => {
       </div>
     );
   }
+
+  // Image viewer modal state
+  const [imageViewer, setImageViewer] = useState<{ isOpen: boolean; images: string[]; initialIndex: number }>({
+    isOpen: false,
+    images: [],
+    initialIndex: 0
+  });
 
   return (
     <div className="min-h-screen bg-black">
@@ -1462,6 +1471,14 @@ const DonorDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        isOpen={imageViewer.isOpen}
+        images={imageViewer.images}
+        initialIndex={imageViewer.initialIndex}
+        onClose={() => setImageViewer({ isOpen: false, images: [], initialIndex: 0 })}
+      />
     </div>
   );
 };
