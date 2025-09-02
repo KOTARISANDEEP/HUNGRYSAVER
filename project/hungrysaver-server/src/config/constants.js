@@ -32,7 +32,8 @@ export const STATUS_STAGES = {
   PENDING: 'pending',
   ACCEPTED: 'accepted',
   PICKED: 'picked',
-  DELIVERED: 'delivered'
+  DELIVERED: 'delivered',
+  COMPLETED: 'completed'
 };
 
 // Valid status transitions
@@ -40,7 +41,8 @@ export const VALID_TRANSITIONS = {
   [STATUS_STAGES.PENDING]: [STATUS_STAGES.ACCEPTED],
   [STATUS_STAGES.ACCEPTED]: [STATUS_STAGES.PICKED],
   [STATUS_STAGES.PICKED]: [STATUS_STAGES.DELIVERED],
-  [STATUS_STAGES.DELIVERED]: [] // Final state
+  [STATUS_STAGES.DELIVERED]: [STATUS_STAGES.COMPLETED], // Allow transition to completed
+  [STATUS_STAGES.COMPLETED]: [] // Final state
 };
 
 // User types

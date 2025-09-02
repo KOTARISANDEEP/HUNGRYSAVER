@@ -46,11 +46,12 @@ interface DonationHistoryItem {
   id: string;
   initiative: string;
   location_lowercase?: string;
-  status: 'pending' | 'accepted' | 'picked' | 'delivered';
+  status: 'pending' | 'accepted' | 'picked' | 'delivered' | 'completed';
   createdAt: any;
   volunteerName?: string;
   volunteerContact?: string;
   expectedArrivalTime?: string;
+  feedback?: string;
 }
 
 const sidebarItems = [
@@ -186,6 +187,7 @@ const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donat
       case 'accepted': return 2;
       case 'picked': return 3;
       case 'delivered': return 4;
+      case 'completed': return 5;
       default: return 1;
     }
   };
@@ -196,7 +198,8 @@ const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donat
     { name: 'Waiting for Volunteer', icon: Clock, color: 'text-gray-400' },
     { name: 'Volunteer Accepted', icon: UserPlus, color: 'text-gray-400' },
     { name: 'Picked Up', icon: Truck, color: 'text-gray-400' },
-    { name: 'Delivered', icon: Users2, color: 'text-gray-400' }
+    { name: 'Delivered', icon: Users2, color: 'text-gray-400' },
+    { name: 'Completed', icon: CheckCircle, color: 'text-gray-400' }
   ];
 
   return (
@@ -216,6 +219,7 @@ const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donat
           donation.status === 'accepted' ? 'bg-[#eaa640]/20 text-[#eaa640] border border-[#eaa640]' :
           donation.status === 'picked' ? 'bg-[#ecae53]/20 text-[#ecae53] border border-[#ecae53]' :
           donation.status === 'delivered' ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]' :
+          donation.status === 'completed' ? 'bg-green-500/20 text-green-400 border border-green-500' :
           'bg-gray-600/20 text-gray-300 border border-gray-600'
         }`}>
           {donation.status ? donation.status.charAt(0).toUpperCase() + donation.status.slice(1) : ''}
@@ -249,7 +253,7 @@ const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donat
         <div className="w-full bg-gray-700 rounded-full h-2">
           <div 
             className="bg-gradient-to-r from-[#eaa640] to-[#ecae53] h-2 rounded-full transition-all duration-500"
-            style={{ width: `${(currentStep / 4) * 100}%` }}
+            style={{ width: `${(currentStep / 5) * 100}%` }}
           ></div>
         </div>
       </div>
@@ -287,6 +291,21 @@ const DonationStatusCard: React.FC<{ donation: DonationHistoryItem }> = ({ donat
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Volunteer Feedback (for completed donations) */}
+      {donation.status === 'completed' && donation.feedback && (
+        <div className="bg-green-500/10 rounded-lg p-4 mb-4 border border-green-500/20">
+          <h4 className="text-green-400 font-semibold mb-2 flex items-center">
+            <span className="mr-2">💬</span>
+            Volunteer Feedback
+          </h4>
+          <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+            <p className="text-gray-300 text-sm leading-relaxed italic">
+              "{donation.feedback}"
+            </p>
+          </div>
         </div>
       )}
 

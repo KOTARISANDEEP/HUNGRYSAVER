@@ -176,6 +176,13 @@ class StatusService {
         updateData.pickedAt = new Date();
       } else if (newStatus === STATUS_STAGES.DELIVERED) {
         updateData.deliveredAt = new Date();
+      } else if (newStatus === STATUS_STAGES.COMPLETED) {
+        updateData.completedAt = new Date();
+        // Handle feedback for completed status
+        if (cleanAdditionalData.feedback) {
+          updateData.feedback = cleanAdditionalData.feedback;
+          logger.info(`Feedback added to donation ${donationId}: ${cleanAdditionalData.feedback}`);
+        }
       }
       
       // Final safety check: Remove any undefined values before Firestore update

@@ -16,6 +16,7 @@ import AnimatedEmptyState from '../components/AnimatedIllustrations';
 import CommunityRequestCard from '../components/CommunityRequestCard';
 import Settings from '../components/Settings';
 import SuccessMessage from '../components/SuccessMessage';
+import FeedbackModal from '../components/FeedbackModal';
 
 
 const VolunteerDashboard: React.FC = () => {
@@ -49,6 +50,19 @@ const VolunteerDashboard: React.FC = () => {
     thisWeek: 8,
     totalTasks: 156,
     completionRate: 92
+  });
+  
+  // Feedback modal state
+  const [feedbackModal, setFeedbackModal] = useState<{
+    isOpen: boolean;
+    taskId: string | null;
+    taskType: 'donation' | 'request' | null;
+    taskName: string;
+  }>({
+    isOpen: false,
+    taskId: null,
+    taskType: null,
+    taskName: ''
   });
   
 
@@ -220,66 +234,74 @@ const VolunteerDashboard: React.FC = () => {
 
 
 
-        const handleTaskAction = async (taskId: string, action: 'accept' | 'reject' | 'picked' | 'delivered', taskType: 'donation' | 'request') => {
-     try {
-       // Prevent multiple rapid clicks
-       if (actionLoading) {
-         console.log('⚠️ Action already in progress, please wait...');
-         return;
-       }
+          const handleTaskAction = async (taskId: string, action: 'accept' | 'reject' | 'picked' | 'delivered', taskType: 'donation' | 'request') => {
+    try {
+      // Prevent multiple rapid clicks
+      if (actionLoading) {
+        console.log('⚠️ Action already in progress, please wait...');
+        return;
+      }
 
-       // Set loading state
-       setActionLoading(`${taskId}-${action}`);
-       
-       // Find the current task to check its status
-       const currentTask = [...tasks, ...myTasks].find(task => task.id === taskId);
-       if (!currentTask) {
-         console.error('Task not found:', taskId);
-         setActionLoading(null);
-         return;
-       }
+      // Set loading state
+      setActionLoading(`${taskId}-${action}`);
+      
+      // Find the current task to check its status
+      const currentTask = [...tasks, ...myTasks].find(task => task.id === taskId);
+      if (!currentTask) {
+        console.error('Task not found:', taskId);
+        setActionLoading(null);
+        return;
+      }
 
-       // Prevent invalid status updates
-       if (currentTask.status === 'delivered' && action !== 'delivered') {
-         console.log('⚠️ Task already delivered, cannot update status');
-         setActionLoading(null);
-         return;
-       }
+      // Handle delivered action with feedback modal
+      if (action === 'delivered') {
+        setFeedbackModal({
+          isOpen: true,
+          taskId,
+          taskType,
+          taskName: currentTask.initiative || currentTask.type || 'this task'
+        });
+        setActionLoading(null);
+        return;
+      }
 
-       if (currentTask.status === 'picked' && action === 'accept') {
-         console.log('⚠️ Task already picked, cannot go back to accepted');
-         setActionLoading(null);
-         return;
-       }
+      // Prevent invalid status updates
+      if (currentTask.status === 'delivered') {
+        console.log('⚠️ Task already delivered, cannot update status');
+        setActionLoading(null);
+        return;
+      }
 
-       let newStatus;
-       let updateData: any = {};
-       
-       switch (action) {
-         case 'accept':
-           // Directly accept donation without form
-           newStatus = 'accepted';
-           updateData = { status: newStatus };
-           break;
-         case 'reject':
-           setTasks(prev => prev.filter(task => task.id !== taskId));
-           // Show success message for rejection
-           setSuccessMessage({
-             isOpen: true,
-             title: '⏭️ Task Passed',
-             message: 'You have passed on this task. It will remain available for other volunteers to accept.',
-           });
-           setActionLoading(null);
-           return;
-         case 'picked':
-           newStatus = 'picked';
-           updateData = { status: newStatus, pickedAt: new Date() };
-           break;
-         case 'delivered':
-           newStatus = 'delivered';
-           updateData = { status: newStatus, deliveredAt: new Date() };
-           break;
-       }
+      if (currentTask.status === 'picked' && action === 'accept') {
+        console.log('⚠️ Task already picked, cannot go back to accepted');
+        setActionLoading(null);
+        return;
+      }
+
+      let newStatus;
+      let updateData: any = {};
+      
+      switch (action) {
+        case 'accept':
+          // Directly accept donation without form
+          newStatus = 'accepted';
+          updateData = { status: newStatus };
+          break;
+        case 'reject':
+          setTasks(prev => prev.filter(task => task.id !== taskId));
+          // Show success message for rejection
+          setSuccessMessage({
+            isOpen: true,
+            title: '⏭️ Task Passed',
+            message: 'You have passed on this task. It will remain available for other volunteers to accept.',
+          });
+          setActionLoading(null);
+          return;
+        case 'picked':
+          newStatus = 'picked';
+          updateData = { status: newStatus, pickedAt: new Date() };
+          break;
+      }
        
        console.log('🔄 Updating task status:', { taskId, taskType, newStatus, updateData, currentStatus: currentTask.status });
        
@@ -306,17 +328,6 @@ const VolunteerDashboard: React.FC = () => {
          case 'picked':
            successTitle = '📦 Task Picked Up!';
            successMessage = 'Great job! The donation has been marked as picked up. Continue to the delivery location to complete the task.';
-           break;
-         case 'delivered':
-           successTitle = '✅ Task Completed!';
-           successMessage = 'Excellent work! You have successfully delivered the donation. Thank you for making a difference in your community! 🎉';
-           actionButton = {
-             text: 'View Completed Tasks',
-             onClick: () => {
-               setActiveSection('completed-tasks');
-               setSuccessMessage(prev => ({ ...prev, isOpen: false }));
-             }
-           };
            break;
        }
        
@@ -382,6 +393,87 @@ const VolunteerDashboard: React.FC = () => {
          setActionLoading(null);
        }
      };
+
+  // Handle feedback submission
+  const handleFeedbackSubmit = async (feedback: string) => {
+    if (!feedbackModal.taskId || !feedbackModal.taskType) {
+      console.error('Missing task information for feedback submission');
+      return;
+    }
+
+    try {
+      setActionLoading(`${feedbackModal.taskId}-feedback`);
+      
+      // Update status to 'completed' with feedback
+      const updateData = { 
+        status: 'completed', 
+        feedback,
+        completedAt: new Date()
+      };
+      
+      console.log('🔄 Submitting feedback and completing task:', { 
+        taskId: feedbackModal.taskId, 
+        taskType: feedbackModal.taskType, 
+        feedback 
+      });
+      
+      const result = await updateTaskStatus(
+        feedbackModal.taskId, 
+        feedbackModal.taskType, 
+        'completed', 
+        updateData
+      );
+      
+      console.log('✅ Feedback submitted and task completed:', result);
+      
+      // Close feedback modal
+      setFeedbackModal({
+        isOpen: false,
+        taskId: null,
+        taskType: null,
+        taskName: ''
+      });
+      
+      // Show success message
+      setSuccessMessage({
+        isOpen: true,
+        title: '✅ Task Completed!',
+        message: 'Excellent work! You have successfully delivered the donation and provided feedback. Thank you for making a difference in your community! 🎉',
+        actionButton: {
+          text: 'View Completed Tasks',
+          onClick: () => {
+            setActiveSection('completed-tasks');
+            setSuccessMessage(prev => ({ ...prev, isOpen: false }));
+          }
+        }
+      });
+      
+      // Refresh tasks from server
+      try {
+        console.log('🔄 Refreshing tasks from server...');
+        const refreshedTasks = await getTasksByLocation(userData?.location || '');
+        
+        const availableTasks = refreshedTasks.filter((task: any) => task.status === 'pending');
+        const myTasks = refreshedTasks.filter((task: any) => 
+          task.status !== 'pending' && 
+          (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid)
+        );
+        
+        setTasks(availableTasks);
+        setMyTasks(myTasks);
+        console.log('✅ Tasks refreshed after feedback submission');
+        
+      } catch (refreshError) {
+        console.error('Error refreshing tasks after feedback:', refreshError);
+      }
+      
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      alert('Error submitting feedback. Please try again.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
 
 
@@ -614,7 +706,7 @@ const VolunteerDashboard: React.FC = () => {
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">Completed Tasks</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                             {myTasks.filter(task => task.status === 'delivered').map((task) => (
+                             {myTasks.filter(task => task.status === 'completed').map((task) => (
                  <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} />
                ))}
             </div>
@@ -749,6 +841,15 @@ const VolunteerDashboard: React.FC = () => {
         message={successMessage.message}
         actionButton={successMessage.actionButton}
       />
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={feedbackModal.isOpen}
+        onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
+        onSubmit={handleFeedbackSubmit}
+        loading={actionLoading === `${feedbackModal.taskId}-feedback`}
+        taskName={feedbackModal.taskName}
+      />
       
     </div>
   );
@@ -780,6 +881,7 @@ const TaskCard: React.FC<{
       case 'accepted': return 'bg-blue-500/20 text-blue-400 border-blue-500';
       case 'picked': return 'bg-orange-500/20 text-orange-400 border-orange-500';
       case 'delivered': return 'bg-green-500/20 text-green-400 border-green-500';
+      case 'completed': return 'bg-green-600/20 text-green-300 border-green-600';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
     }
   };
@@ -814,19 +916,19 @@ const TaskCard: React.FC<{
         <div className="mb-4 p-4 bg-[#eaa640]/10 rounded-xl border border-[#eaa640]/30">
           <div className="flex items-center space-x-4">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              ['accepted', 'picked', 'delivered'].includes(task.status) ? 'bg-[#eaa640] text-black' : 'bg-gray-600 text-gray-400'
+              ['accepted', 'picked', 'delivered', 'completed'].includes(task.status) ? 'bg-[#eaa640] text-black' : 'bg-gray-600 text-gray-400'
             }`}>
               <Package className="h-4 w-4" />
             </div>
             <ChevronRight className="h-4 w-4 text-gray-400" />
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              ['picked', 'delivered'].includes(task.status) ? 'bg-[#eaa640] text-black' : 'bg-gray-600 text-gray-400'
+              ['picked', 'delivered', 'completed'].includes(task.status) ? 'bg-[#eaa640] text-black' : 'bg-gray-600 text-gray-400'
             }`}>
               <Clock className="h-4 w-4" />
             </div>
             <ChevronRight className="h-4 w-4 text-gray-400" />
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              task.status === 'delivered' ? 'bg-[#eaa640] text-black' : 'bg-gray-600 text-gray-400'
+              ['delivered', 'completed'].includes(task.status) ? 'bg-[#eaa640] text-black' : 'bg-gray-600 text-gray-400'
             }`}>
               <CheckCircle className="h-4 w-4" />
             </div>
@@ -835,6 +937,7 @@ const TaskCard: React.FC<{
             {task.status === 'accepted' && 'Ready for pickup'}
             {task.status === 'picked' && 'In delivery'}
             {task.status === 'delivered' && 'Completed successfully'}
+            {task.status === 'completed' && 'Task completed with feedback'}
           </div>
         </div>
       )}
@@ -923,6 +1026,12 @@ const TaskCard: React.FC<{
         {task.status === 'delivered' && (
           <div className="flex-1 bg-green-500/20 text-green-400 py-3 px-4 rounded-xl text-sm font-medium text-center border border-green-500/30">
             ✅ Completed
+          </div>
+        )}
+        
+        {task.status === 'completed' && (
+          <div className="flex-1 bg-green-600/20 text-green-300 py-3 px-4 rounded-xl text-sm font-medium text-center border border-green-600/30">
+            ✅ Completed with Feedback
           </div>
         )}
       </div>
