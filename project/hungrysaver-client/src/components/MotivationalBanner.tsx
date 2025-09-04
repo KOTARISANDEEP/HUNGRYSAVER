@@ -70,7 +70,7 @@ const MotivationalBanner = () => {
             key={i}
             src={src}
             alt="motivation background"
-            className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out ${i === imgIdx ? 'opacity-40 blur-0 scale-100' : i === prevIdx ? 'opacity-0 blur-md scale-[1.02]' : 'opacity-0'}`}
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out ${i === imgIdx ? 'opacity-100 blur-0 scale-100' : i === prevIdx ? 'opacity-0 blur-0 scale-100' : 'opacity-0'}`}
             style={{ zIndex: i === imgIdx ? 1 : 0 }}
           />
         ))}

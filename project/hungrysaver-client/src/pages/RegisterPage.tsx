@@ -117,6 +117,7 @@ const RegisterPage: React.FC = () => {
   };
 
   const handleUserTypeChange = (userType: string) => {
+    console.log('User type changed to:', userType); // Debug log
     setFormData(prev => ({
       ...prev,
       userType,
@@ -229,6 +230,9 @@ const RegisterPage: React.FC = () => {
   };
 
   const passwordStrength = getPasswordStrength(formData.password);
+
+  // Debug log to check current user type
+  console.log('Current user type:', formData.userType);
 
   return (
     <div className="relative min-h-[120vh] md:min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -438,7 +442,19 @@ const RegisterPage: React.FC = () => {
 
             {/* Volunteer-specific fields */}
             {formData.userType === 'volunteer' && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-[#eaa640]/10 rounded-lg border border-[#eaa640]/30">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-gradient-to-r from-[#eaa640]/20 to-[#eaa640]/10 rounded-xl border-2 border-[#eaa640]/40 shadow-lg animate-fadeIn">
+                <div className="col-span-full mb-4">
+                  <h3 className="text-white font-semibold text-lg flex items-center">
+                    <Users className="h-5 w-5 mr-2 text-[#eaa640]" />
+                    Additional Information for Volunteers
+                  </h3>
+                  <p className="text-gray-300 text-sm">Please provide the following details to help us match you with appropriate opportunities.</p>
+                </div>
+                
+                {/* Debug info - remove in production */}
+                <div className="col-span-full text-xs text-yellow-400 bg-yellow-400/10 p-2 rounded">
+                  Debug: User type is "{formData.userType}" - Volunteer section should be visible
+                </div>
                 <div>
                   <label htmlFor="contactNumber" className="text-white text-sm font-medium mb-2 block">
                     Contact Number <span className="text-red-400">*</span>
@@ -488,12 +504,16 @@ const RegisterPage: React.FC = () => {
                           ? 'border-red-500 focus:ring-red-500' 
                           : 'border-white/20 focus:ring-[#eaa640] focus:border-transparent'
                       }`}
+                      style={{
+                        backgroundImage: 'none',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                      }}
                       aria-invalid={!!fieldErrors.location}
                       aria-describedby={fieldErrors.location ? 'location-error' : undefined}
                       required
                     >
                       {cities.map((city) => (
-                        <option key={city} value={city}>
+                        <option key={city} value={city} className="bg-gray-800 text-white">
                           {city.charAt(0).toUpperCase() + city.slice(1)}
                         </option>
                       ))}
@@ -524,12 +544,16 @@ const RegisterPage: React.FC = () => {
                           ? 'border-red-500 focus:ring-red-500' 
                           : 'border-white/20 focus:ring-[#eaa640] focus:border-transparent'
                       }`}
+                      style={{
+                        backgroundImage: 'none',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                      }}
                       aria-invalid={!!fieldErrors.education}
                       aria-describedby={fieldErrors.education ? 'education-error' : undefined}
                       required
                     >
                       {educationLevels.map((level) => (
-                        <option key={level} value={level}>
+                        <option key={level} value={level} className="bg-gray-800 text-white">
                           {level}
                         </option>
                       ))}

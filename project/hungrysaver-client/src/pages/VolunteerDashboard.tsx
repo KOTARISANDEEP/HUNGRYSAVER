@@ -83,7 +83,6 @@ const VolunteerDashboard: React.FC = () => {
     { id: 'completed-tasks', label: 'All Completed Tasks', icon: CheckCircle, description: 'View Task History' },
     { id: 'reviews', label: 'Reviews', icon: Star, description: 'Community Feedback' },
     { id: 'chatbot', label: 'Chatbot', icon: MessageCircle, description: 'AI Support Assistant' },
-    { id: 'success-stories', label: 'Success Stories', icon: Award, description: 'Impact Stories' },
     { id: 'settings', label: 'Settings', icon: SettingsIcon, description: 'Account & Preferences' },
   ];
 
