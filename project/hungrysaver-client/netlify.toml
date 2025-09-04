@@ -3,37 +3,17 @@
   publish = "dist"
   command = "npm run build"
 
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Content-Type = "application/javascript"
+# Handle client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
+# Security headers
 [[headers]]
-  for = "/assets/*.js"
+  for = "/*"
   [headers.values]
-    Content-Type = "application/javascript"
-
-[[headers]]
-  for = "/*.mjs"
-  [headers.values]
-    Content-Type = "application/javascript"
-
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Content-Type = "text/css"
-
-[[headers]]
-  for = "/*.html"
-  [headers.values]
-    Content-Type = "text/html"
-
-[[headers]]
-  for = "/*.tsx"
-  [headers.values]
-    Content-Type = "application/javascript"
-
-[[headers]]
-  for = "/*.ts"
-  [headers.values]
-    Content-Type = "application/javascript"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
