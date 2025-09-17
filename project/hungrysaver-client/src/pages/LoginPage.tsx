@@ -38,7 +38,15 @@ const LoginPage: React.FC = () => {
       await loginWithGoogle();
       // Navigation will be handled by the useEffect below
     } catch (error: any) {
-      setError(error.message);
+      if (error?.code === 'REGISTER_FIRST') {
+        // Redirect fresh Google users to registration with a friendlier message
+        navigate('/register', { state: { from: 'google', email: email || undefined } });
+        setError("You don't have an account yet. Please register first to use Google login.");
+      } else if (error?.code === 'ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL') {
+        setError('This email is already registered. Please sign in with email/password to link Google automatically.');
+      } else {
+        setError(error.message);
+      }
     } finally {
       setLoading(false);
     }

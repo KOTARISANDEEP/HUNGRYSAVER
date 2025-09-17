@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, orderBy, Timestamp, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, orderBy, Timestamp, deleteDoc, onSnapshot, QueryConstraint } from 'firebase/firestore';
 import { Check, X, Clock, MapPin, GraduationCap, Mail, User, Crown, Heart, Users, Package, TrendingUp, Calendar, Activity, Home, Settings, Bell, LogOut, UserCircle, Menu, BarChart3, ClipboardList, DollarSign, Star, UserCheck, FileText, Award, MessageSquare } from 'lucide-react';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { EmailAuthProvider, linkWithCredential, updatePassword, reauthenticateWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 
@@ -100,8 +101,31 @@ const AdminDashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'home' | 'volunteers' | 'community' | 'donations' | 'tasks' | 'reviews' | 'users' | 'settings'>('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const { isAdmin, logout } = useAuth();
+  // Admin settings: link password provider to current account
+  const [adminPwd, setAdminPwd] = useState('');
+  const [adminPwd2, setAdminPwd2] = useState('');
+  const [adminLinking, setAdminLinking] = useState(false);
+  const [adminLinkMsg, setAdminLinkMsg] = useState<string | null>(null);
+  const [adminLinkErr, setAdminLinkErr] = useState<string | null>(null);
+  const { isAdmin, logout, currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // Users section state
+  type AppUser = {
+    uid: string;
+    firstName: string;
+    email: string;
+    userType: 'volunteer' | 'donor' | 'community' | 'admin';
+    status?: 'pending' | 'approved' | 'rejected';
+    location?: string;
+    createdAt?: any;
+  };
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'volunteer' | 'community' | 'donor' | 'admin'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [searchText, setSearchText] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
 
   useEffect(() => {
     if (isAdmin) {
@@ -110,6 +134,14 @@ const AdminDashboard: React.FC = () => {
       testFetchAllUsers();
     }
   }, [isAdmin]);
+
+  // Fetch users when the Users tab is opened or filters change
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (activeSection !== 'users') return;
+    fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, activeSection, userTypeFilter, statusFilter]);
 
   // Hide global site navbar while on admin dashboard
   useEffect(() => {
@@ -526,6 +558,55 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const constraints: QueryConstraint[] = [];
+      if (userTypeFilter !== 'all') constraints.push(where('userType', '==', userTypeFilter));
+      if (statusFilter !== 'all') constraints.push(where('status', '==', statusFilter));
+
+      // Order by createdAt if available for consistent results
+      constraints.push(orderBy('createdAt', 'desc'));
+
+      const q = constraints.length
+        ? query(collection(db, 'users'), ...constraints)
+        : query(collection(db, 'users'));
+
+      const snap = await getDocs(q);
+      let list = snap.docs.map((d) => {
+        const data: any = d.data();
+        return {
+          uid: String(d.id || ''),
+          firstName: String(data.firstName || 'Unknown'),
+          email: String(data.email || 'No email'),
+          userType: String(data.userType || 'community') as AppUser['userType'],
+          status: data.status || 'approved',
+          location: data.location || data.city || '',
+          createdAt: data.createdAt
+        } as AppUser;
+      });
+
+      // Client-side search filters (email/name/city)
+      const search = searchText.trim().toLowerCase();
+      const city = cityFilter.trim().toLowerCase();
+      if (search) {
+        list = list.filter((u) =>
+          u.email.toLowerCase().includes(search) ||
+          u.firstName.toLowerCase().includes(search)
+        );
+      }
+      if (city) {
+        list = list.filter((u) => (u.location || '').toLowerCase().includes(city));
+      }
+
+      setUsers(list);
+    } catch (error) {
+      console.error('❌ Error fetching users:', error);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
   const testFetchAllUsers = async () => {
     try {
       console.log('🧪 Testing: Fetching all users...');
@@ -827,8 +908,8 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Dashboard Content */}
-        <div className="flex-1 p-6 bg-black">
+          {/* Dashboard Content */}
+         <div className="flex-1 p-6 bg-black">
           {activeSection === 'home' && (
             <div className="space-y-6">
               {/* KPI Cards */}
@@ -1374,20 +1455,205 @@ const AdminDashboard: React.FC = () => {
              </div>
            )}
 
-           {(activeSection === 'reviews' || activeSection === 'users' || activeSection === 'settings') && (
-             <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl border border-[#eaa640]/30 overflow-hidden">
-               <div className="px-6 py-4 border-b border-[#eaa640]/20">
-                 <h2 className="text-xl font-semibold text-white capitalize">{activeSection}</h2>
-                 <p className="text-gray-400 text-sm">Section coming soon with Firebase integration</p>
-               </div>
-               <div className="p-6">
-                 <div className="text-center py-8">
-                   <Settings className="h-12 w-12 text-[#eaa640] mx-auto mb-4" />
-                   <p className="text-gray-400">This section will be available soon</p>
-                 </div>
-               </div>
-             </div>
-           )}
+          {activeSection === 'users' && (
+            <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl border border-[#eaa640]/30 overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#eaa640]/20">
+                <h2 className="text-xl font-semibold text-white">Total Users</h2>
+                <p className="text-gray-400 text-sm">All registered users with filters</p>
+              </div>
+
+              {/* Filters */}
+              <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">Role</label>
+                  <select
+                    value={userTypeFilter}
+                    onChange={(e) => setUserTypeFilter(e.target.value as any)}
+                    className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white"
+                  >
+                    <option value="all">All</option>
+                    <option value="volunteer">Volunteer</option>
+                    <option value="community">Community</option>
+                    <option value="donor">Donor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">Status</label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white"
+                  >
+                    <option value="all">All</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">City</label>
+                  <input
+                    value={cityFilter}
+                    onChange={(e) => setCityFilter(e.target.value)}
+                    placeholder="Search city"
+                    className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">Search</label>
+                  <input
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    placeholder="Name or email"
+                    className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-400"
+                  />
+                </div>
+              </div>
+
+              {/* List */}
+              {usersLoading ? (
+                <div className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#eaa640] mx-auto" />
+                </div>
+              ) : users.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Users className="h-12 w-12 text-[#eaa640] mx-auto mb-4" />
+                  <p className="text-[#eaa640] text-lg font-medium">No users found</p>
+                  <p className="text-gray-400">Try changing the filters</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="bg-gray-800/50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[#eaa640] uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[#eaa640] uppercase tracking-wider">Email</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[#eaa640] uppercase tracking-wider">Role</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[#eaa640] uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[#eaa640] uppercase tracking-wider">City</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-[#eaa640] uppercase tracking-wider">Joined</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {users.map((u) => (
+                        <tr key={u.uid} className="hover:bg-gray-800/30 transition-colors">
+                          <td className="px-6 py-4 text-white font-medium">{u.firstName}</td>
+                          <td className="px-6 py-4 text-gray-300">{u.email}</td>
+                          <td className="px-6 py-4 text-gray-300 capitalize">{u.userType}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(String(u.status || 'approved'))}`}>
+                              {String(u.status || 'approved')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-gray-300 capitalize">{u.location || '-'}</td>
+                          <td className="px-6 py-4 text-gray-300">
+                            {u.createdAt?.toDate?.() ? new Date(u.createdAt.toDate()).toLocaleDateString() : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+           {activeSection === 'reviews' && (
+              <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl border border-[#eaa640]/30 overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#eaa640]/20">
+                  <h2 className="text-xl font-semibold text-white">Reviews</h2>
+                  <p className="text-gray-400 text-sm">Section coming soon with Firebase integration</p>
+                </div>
+                <div className="p-6 text-gray-300">No reviews yet.</div>
+              </div>
+            )}
+
+            {activeSection === 'settings' && (
+              <div className="max-w-2xl w-full bg-gray-900/80 backdrop-blur-sm rounded-2xl border border-[#eaa640]/30 overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#eaa640]/20">
+                  <h2 className="text-xl font-semibold text-white">Admin Settings</h2>
+                  <p className="text-gray-400 text-sm">Link Email/Password to this admin account</p>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="bg-gray-800/60 rounded-lg p-4 border border-gray-700">
+                    <h3 className="text-white font-medium mb-2 flex items-center">
+                      <Settings className="h-5 w-5 text-[#eaa640] mr-2" />
+                      Provider Status
+                    </h3>
+                    <div className="text-gray-300 text-sm">
+                      <div>Email: <span className="text-white font-medium">{currentUser?.email || '—'}</span></div>
+                      <div className="mt-1">Providers: {currentUser?.providerData.map(p => p.providerId).join(', ') || '—'}</div>
+                    </div>
+                  </div>
+
+                  {currentUser?.providerData?.some(p => p.providerId === 'password') && (
+                    <div className="bg-green-900/20 border border-green-600 text-green-300 rounded-lg p-4">
+                      Email/Password already linked. You can sign in with both Google and password.
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                      <label className="block text-sm text-gray-300">Set a password (min 6 characters)</label>
+                      <input
+                        type="password"
+                        value={adminPwd}
+                        onChange={(e) => setAdminPwd(e.target.value)}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-400"
+                        placeholder="New password"
+                      />
+                      <input
+                        type="password"
+                        value={adminPwd2}
+                        onChange={(e) => setAdminPwd2(e.target.value)}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-400"
+                        placeholder="Confirm new password"
+                      />
+                      {adminLinkErr && <div className="text-red-400 text-sm">{adminLinkErr}</div>}
+                      {adminLinkMsg && <div className="text-green-400 text-sm">{adminLinkMsg}</div>}
+                      <button
+                        onClick={async () => {
+                          setAdminLinkErr(null);
+                          setAdminLinkMsg(null);
+                          if (!currentUser?.email) {
+                            setAdminLinkErr('Missing email on account.');
+                            return;
+                          }
+                          if (adminPwd.length < 6) {
+                            setAdminLinkErr('Password must be at least 6 characters.');
+                            return;
+                          }
+                          if (adminPwd !== adminPwd2) {
+                            setAdminLinkErr('Passwords do not match.');
+                            return;
+                          }
+                          try {
+                            setAdminLinking(true);
+                            const hasPassword = currentUser?.providerData?.some(p => p.providerId === 'password');
+                            if (!hasPassword) {
+                              const cred = EmailAuthProvider.credential(currentUser!.email!, adminPwd);
+                              await linkWithCredential(currentUser!, cred);
+                              await currentUser!.reload();
+                              setAdminLinkMsg('Linked successfully. You can now use Email/Password.');
+                            } else {
+                              await reauthenticateWithPopup(currentUser!, new GoogleAuthProvider());
+                              await updatePassword(currentUser!, adminPwd);
+                              setAdminLinkMsg('Password updated successfully.');
+                            }
+                          } catch (e: any) {
+                            setAdminLinkErr(e?.message || 'Failed to link password.');
+                          } finally {
+                            setAdminLinking(false);
+                          }
+                        }}
+                        disabled={adminLinking}
+                        className="bg-[#eaa640] hover:bg-[#eeb766] disabled:opacity-50 text-black px-4 py-2 rounded-lg font-medium">
+                        {adminLinking ? 'Updating…' : 'Update Password'}
+                      </button>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
       </div>
 

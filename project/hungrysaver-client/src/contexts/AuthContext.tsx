@@ -8,9 +8,18 @@ import {
   signInWithPopup,
   sendPasswordResetEmail,
   AuthError,
-  getAuth
+  getAuth,
+  fetchSignInMethodsForEmail,
+  getAdditionalUserInfo,
+  deleteUser,
+  AuthErrorCodes,
+  linkWithPopup,
+  linkWithCredential,
+  GoogleAuthProvider,
+  OAuthCredential,
+  EmailAuthProvider
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collection, where, query, deleteDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../config/firebase';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -32,6 +41,8 @@ interface AuthContextType {
   register: (userData: Omit<UserData, 'uid'> & { password: string }) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  linkGoogle: () => Promise<void>;
+  enableEmailPassword: (password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   loading: boolean;
   isAdmin: boolean;
@@ -44,6 +55,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Holds a pending Google OAuth credential to be auto-linked after email/password sign-in
+  const pendingGoogleCredentialRef = React.useRef<OAuthCredential | null>(null);
+  const pendingGoogleEmailRef = React.useRef<string | null>(null);
 
   const login = async (email: string, password: string) => {
     try {
@@ -67,6 +81,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUserData(adminData);
         }
       }
+
+      // If there is a pending Google credential from an earlier Google attempt,
+      // auto-link it now that the user has authenticated with email/password
+      const pendingCred = pendingGoogleCredentialRef.current;
+      const pendingEmail = pendingGoogleEmailRef.current;
+      if (pendingCred && pendingEmail && userCredential.user.email?.toLowerCase() === pendingEmail.toLowerCase()) {
+        try {
+          await linkWithCredential(userCredential.user, pendingCred);
+        } finally {
+          pendingGoogleCredentialRef.current = null;
+          pendingGoogleEmailRef.current = null;
+        }
+      }
+    } catch (error) {
+      throw new Error(getErrorMessage(error as AuthError));
+    }
+  };
+
+  const linkGoogle = async () => {
+    if (!auth.currentUser) {
+      throw new Error('Please sign in with email/password first.');
+    }
+    try {
+      await linkWithPopup(auth.currentUser, googleProvider);
+    } catch (error) {
+      throw new Error(getErrorMessage(error as AuthError));
+    }
+  };
+
+  const enableEmailPassword = async (password: string) => {
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+      throw new Error('No signed-in user or missing email.');
+    }
+    try {
+      const cred = EmailAuthProvider.credential(user.email, password);
+      await linkWithCredential(user, cred);
     } catch (error) {
       throw new Error(getErrorMessage(error as AuthError));
     }
@@ -100,7 +151,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, userInfo.email.trim(), password);
+      const emailLower = userInfo.email.trim().toLowerCase();
+      const userCredential = await createUserWithEmailAndPassword(auth, emailLower, password);
       
       // Determine initial status based on user type
       let initialStatus: 'pending' | 'approved' = 'approved';
@@ -112,7 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userDocData = {
         uid: userCredential.user.uid,
         firstName: userInfo.firstName.trim(),
-        email: userInfo.email.trim().toLowerCase(),
+        email: emailLower,
         userType: userInfo.userType,
         status: initialStatus,
         createdAt: new Date(),
@@ -124,6 +176,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // CRITICAL: Create Firestore document for the user
       await setDoc(doc(db, 'users', userCredential.user.uid), userDocData);
+
+      // De-duplicate any existing docs with the same email but different uid
+      try {
+        const dupQ = query(collection(db, 'users'), where('email', '==', emailLower));
+        const dupSnap = await getDocs(dupQ);
+        const deletions = dupSnap.docs
+          .filter(d => d.id !== userCredential.user.uid)
+          .map(d => deleteDoc(doc(db, 'users', d.id)));
+        if (deletions.length) await Promise.all(deletions);
+      } catch {}
       
       // Set user data in context
       setUserData(userDocData);
@@ -154,31 +216,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginWithGoogle = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      
-      // Check if user is admin
-      if (checkIsAdmin(result.user.email)) {
+
+      // Allow admin override if needed
+      const isAdminEmail = checkIsAdmin(result.user.email);
+      if (isAdminEmail) {
         setIsAdmin(true);
+        return;
       }
-      
-      // Check if user exists in Firestore, if not create a basic profile
-      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
-      if (!userDoc.exists()) {
-        const userDocData = {
-          uid: result.user.uid,
-          email: result.user.email || '',
-          firstName: result.user.displayName?.split(' ')[0] || 'User',
-          userType: checkIsAdmin(result.user.email) ? 'admin' as const : 'community' as const,
-          status: 'approved' as const,
-          createdAt: new Date(),
-        };
-        
-        await setDoc(doc(db, 'users', result.user.uid), userDocData);
-        setUserData(userDocData);
-        
-        // Send confirmation email for new Google users
-        sendRegistrationConfirmationEmail(userDocData);
+
+      // Block only brand-new Google sign-ups (prevent creation from persisting)
+      const additional = getAdditionalUserInfo(result);
+      const isNewUser = Boolean(additional?.isNewUser);
+      if (isNewUser) {
+        try { await deleteUser(result.user); } catch {}
+        try { await signOut(auth); } catch {}
+        const err: any = new Error('You don\'t have an account yet. Please register first to use Google login.');
+        err.code = 'REGISTER_FIRST';
+        throw err;
       }
-    } catch (error) {
+
+      // Ensure a Firestore profile exists for existing users (Google-only or linked accounts)
+      try {
+        const existing = await getDoc(doc(db, 'users', result.user.uid));
+        const emailLower = (result.user.email || '').toLowerCase();
+        if (!existing.exists()) {
+          const basic = {
+            uid: result.user.uid,
+            email: emailLower,
+            firstName: result.user.displayName?.split(' ')[0] || 'User',
+            userType: isAdminEmail ? 'admin' as const : 'community' as const,
+            status: 'approved' as const,
+            createdAt: new Date()
+          };
+          await setDoc(doc(db, 'users', result.user.uid), basic);
+          setUserData(basic);
+        }
+        // De-duplicate any other user docs with same email but different uid
+        if (emailLower) {
+          const dupQ = query(collection(db, 'users'), where('email', '==', emailLower));
+          const dupSnap = await getDocs(dupQ);
+          const deletions = dupSnap.docs
+            .filter(d => d.id !== result.user.uid)
+            .map(d => deleteDoc(doc(db, 'users', d.id)));
+          if (deletions.length) await Promise.all(deletions);
+        }
+      } catch {
+        // non-blocking
+      }
+
+      return;
+    } catch (error: any) {
+      if (error?.code === AuthErrorCodes.ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL) {
+        // Capture the pending Google credential so we can auto-link after email/password sign-in
+        const cred = GoogleAuthProvider.credentialFromError(error);
+        const email = (error?.customData?.email as string | undefined) || '';
+        if (cred && email) {
+          pendingGoogleCredentialRef.current = cred;
+          pendingGoogleEmailRef.current = email;
+        }
+        throw new Error('This email is already registered. Please sign in with email/password to complete Google linking automatically.');
+      }
       throw new Error(getErrorMessage(error as AuthError));
     }
   };
@@ -250,6 +347,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     register,
     logout,
     loginWithGoogle,
+    linkGoogle,
+    enableEmailPassword,
     resetPassword,
     loading,
     isAdmin,

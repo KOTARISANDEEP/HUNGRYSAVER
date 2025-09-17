@@ -7,11 +7,14 @@ import {
   reauthenticateWithCredential, 
   EmailAuthProvider, 
   updatePassword,
-  AuthError
+  AuthError,
+  linkWithCredential,
+  reauthenticateWithPopup,
+  GoogleAuthProvider
 } from 'firebase/auth';
 
 interface SettingsProps {
-  userType: 'donor' | 'volunteer' | 'community';
+  userType: 'donor' | 'volunteer' | 'community' | 'admin';
 }
 
 interface UserProfile {
@@ -45,9 +48,10 @@ const Settings: React.FC<SettingsProps> = ({ userType }) => {
 
   // Cities for dropdown
   const cities = [
-    'Tirupati', 'Vijayawada', 'Hyderabad', 'Bangalore', 'Chennai', 'Mumbai', 'Delhi',
-    'Kolkata', 'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore',
-    'Thane', 'Bhopal', 'Visakhapatnam', 'Pimpri-Chinchwad', 'Patna', 'Vadodara', 'Ghaziabad'
+    'Vijayawada', 'Guntur', 'Visakhapatnam', 'Tirupati', 'Kakinada',
+    'Nellore', 'Kurnool', 'Rajahmundry', 'Kadapa', 'Anantapur',
+    'Kalasalingam academy of research and education', 'Krishnan koil',
+    'Srivilliputtur', 'Rajapalayam', 'Virudhunagar'
   ];
 
   useEffect(() => {
@@ -208,13 +212,15 @@ const Settings: React.FC<SettingsProps> = ({ userType }) => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className={`space-y-8 ${userType === 'admin' ? 'max-w-5xl mx-auto' : ''}` }>
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-4">Settings</h2>
-        <p className="text-gray-300 max-w-2xl">
-          Manage your profile information, security settings, and notification preferences.
-        </p>
+        <h2 className="text-3xl font-bold text-white mb-2">Settings</h2>
+        {userType !== 'admin' && (
+          <p className="text-gray-300 max-w-2xl">
+            Manage your profile information, security settings, and notification preferences.
+          </p>
+        )}
       </div>
 
       {/* Success/Error Messages */}
@@ -232,7 +238,7 @@ const Settings: React.FC<SettingsProps> = ({ userType }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className={`grid grid-cols-1 ${userType === 'admin' ? '' : 'lg:grid-cols-2'} gap-8`}>
         {/* Section 1: Profile Information */}
         <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-[#eaa640]/30">
           <h3 className="text-xl font-bold text-white mb-6 flex items-center">
@@ -362,115 +368,102 @@ const Settings: React.FC<SettingsProps> = ({ userType }) => {
           </h3>
           
           <div className="space-y-4">
-            {profile.authProvider === 'email' ? (
-              <>
-                                 {!showPasswordForm ? (
-                   <button
-                     onClick={() => setShowPasswordForm(true)}
-                     className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-medium transition-colors duration-300"
-                   >
-                     Change Password
-                   </button>
-                 ) : (
-                   <div className="space-y-4">
-                     <div>
-                       <label className="block text-white font-medium mb-2">Current Password</label>
-                       <div className="relative">
-                         <input 
-                           type={showPasswords.current ? "text" : "password"}
-                           value={passwordData.currentPassword}
-                           onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                           className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 pr-12 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
-                           placeholder="Enter current password"
-                         />
-                         <button
-                           type="button"
-                           onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                         >
-                           {showPasswords.current ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                         </button>
-                       </div>
-                     </div>
-                     
-                     <div>
-                       <label className="block text-white font-medium mb-2">New Password</label>
-                       <div className="relative">
-                         <input 
-                           type={showPasswords.new ? "text" : "password"}
-                           value={passwordData.newPassword}
-                           onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                           className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 pr-12 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
-                           placeholder="Enter new password (min 6 characters)"
-                         />
-                         <button
-                           type="button"
-                           onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                         >
-                           {showPasswords.new ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                         </button>
-                       </div>
-                       <p className="text-gray-400 text-sm mt-1">
-                         Password strength: {passwordData.newPassword.length < 6 ? '❌ Too short' : passwordData.newPassword.length < 8 ? '⚠️ Weak' : '✅ Strong'}
-                       </p>
-                     </div>
-                     
-                     <div>
-                       <label className="block text-white font-medium mb-2">Confirm New Password</label>
-                       <div className="relative">
-                         <input 
-                           type={showPasswords.confirm ? "text" : "password"}
-                           value={passwordData.confirmPassword}
-                           onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                           className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 pr-12 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
-                           placeholder="Confirm new password"
-                         />
-                         <button
-                           type="button"
-                           onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                         >
-                           {showPasswords.confirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                         </button>
-                       </div>
-                       {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
-                         <p className="text-red-400 text-sm mt-1">❌ Passwords do not match</p>
-                       )}
-                       {passwordData.confirmPassword && passwordData.newPassword === passwordData.confirmPassword && (
-                         <p className="text-green-400 text-sm mt-1">✅ Passwords match</p>
-                       )}
-                     </div>
-                     
-                     <div className="flex space-x-3">
-                       <button
-                         onClick={handlePasswordChange}
-                         disabled={loading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword || passwordData.newPassword !== passwordData.confirmPassword || passwordData.newPassword.length < 6}
-                         className="flex-1 bg-[#eaa640] hover:bg-[#ecae53] text-black py-3 rounded-lg font-medium transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                       >
-                         {loading ? 'Changing...' : 'Change Password'}
-                       </button>
-                       <button
-                         onClick={() => {
-                           setShowPasswordForm(false);
-                           setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-                           setShowPasswords({ current: false, new: false, confirm: false });
-                         }}
-                         className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg font-medium transition-colors duration-300"
-                       >
-                         Cancel
-                       </button>
-                     </div>
-                   </div>
-                 )}
-              </>
+            {!showPasswordForm ? (
+              <button
+                onClick={() => setShowPasswordForm(true)}
+                className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-medium transition-colors duration-300"
+              >
+                Update Password
+              </button>
             ) : (
-              <div className="text-center py-8">
-                <Mail className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-                <p className="text-gray-400 mb-2">Google Sign-In Account</p>
-                <p className="text-gray-500 text-sm">
-                  Password changes are managed through your Google account settings.
-                </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-white font-medium mb-2">New Password</label>
+                  <div className="relative">
+                    <input 
+                      type={showPasswords.new ? "text" : "password"}
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 pr-12 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
+                      placeholder="Enter new password (min 6 characters)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      {showPasswords.new ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-white font-medium mb-2">Confirm New Password</label>
+                  <div className="relative">
+                    <input 
+                      type={showPasswords.confirm ? "text" : "password"}
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 pr-12 text-white placeholder-gray-400 focus:border-[#eaa640] focus:outline-none"
+                      placeholder="Confirm new password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      {showPasswords.confirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                  {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
+                    <p className="text-red-400 text-sm mt-1">❌ Passwords do not match</p>
+                  )}
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={async () => {
+                      try {
+                        setError(null);
+                        setSuccess(null);
+                        if (!currentUser?.email) {
+                          setError('Missing account email.');
+                          return;
+                        }
+                        if (passwordData.newPassword.length < 6 || passwordData.newPassword !== passwordData.confirmPassword) {
+                          setError('Please enter matching passwords (min 6 characters).');
+                          return;
+                        }
+                        const hasPassword = currentUser?.providerData?.some(p => p.providerId === 'password');
+                        if (!hasPassword) {
+                          const cred = EmailAuthProvider.credential(currentUser.email, passwordData.newPassword);
+                          await linkWithCredential(currentUser, cred);
+                          await currentUser.reload();
+                          setSuccess('Linked successfully. You can now use Email/Password.');
+                        } else {
+                          await reauthenticateWithPopup(currentUser, new GoogleAuthProvider());
+                          await updatePassword(currentUser, passwordData.newPassword);
+                          setSuccess('Password updated successfully.');
+                        }
+                        setShowPasswordForm(false);
+                        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                      } catch (err: any) {
+                        setError(err?.message || 'Failed to update password.');
+                      }
+                    }}
+                    className="flex-1 bg-[#eaa640] hover:bg-[#ecae53] text-black py-3 rounded-lg font-medium transition-colors duration-300"
+                  >
+                    Update Password
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPasswordForm(false);
+                      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                      setShowPasswords({ current: false, new: false, confirm: false });
+                    }}
+                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg font-medium transition-colors duration-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
           </div>
