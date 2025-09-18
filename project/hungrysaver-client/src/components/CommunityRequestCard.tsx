@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { CommunityRequest, CommunityRequestStatus } from '../types/formTypes';
 import ImageViewerModal from './ImageViewerModal';
+import { formatDateOrNow } from '../utils/date';
 
 interface CommunityRequestCardProps {
   request: CommunityRequest;
@@ -210,12 +211,7 @@ const CommunityRequestCard: React.FC<CommunityRequestCardProps> = ({ request, on
               </div>
               <div className="flex items-center space-x-2 text-gray-300">
                 <Calendar className="h-4 w-4 text-[#eaa640]" />
-                <span>
-                  {request.createdAt?.toDate ? 
-                    request.createdAt.toDate().toLocaleDateString() : 
-                    new Date(request.createdAt).toLocaleDateString()
-                  }
-                </span>
+                <span>{formatDateOrNow(request.createdAt)}</span>
               </div>
             </div>
           </div>

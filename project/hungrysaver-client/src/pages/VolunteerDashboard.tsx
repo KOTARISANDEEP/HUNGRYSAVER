@@ -6,6 +6,7 @@ import {
   Star, MessageCircle, Settings as SettingsIcon, Menu, X, Bell, LogOut,
   ChevronRight, BarChart3, Gift, Building, ThumbsUp
 } from 'lucide-react';
+import { formatDateOrNow } from '../utils/date';
 import { getTasksByLocation, updateTaskStatus } from '../services/firestoreService';
 import { getVolunteerCommunityRequests, updateCommunityRequestStatus } from '../services/communityRequestService';
 import { useAuth } from '../contexts/AuthContext';
@@ -1099,7 +1100,7 @@ const TaskCard: React.FC<{
         </div>
         <div className="flex items-center space-x-2 text-sm text-gray-400">
           <Clock className="h-4 w-4" />
-          <span>{task.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently posted'}</span>
+          <span>{formatDateOrNow(task.createdAt)}</span>
         </div>
       </div>
 

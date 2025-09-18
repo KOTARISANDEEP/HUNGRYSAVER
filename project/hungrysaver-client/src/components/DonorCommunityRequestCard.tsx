@@ -7,6 +7,7 @@ import {
 import { CommunityRequest } from '../types/formTypes';
 import DonorClaimModal from './DonorClaimModal';
 import ImageViewerModal from './ImageViewerModal';
+import { formatDateOrNow } from '../utils/date';
 
 interface DonorCommunityRequestCardProps {
   request: CommunityRequest;
@@ -139,10 +140,7 @@ const DonorCommunityRequestCard: React.FC<DonorCommunityRequestCardProps> = ({ r
             <div className="flex items-center space-x-2 text-gray-300">
               <Calendar className="h-4 w-4 text-[#eaa640]" />
               <span className="text-sm">
-                {request.createdAt?.toDate ? 
-                  request.createdAt.toDate().toLocaleDateString() : 
-                  new Date(request.createdAt).toLocaleDateString()
-                }
+                {formatDateOrNow(request.createdAt)}
               </span>
             </div>
           </div>

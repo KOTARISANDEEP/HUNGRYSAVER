@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History, BarChart3, MessageSquare, Settings as SettingsIcon, Star, Award, Users, TrendingUp, Target, Lightbulb, LogOut, X, Recycle } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { formatDateOrNow } from '../utils/date';
 import { db } from '../config/firebase';
 import { useFormSubmission } from '../hooks/useFormSubmission';
 import { useAuth } from '../contexts/AuthContext';
@@ -664,7 +665,7 @@ const CommunitySupportDashboard: React.FC = () => {
                           <div className="text-gray-300">{getStatusDescription(request.status)}</div>
                           <div className="text-xs text-gray-400 mt-2 flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
-                            <span>{request.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}</span>
+                            <span>{formatDateOrNow(request.createdAt)}</span>
                           </div>
                         </div>
                       </div>
@@ -703,7 +704,7 @@ const CommunitySupportDashboard: React.FC = () => {
                           </div>
                         </div>
                         <div className="text-right text-sm text-gray-400">
-                          <p>{(request.completedAt || request.decisionAt)?.toDate?.()?.toLocaleDateString() || 'Recently updated'}</p>
+                          <p>{formatDateOrNow((request as any).completedAt || (request as any).decisionAt)}</p>
                           {request.status === 'completed' ? (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-[#eeb766]/20 text-[#eeb766] border border-[#eeb766]">
                               <CheckCircle className="h-3 w-3 mr-1" />

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { MapPin, Calendar, User, Phone, Package, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { formatDateOrNow } from '../utils/date';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -308,7 +309,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-400">
                     <Clock className="h-4 w-4" />
-                    <span>{task.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently posted'}</span>
+                    <span>{formatDateOrNow(task.createdAt)}</span>
                   </div>
                 </div>
 
