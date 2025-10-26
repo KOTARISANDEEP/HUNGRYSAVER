@@ -31,6 +31,12 @@ export const submitDonation = async (data: DonationData): Promise<string> => {
     
     const idToken = await user.getIdToken();
     
+    // Add timeout to prevent long waits
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    
+    console.log('⏱️ Submitting donation with 8s timeout...');
+    
     // Call the backend API instead of writing directly to Firestore
     const response = await fetch('https://hungrysaver.onrender.com/api/donations', {
       method: 'POST',
@@ -38,8 +44,11 @@ export const submitDonation = async (data: DonationData): Promise<string> => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${idToken}`
       },
+      signal: controller.signal,
       body: JSON.stringify(data)
     });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       const errorJson = await safeParseJson(response);
@@ -55,6 +64,9 @@ export const submitDonation = async (data: DonationData): Promise<string> => {
     return resultJson.data.id;
   } catch (error) {
     console.error('❌ Error submitting donation:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Submission timed out. Please try again.');
+    }
     throw new Error(error instanceof Error ? error.message : 'Failed to submit donation. Please try again.');
   }
 };

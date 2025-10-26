@@ -389,56 +389,57 @@ const DonorDashboard: React.FC = () => {
   }, [claimModalOpen, imageViewer.isOpen, sidebarOpen]);
 
   const initiatives = [
-    {
-      id: 'annamitra-seva',
-      icon: Heart,
-      title: "🍛 Annamitra Seva",
-      description: "Donate surplus food to feed hungry families in your community.",
-      component: AnnamitraSevaForm,
-      available: true,
-      color: "from-green-500 to-green-600",
-      impact: "2,847 meals served",
-      images: [
-        '/assets/images/annamitra1.png',
-        '/assets/images/annamitra2.png',
-        '/assets/images/annamitra3.png',
-        '/assets/images/annamitra4.png',
-        '/assets/images/annamitra5.png'
-      ]
-    },
-    {
-      id: 'vidya-jyothi',
-      icon: BookOpen,
-      title: "📚 Vidya Jyothi",
-      description: "Support education through financial assistance for fees, books, and uniforms.",
-      component: VidyaJyothiForm,
-      available: true,
-      color: "from-blue-500 to-blue-600",
-      impact: "156 students supported",
-      images: [
-        '/assets/images/vidya1.png',
-        '/assets/images/vidya2.png',
-        '/assets/images/vidya3.png',
-        '/assets/images/vidya4.png',
-        '/assets/images/vidya5.png'
-      ]
-    },
-    {
-      id: 'suraksha-setu',
-      icon: Shield,
-      title: "🤝 Suraksha Setu",
-      description: "Donate items like clothing, books, and groceries for emergency support.",
-      component: SurakshaSetuForm,
-      available: true,
-      color: "from-purple-500 to-purple-600",
-      impact: "89 families protected",
-      images: [
-        '/assets/images/suraksha1.png',
-        '/assets/images/suraksha2.png',
-        '/assets/images/suraksha3.png',
-        '/assets/images/suraksha4.png'
-      ]
-    },
+    // TEMPORARY: Hidden for pilot launch - only showing reusable clothes (PunarAsha)
+    // {
+    //   id: 'annamitra-seva',
+    //   icon: Heart,
+    //   title: "🍛 Annamitra Seva",
+    //   description: "Donate surplus food to feed hungry families in your community.",
+    //   component: AnnamitraSevaForm,
+    //   available: true,
+    //   color: "from-green-500 to-green-600",
+    //   impact: "2,847 meals served",
+    //   images: [
+    //     '/assets/images/annamitra1.png',
+    //     '/assets/images/annamitra2.png',
+    //     '/assets/images/annamitra3.png',
+    //     '/assets/images/annamitra4.png',
+    //     '/assets/images/annamitra5.png'
+    //   ]
+    // },
+    // {
+    //   id: 'vidya-jyothi',
+    //   icon: BookOpen,
+    //   title: "📚 Vidya Jyothi",
+    //   description: "Support education through financial assistance for fees, books, and uniforms.",
+    //   component: VidyaJyothiForm,
+    //   available: true,
+    //   color: "from-blue-500 to-blue-600",
+    //   impact: "156 students supported",
+    //   images: [
+    //     '/assets/images/vidya1.png',
+    //     '/assets/images/vidya2.png',
+    //     '/assets/images/vidya3.png',
+    //     '/assets/images/vidya4.png',
+    //     '/assets/images/vidya5.png'
+    //   ]
+    // },
+    // {
+    //   id: 'suraksha-setu',
+    //   icon: Shield,
+    //   title: "🤝 Suraksha Setu",
+    //   description: "Donate items like clothing, books, and groceries for emergency support.",
+    //   component: SurakshaSetuForm,
+    //   available: true,
+    //   color: "from-purple-500 to-purple-600",
+    //   impact: "89 families protected",
+    //   images: [
+    //     '/assets/images/suraksha1.png',
+    //     '/assets/images/suraksha2.png',
+    //     '/assets/images/suraksha3.png',
+    //     '/assets/images/suraksha4.png'
+    //   ]
+    // },
     {
       id: 'punarasha',
       icon: Recycle,
@@ -454,41 +455,41 @@ const DonorDashboard: React.FC = () => {
         '/assets/images/punar3.png',
         '/assets/images/punar4.png'
       ]
-    },
-    {
-      id: 'raksha-jyothi',
-      icon: Zap,
-      title: "🚨 Raksha Jyothi",
-      description: "Provide emergency support for medical, accident, or animal emergencies.",
-      component: RakshaJyothiForm,
-      available: true,
-      color: "from-red-500 to-red-600",
-      impact: "24/7 emergency response",
-      images: [
-        '/assets/images/raksha1.png',
-        '/assets/images/rakshs2.png',
-        '/assets/images/raksha3.png',
-        '/assets/images/raksha4.png'
-      ]
-    },
-    {
-      id: 'jyothi-nilayam',
-      icon: Home,
-      title: "🏠 Jyothi Nilayam",
-      description: "Support shelters for humans and animals with full or partial donations.",
-      component: JyothiNilayamForm,
-      available: true,
-      color: "from-orange-500 to-orange-600",
-      impact: "12 shelters supported",
-      images: [
-        '/assets/images/nilayam1.png',
-        '/assets/images/nilayam2.png',
-        '/assets/images/nilayam3.png',
-        '/assets/images/nilayam4.png',
-        '/assets/images/nilayam5.png',
-        '/assets/images/nilayam6.png'
-      ]
     }
+    // {
+    //   id: 'raksha-jyothi',
+    //   icon: Zap,
+    //   title: "🚨 Raksha Jyothi",
+    //   description: "Provide emergency support for medical, accident, or animal emergencies.",
+    //   component: RakshaJyothiForm,
+    //   available: true,
+    //   color: "from-red-500 to-red-600",
+    //   impact: "24/7 emergency response",
+    //   images: [
+    //     '/assets/images/raksha1.png',
+    //     '/assets/images/rakshs2.png',
+    //     '/assets/images/raksha3.png',
+    //     '/assets/images/raksha4.png'
+    //   ]
+    // },
+    // {
+    //   id: 'jyothi-nilayam',
+    //   icon: Home,
+    //   title: "🏠 Jyothi Nilayam",
+    //   description: "Support shelters for humans and animals with full or partial donations.",
+    //   component: JyothiNilayamForm,
+    //   available: true,
+    //   color: "from-orange-500 to-orange-600",
+    //   impact: "12 shelters supported",
+    //   images: [
+    //     '/assets/images/nilayam1.png',
+    //     '/assets/images/nilayam2.png',
+    //     '/assets/images/nilayam3.png',
+    //     '/assets/images/nilayam4.png',
+    //     '/assets/images/nilayam5.png',
+    //     '/assets/images/nilayam6.png'
+    //   ]
+    // }
   ];
 
   // Add user type validation

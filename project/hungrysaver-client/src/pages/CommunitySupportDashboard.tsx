@@ -87,47 +87,48 @@ const CommunitySupportDashboard: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const initiatives = [
-    {
-      id: 'annamitra-seva',
-      icon: Heart,
-      title: "🍛 Annamitra Seva",
-      description: "Request food assistance for families in need. We connect surplus food with hungry families in your community.",
-      component: AnnamitraCommunityForm,
-      images: [
-        '/assets/images/annamitra1.png',
-        '/assets/images/annamitra2.png',
-        '/assets/images/annamitra3.png',
-        '/assets/images/annamitra4.png',
-        '/assets/images/annamitra5.png'
-      ]
-    },
-    {
-      id: 'vidya-jyothi',
-      icon: BookOpen,
-      title: "📚 Vidya Jyothi",
-      description: "Educational support for children including books, fees, uniforms, and school supplies.",
-      component: VidyaJyothiCommunityForm,
-      images: [
-        '/assets/images/vidya1.png',
-        '/assets/images/vidya2.png',
-        '/assets/images/vidya3.png',
-        '/assets/images/vidya4.png',
-        '/assets/images/vidya5.png'
-      ]
-    },
-    {
-      id: 'suraksha-setu',
-      icon: Shield,
-      title: "🤝 Suraksha Setu",
-      description: "Emergency support during crisis situations. Safety net for vulnerable community members.",
-      component: SurakshaSetuCommunityForm,
-      images: [
-        '/assets/images/suraksha1.png',
-        '/assets/images/suraksha2.png',
-        '/assets/images/suraksha3.png',
-        '/assets/images/suraksha4.png'
-      ]
-    },
+    // TEMPORARY: Hidden for pilot launch - only showing reusable clothes (PunarAsha)
+    // {
+    //   id: 'annamitra-seva',
+    //   icon: Heart,
+    //   title: "🍛 Annamitra Seva",
+    //   description: "Request food assistance for families in need. We connect surplus food with hungry families in your community.",
+    //   component: AnnamitraCommunityForm,
+    //   images: [
+    //     '/assets/images/annamitra1.png',
+    //     '/assets/images/annamitra2.png',
+    //     '/assets/images/annamitra3.png',
+    //     '/assets/images/annamitra4.png',
+    //     '/assets/images/annamitra5.png'
+    //   ]
+    // },
+    // {
+    //   id: 'vidya-jyothi',
+    //   icon: BookOpen,
+    //   title: "📚 Vidya Jyothi",
+    //   description: "Educational support for children including books, fees, uniforms, and school supplies.",
+    //   component: VidyaJyothiCommunityForm,
+    //   images: [
+    //     '/assets/images/vidya1.png',
+    //     '/assets/images/vidya2.png',
+    //     '/assets/images/vidya3.png',
+    //     '/assets/images/vidya4.png',
+    //     '/assets/images/vidya5.png'
+    //   ]
+    // },
+    // {
+    //   id: 'suraksha-setu',
+    //   icon: Shield,
+    //   title: "🤝 Suraksha Setu",
+    //   description: "Emergency support during crisis situations. Safety net for vulnerable community members.",
+    //   component: SurakshaSetuCommunityForm,
+    //   images: [
+    //     '/assets/images/suraksha1.png',
+    //     '/assets/images/suraksha2.png',
+    //     '/assets/images/suraksha3.png',
+    //     '/assets/images/suraksha4.png'
+    //   ]
+    // },
     {
       id: 'punarasha',
       icon: Recycle,
@@ -140,35 +141,35 @@ const CommunitySupportDashboard: React.FC = () => {
         '/assets/images/punar3.png',
         '/assets/images/punar4.png'
       ]
-    },
-    {
-      id: 'raksha-jyothi',
-      icon: Zap,
-      title: "🚨 Raksha Jyothi",
-      description: "Emergency response for humans and animals during critical situations requiring immediate assistance.",
-      component: RakshaJyothiCommunityForm,
-      images: [
-        '/assets/images/raksha1.png',
-        '/assets/images/rakshs2.png',
-        '/assets/images/raksha3.png',
-        '/assets/images/raksha4.png'
-      ]
-    },
-    {
-      id: 'jyothi-nilayam',
-      icon: Home,
-      title: "🏠 Jyothi Nilayam",
-      description: "Support for shelters caring for humans and animals in need of safe sanctuary.",
-      component: JyothiNilayamCommunityForm,
-      images: [
-        '/assets/images/nilayam1.png',
-        '/assets/images/nilayam2.png',
-        '/assets/images/nilayam3.png',
-        '/assets/images/nilayam4.png',
-        '/assets/images/nilayam5.png',
-        '/assets/images/nilayam6.png'
-      ]
     }
+    // {
+    //   id: 'raksha-jyothi',
+    //   icon: Zap,
+    //   title: "🚨 Raksha Jyothi",
+    //   description: "Emergency response for humans and animals during critical situations requiring immediate assistance.",
+    //   component: RakshaJyothiCommunityForm,
+    //   images: [
+    //     '/assets/images/raksha1.png',
+    //     '/assets/images/rakshs2.png',
+    //     '/assets/images/raksha3.png',
+    //     '/assets/images/raksha4.png'
+    //   ]
+    // },
+    // {
+    //   id: 'jyothi-nilayam',
+    //   icon: Home,
+    //   title: "🏠 Jyothi Nilayam",
+    //   description: "Support for shelters caring for humans and animals in need of safe sanctuary.",
+    //   component: JyothiNilayamCommunityForm,
+    //   images: [
+    //     '/assets/images/nilayam1.png',
+    //     '/assets/images/nilayam2.png',
+    //     '/assets/images/nilayam3.png',
+    //     '/assets/images/nilayam4.png',
+    //     '/assets/images/nilayam5.png',
+    //     '/assets/images/nilayam6.png'
+    //   ]
+    // }
   ];
 
   const navigationTabs = [

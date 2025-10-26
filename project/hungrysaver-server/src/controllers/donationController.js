@@ -83,35 +83,7 @@ class DonationController {
         logger.info(`[CONFIRM] Updated request ${details.originalRequestId} to status 'accepted' by user ${userId}`);
       }
 
-      // Log the creation
-      await auditService.logUserAction(userId, 'donation_created', {
-        donationId,
-        initiative,
-        location: standardizedLocation
-      });
-
-      // Find volunteers in the same location
-      const volunteers = await matchingService.findVolunteersByLocation(standardizedLocation);
-      
-      if (volunteers.length > 0) {
-        // Send email notifications to volunteers
-        await emailService.sendNewDonationAlert(
-          { id: donationId, ...donationData },
-          volunteers
-        );
-
-        // Also send push notifications
-        await notificationService.notifyVolunteersNewDonation(
-          { id: donationId, ...donationData },
-          volunteers
-        );
-      }
-
-      logger.info(`New donation created: ${donationId} in ${standardizedLocation}, notified ${volunteers.length} volunteers`);
-      if (isCommunityRequest) {
-        logger.info(`[COMMUNITY REQUEST DONATION] Donation submitted with ID: ${donationId}`);
-      }
-
+      // Send response immediately for faster user experience
       res.status(201).json({
         success: true,
         data: {
@@ -121,8 +93,45 @@ class DonationController {
         message: isCommunityRequest
           ? `Community request donation submitted successfully! Donation ID: ${donationId}`
           : `Donation created successfully. Donation ID: ${donationId}`,
-        volunteersNotified: volunteers.length
+        volunteersNotified: 'processing...'
       });
+
+      // Process notifications asynchronously (non-blocking) - use setTimeout for better performance
+      setTimeout(async () => {
+        try {
+          // Log the creation
+          await auditService.logUserAction(userId, 'donation_created', {
+            donationId,
+            initiative,
+            location: standardizedLocation
+          });
+
+          // Find volunteers in the same location
+          const volunteers = await matchingService.findVolunteersByLocation(standardizedLocation);
+          
+          if (volunteers.length > 0) {
+            // Send email notifications to volunteers
+            await emailService.sendNewDonationAlert(
+              { id: donationId, ...donationData },
+              volunteers
+            );
+
+            // Also send push notifications
+            await notificationService.notifyVolunteersNewDonation(
+              { id: donationId, ...donationData },
+              volunteers
+            );
+          }
+
+          logger.info(`New donation created: ${donationId} in ${standardizedLocation}, notified ${volunteers.length} volunteers`);
+          if (isCommunityRequest) {
+            logger.info(`[COMMUNITY REQUEST DONATION] Donation submitted with ID: ${donationId}`);
+          }
+        } catch (notificationError) {
+          logger.error('Error processing notifications:', notificationError);
+          // Don't fail the donation creation if notifications fail
+        }
+      }, 0);
     } catch (error) {
       logger.error('Error creating donation:', error);
       res.status(400).json({

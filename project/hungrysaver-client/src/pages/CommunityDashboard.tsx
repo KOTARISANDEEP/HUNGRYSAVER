@@ -33,48 +33,49 @@ const CommunityDashboard: React.FC = () => {
   ];
 
   const initiatives = [
-    {
-      id: 'annamitra seva',
-      icon: Heart,
-      title: "🍛 Annamitra Seva",
-      description: "Request food assistance for families in need. We connect surplus food with hungry families in your community.",
-      fields: []
-    },
-    {
-      id: 'vidya jyothi',
-      icon: BookOpen,
-      title: "📚 Vidya Jyothi",
-      description: "Educational support for children including books, fees, uniforms, and school supplies.",
-      fields: ['childName', 'childAge', 'educationalNeeds']
-    },
-    {
-      id: 'suraksha setu',
-      icon: Shield,
-      title: "🛡️ Suraksha Setu",
-      description: "Emergency support during crisis situations. Safety net for vulnerable community members.",
-      fields: ['emergencyType']
-    },
+    // TEMPORARY: Hidden for pilot launch - only showing reusable clothes (PunarAsha)
+    // {
+    //   id: 'annamitra seva',
+    //   icon: Heart,
+    //   title: "🍛 Annamitra Seva",
+    //   description: "Request food assistance for families in need. We connect surplus food with hungry families in your community.",
+    //   fields: []
+    // },
+    // {
+    //   id: 'vidya jyothi',
+    //   icon: BookOpen,
+    //   title: "📚 Vidya Jyothi",
+    //   description: "Educational support for children including books, fees, uniforms, and school supplies.",
+    //   fields: ['childName', 'childAge', 'educationalNeeds']
+    // },
+    // {
+    //   id: 'suraksha setu',
+    //   icon: Shield,
+    //   title: "🛡️ Suraksha Setu",
+    //   description: "Emergency support during crisis situations. Safety net for vulnerable community members.",
+    //   fields: ['emergencyType']
+    // },
     {
       id: 'punarasha',
       icon: Home,
       title: "🏠 PunarAsha",
       description: "Rehabilitation support to help families rebuild their lives with dignity and hope.",
       fields: []
-    },
-    {
-      id: 'raksha jyothi',
-      icon: Zap,
-      title: "⚡ Raksha Jyothi",
-      description: "Emergency response for humans and animals during critical situations requiring immediate assistance.",
-      fields: ['emergencyType']
-    },
-    {
-      id: 'jyothi nilayam',
-      icon: Building,
-      title: "🏛️ Jyothi Nilayam",
-      description: "Support for shelters caring for humans and animals in need of safe sanctuary.",
-      fields: ['donationAmount', 'shelterType']
     }
+    // {
+    //   id: 'raksha jyothi',
+    //   icon: Zap,
+    //   title: "⚡ Raksha Jyothi",
+    //   description: "Emergency response for humans and animals during critical situations requiring immediate assistance.",
+    //   fields: ['emergencyType']
+    // },
+    // {
+    //   id: 'jyothi nilayam',
+    //   icon: Building,
+    //   title: "🏛️ Jyothi Nilayam",
+    //   description: "Support for shelters caring for humans and animals in need of safe sanctuary.",
+    //   fields: ['donationAmount', 'shelterType']
+    // }
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, User, Phone, Home, DollarSign } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 import ImageUploadSection from '../ImageUploadSection';
-import { uploadImagesToImgBB } from '../../services/imageUploadService';
+import { uploadImageToImgBB } from '../../services/imageUploadService';
 
 export interface PunarAshaFormData {
   location: string;
@@ -10,7 +10,7 @@ export interface PunarAshaFormData {
   address: string;
   donorName: string;
   donorContact: string;
-  itemCategory: 'electronics' | 'furniture' | '';
+  itemCategory: 'boys-dress' | 'girls-dress' | 'books' | '';
   workingCondition: boolean | null;
   estimatedValue: string;
   description: string;
@@ -69,16 +69,18 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
 
   const validateForm = (): boolean => {
     if (!formData.location || !formData.address || !formData.donorName || 
-        !formData.donorContact || !formData.itemCategory || formData.workingCondition === null) {
+        !formData.donorContact || !formData.itemCategory) {
       setError('Please fill in all required fields.');
+      return false;
+    }
+    // Working condition only required for electronics and furniture
+    const needsWorkingCondition = ['electronics', 'furniture'].includes(formData.itemCategory);
+    if (needsWorkingCondition && formData.workingCondition === null) {
+      setError('Please select the working condition.');
       return false;
     }
     if (formData.location === 'kalasalingam academy of research and education' && !hostel) {
       setError('Please select a hostel for Kalasalingam Academy location.');
-      return false;
-    }
-    if (selectedFiles.length === 0) {
-      setError('Please upload at least one image.');
       return false;
     }
     
@@ -95,7 +97,13 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
       let imageUrls: string[] = [];
       if (selectedFiles.length > 0) {
         setUploadingImage(true);
-        imageUrls = await uploadImagesToImgBB(selectedFiles);
+        console.log('📤 Starting parallel image upload...');
+        
+        // Upload images in parallel for faster completion
+        const uploadPromises = selectedFiles.map((file) => uploadImageToImgBB(file));
+        imageUrls = await Promise.all(uploadPromises);
+        
+        console.log('✅ All images uploaded:', imageUrls.length);
       }
 
       const submissionData: any = { ...formData };
@@ -106,10 +114,28 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
         submissionData.imageUrls = imageUrls;
         submissionData.imageUrl = imageUrls[0];
       }
-      onSubmit(submissionData);
+      
+      console.log('🚀 Submitting data...');
+      
+      // Add timeout handling for the form submission
+      const submissionPromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Submission timed out. Please try again.'));
+        }, 12000); // 12 second timeout
+        
+        onSubmit(submissionData).then((result) => {
+          clearTimeout(timeout);
+          resolve(result);
+        }).catch((error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+      });
+      
+      await submissionPromise;
     } catch (err) {
-      console.error('Error uploading images:', err);
-      setError(err instanceof Error ? err.message : 'Failed to upload images. Please try again.');
+      console.error('Error in submission:', err);
+      setError(err instanceof Error ? err.message : 'Failed to submit. Please try again.');
     } finally {
       setUploadingImage(false);
     }
@@ -195,8 +221,9 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
             required
           >
             <option value="">Select category</option>
-            <option value="electronics">Electronics</option>
-            <option value="furniture">Furniture</option>
+            <option value="boys-dress">Boys Dress</option>
+            <option value="girls-dress">Girls Dress</option>
+            <option value="books">Books</option>
           </select>
         </div>
 
@@ -256,37 +283,40 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
 
         {/* Item Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="text-white text-sm font-medium mb-2 block">
-              Working Condition <span className="text-red-400">*</span>
-            </label>
-            <div className="space-y-2">
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="workingCondition"
-                  value="true"
-                  checked={formData.workingCondition === true}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-600"
-                  required
-                />
-                <span className="text-white">Working/Good Condition</span>
+          {/* Working Condition - Only show for electronics/furniture (not for clothes/books) */}
+          {['electronics', 'furniture'].includes(formData.itemCategory) && (
+            <div>
+              <label className="text-white text-sm font-medium mb-2 block">
+                Working Condition <span className="text-red-400">*</span>
               </label>
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="workingCondition"
-                  value="false"
-                  checked={formData.workingCondition === false}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-600"
-                  required
-                />
-                <span className="text-white">Needs Repair</span>
-              </label>
+              <div className="space-y-2">
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="workingCondition"
+                    value="true"
+                    checked={formData.workingCondition === true}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-600"
+                    required={['electronics', 'furniture'].includes(formData.itemCategory)}
+                  />
+                  <span className="text-white">Working/Good Condition</span>
+                </label>
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="workingCondition"
+                    value="false"
+                    checked={formData.workingCondition === false}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-600"
+                    required={['electronics', 'furniture'].includes(formData.itemCategory)}
+                  />
+                  <span className="text-white">Needs Repair</span>
+                </label>
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="text-white text-sm font-medium mb-2 block">
@@ -323,7 +353,7 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
         </div>
 
         <ImageUploadSection
-          label="Upload relevant images (max 3)"
+          label="Upload relevant images (optional, max 3)"
           maxImages={3}
           disabled={uploadingImage}
           value={selectedFiles}

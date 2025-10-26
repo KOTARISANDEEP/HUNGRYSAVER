@@ -131,6 +131,11 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Suppress favicon.ico errors (harmless browser request)
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/donations', donationRoutes);
