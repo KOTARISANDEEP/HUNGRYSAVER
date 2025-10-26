@@ -19,7 +19,16 @@ class EmailService {
           auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
-          }
+          },
+          // Add timeout and connection settings for cloud platforms
+          connectionTimeout: 60000, // 60 seconds
+          greetingTimeout: 30000,    // 30 seconds
+          socketTimeout: 60000,      // 60 seconds
+          pool: true,                // Use connection pooling
+          maxConnections: 5,         // Max concurrent connections
+          maxMessages: 100,          // Max messages per connection
+          rateDelta: 20000,          // Rate limiting
+          rateLimit: 5               // Max 5 emails per 20 seconds
         });
         this.isConfigured = true;
         logger.info('Email service configured successfully');
@@ -36,12 +45,23 @@ class EmailService {
    * Check if email configuration is available
    */
   hasEmailConfig() {
-    return !!(
+    const hasConfig = !!(
       process.env.EMAIL_HOST &&
       process.env.EMAIL_PORT &&
       process.env.EMAIL_USER &&
       process.env.EMAIL_PASS
     );
+    
+    // Debug logging
+    logger.info('Email config check:', {
+      EMAIL_HOST: process.env.EMAIL_HOST ? 'SET' : 'NOT SET',
+      EMAIL_PORT: process.env.EMAIL_PORT ? 'SET' : 'NOT SET', 
+      EMAIL_USER: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+      EMAIL_PASS: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
+      hasConfig
+    });
+    
+    return hasConfig;
   }
 
   /**
@@ -53,17 +73,34 @@ class EmailService {
       return { messageId: 'disabled' };
     }
 
-    try {
-      const result = await this.transporter.sendMail({
-        ...mailOptions,
-        from: `"Hungry Saver" <${process.env.EMAIL_USER}>`
-      });
-      logger.info(`Email sent successfully to ${mailOptions.to}`);
-      return result;
-    } catch (error) {
-      logger.error(`Error sending email to ${mailOptions.to}:`, error);
-      throw error;
+    const maxRetries = 3;
+    let lastError;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.info(`Attempting to send email (attempt ${attempt}/${maxRetries}) to ${mailOptions.to}`);
+        
+        const result = await this.transporter.sendMail({
+          ...mailOptions,
+          from: `"Hungry Saver" <${process.env.EMAIL_USER}>`
+        });
+        
+        logger.info(`Email sent successfully to ${mailOptions.to} on attempt ${attempt}`);
+        return result;
+      } catch (error) {
+        lastError = error;
+        logger.warn(`Email send attempt ${attempt} failed for ${mailOptions.to}:`, error.message);
+        
+        if (attempt < maxRetries) {
+          const delay = attempt * 2000; // 2s, 4s, 6s delays
+          logger.info(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
+
+    logger.error(`Failed to send email to ${mailOptions.to} after ${maxRetries} attempts:`, lastError);
+    throw lastError;
   }
 
   /**
@@ -389,6 +426,9 @@ class EmailService {
    */
   async sendDonationNotificationToVolunteers(donation, volunteers) {
     try {
+      logger.info(`Starting email notification for donation ${donation.id} to ${volunteers?.length || 0} volunteers`);
+      logger.info('Email service configured:', this.isConfigured);
+      
       if (!volunteers || volunteers.length === 0) {
         logger.info('No volunteers found to notify for donation:', donation.id);
         return;
@@ -408,6 +448,8 @@ class EmailService {
 
       // Send email to each volunteer
       const emailPromises = volunteers.map(async (volunteer) => {
+        logger.info(`Processing volunteer ${volunteer.id} with email: ${volunteer.email}`);
+        
         if (!volunteer.email) {
           logger.warn(`Volunteer ${volunteer.id} has no email, skipping.`);
           return;
@@ -594,6 +636,7 @@ class EmailService {
         };
         }
 
+        logger.info(`Sending email to volunteer ${volunteer.email} for donation ${donation.id}`);
         return this.sendEmail(mailOptions);
       });
 
