@@ -85,15 +85,22 @@ class EmailService {
           from: `"Hungry Saver" <${process.env.EMAIL_USER}>`
         });
         
-        logger.info(`Email sent successfully to ${mailOptions.to} on attempt ${attempt}`);
+        logger.info(`✅ Email sent successfully to ${mailOptions.to} on attempt ${attempt}`);
+        logger.info(`📧 Email details: Subject="${mailOptions.subject}", MessageId="${result.messageId}"`);
         return result;
       } catch (error) {
         lastError = error;
-        logger.warn(`Email send attempt ${attempt} failed for ${mailOptions.to}:`, error.message);
+        logger.warn(`❌ Email send attempt ${attempt} failed for ${mailOptions.to}:`, error.message);
+        logger.warn(`🔍 Error details:`, {
+          code: error.code,
+          command: error.command,
+          response: error.response,
+          responseCode: error.responseCode
+        });
         
         if (attempt < maxRetries) {
           const delay = attempt * 2000; // 2s, 4s, 6s delays
-          logger.info(`Retrying in ${delay}ms...`);
+          logger.info(`⏳ Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
@@ -1059,6 +1066,26 @@ class EmailService {
 
   async sendNewDonationAlert(...args) {
     return this.sendDonationNotificationToVolunteers(...args);
+  }
+
+  /**
+   * Test email connection
+   */
+  async testEmailConnection() {
+    if (!this.isConfigured) {
+      logger.warn('Email service not configured - cannot test connection');
+      return false;
+    }
+
+    try {
+      logger.info('🔍 Testing email connection...');
+      await this.transporter.verify();
+      logger.info('✅ Email connection test successful');
+      return true;
+    } catch (error) {
+      logger.error('❌ Email connection test failed:', error);
+      return false;
+    }
   }
 }
 

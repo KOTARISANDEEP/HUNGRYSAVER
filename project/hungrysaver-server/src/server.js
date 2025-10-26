@@ -154,7 +154,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   logger.info(`🚀 Hungry Saver Server running on port ${PORT}`);
   logger.info(`📍 Environment: ${process.env.NODE_ENV}`);
   logger.info(`🔥 Firebase initialized successfully`);
@@ -165,6 +165,14 @@ app.listen(PORT, () => {
     logger.info(`📧 Email service configured with host: ${process.env.EMAIL_HOST}`);
     logger.info(`✅ Registration confirmation emails: ENABLED`);
     logger.info(`✅ Donation notification emails: ENABLED`);
+    
+    // Test email connection
+    try {
+      const emailService = (await import('./services/emailService.js')).default;
+      await emailService.testEmailConnection();
+    } catch (error) {
+      logger.error('Failed to test email connection:', error);
+    }
   } else {
     logger.warn(`📧 Email service disabled - missing credentials`);
   }
