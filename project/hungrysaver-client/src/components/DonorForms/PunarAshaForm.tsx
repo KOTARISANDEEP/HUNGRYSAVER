@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, User, Phone, Home, DollarSign } from 'lucide-react';
+import { MapPin, User, Phone, Home } from 'lucide-react';
 import ErrorMessage from '../ErrorMessage';
 import ImageUploadSection from '../ImageUploadSection';
 import { uploadImageToImgBB } from '../../services/imageUploadService';
@@ -12,7 +12,6 @@ export interface PunarAshaFormData {
   donorContact: string;
   itemCategory: 'boys-dress' | 'girls-dress' | 'books' | '';
   workingCondition: boolean | null;
-  estimatedValue: string;
   description: string;
 }
 
@@ -29,7 +28,6 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
     donorContact: '',
     itemCategory: '',
     workingCondition: null,
-    estimatedValue: '',
     description: ''
   });
   const [hostel, setHostel] = useState('');
@@ -317,29 +315,12 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
               </div>
             </div>
           )}
-
-          <div>
-            <label className="text-white text-sm font-medium mb-2 block">
-              Estimated Value
-            </label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="text"
-                name="estimatedValue"
-                value={formData.estimatedValue}
-                onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="Approximate value in ₹"
-              />
-            </div>
-          </div>
         </div>
 
-        {/* Description */}
+        {/* Instructions */}
         <div>
           <label className="text-white text-sm font-medium mb-2 block">
-            Item Description <span className="text-red-400">*</span>
+            Any Instructions <span className="text-red-400">*</span>
           </label>
           <textarea
             name="description"
@@ -347,7 +328,7 @@ const PunarAshaForm: React.FC<PunarAshaFormProps> = ({ onSubmit, loading = false
             onChange={handleInputChange}
             className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
             rows={4}
-            placeholder="Describe the items in detail, including brand, model, condition, any accessories..."
+            placeholder="Any special instructions or additional details..."
             required
           />
         </div>

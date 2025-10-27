@@ -278,10 +278,10 @@ const SurakshaSetuForm: React.FC<SurakshaSetuFormProps> = ({ onSubmit, loading =
           </div>
         </div>
 
-        {/* Description */}
+        {/* Instructions */}
         <div>
           <label className="text-white text-sm font-medium mb-2 block">
-            Item Description
+            Any Instructions
           </label>
           <textarea
             name="description"
@@ -289,7 +289,7 @@ const SurakshaSetuForm: React.FC<SurakshaSetuFormProps> = ({ onSubmit, loading =
             onChange={handleInputChange}
             className="w-full py-3 px-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
             rows={3}
-            placeholder="Describe the items, sizes, any special instructions..."
+            placeholder="Any special instructions or additional details..."
           />
         </div>
 

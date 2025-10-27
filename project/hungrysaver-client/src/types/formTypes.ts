@@ -28,7 +28,6 @@ export interface DonationData {
     // PunarAsha fields
     itemCategory?: 'electronics' | 'furniture';
     workingCondition?: boolean;
-    estimatedValue?: string;
     
     // Raksha Jyothi fields
     emergencyType?: 'medical' | 'accident' | 'animal';
