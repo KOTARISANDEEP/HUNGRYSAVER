@@ -8,36 +8,102 @@ class EmailService {
   constructor() {
     this.transporter = null;
     this.isConfigured = false;
+    this.connectionHealthy = false;
+    this.lastConnectionTest = null;
+    this.failedAttempts = 0;
+    this.maxFailedAttempts = 3;
+    this.alternativeProviders = [
+      {
+        name: 'Gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false
+      },
+      {
+        name: 'Outlook',
+        host: 'smtp-mail.outlook.com',
+        port: 587,
+        secure: false
+      },
+      {
+        name: 'Yahoo',
+        host: 'smtp.mail.yahoo.com',
+        port: 587,
+        secure: false
+      }
+    ];
     
     // Only initialize if email credentials are provided
     if (this.hasEmailConfig()) {
-      try {
-        this.transporter = nodemailer.createTransport({
-          host: process.env.EMAIL_HOST,
-          port: parseInt(process.env.EMAIL_PORT, 10) || 587,
-          secure: process.env.EMAIL_PORT === '465', // Common for port 465
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-          },
-          // Add timeout and connection settings for cloud platforms
-          connectionTimeout: 60000, // 60 seconds
-          greetingTimeout: 30000,    // 30 seconds
-          socketTimeout: 60000,      // 60 seconds
-          pool: true,                // Use connection pooling
-          maxConnections: 5,         // Max concurrent connections
-          maxMessages: 100,          // Max messages per connection
-          rateDelta: 20000,          // Rate limiting
-          rateLimit: 5               // Max 5 emails per 20 seconds
-        });
-        this.isConfigured = true;
-        logger.info('Email service configured successfully');
-      } catch (error) {
-        logger.warn('Email service configuration failed:', error.message);
-        this.isConfigured = false;
-      }
+      this.initializeTransporter();
     } else {
       logger.info('Email service disabled - no credentials provided');
+    }
+  }
+
+  initializeTransporter() {
+    try {
+      // Enhanced configuration for cloud environments
+      const config = {
+        host: process.env.EMAIL_HOST,
+        port: parseInt(process.env.EMAIL_PORT, 10) || 587,
+        secure: process.env.EMAIL_PORT === '465',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
+        },
+        // Optimized timeout settings for cloud platforms
+        connectionTimeout: 30000,    // 30 seconds (reduced from 60)
+        greetingTimeout: 15000,      // 15 seconds (reduced from 30)
+        socketTimeout: 30000,        // 30 seconds (reduced from 60)
+        // Connection pooling with conservative settings
+        pool: true,
+        maxConnections: 2,           // Reduced for cloud stability
+        maxMessages: 50,             // Reduced for cloud stability
+        // Rate limiting
+        rateDelta: 30000,            // 30 seconds
+        rateLimit: 3,                // Max 3 emails per 30 seconds
+        // Additional cloud-friendly settings
+        tls: {
+          rejectUnauthorized: false,  // For self-signed certificates
+          ciphers: 'SSLv3'           // Fallback cipher
+        },
+        // Retry configuration
+        retryDelay: 5000,            // 5 seconds between retries
+        retryAttempts: 2              // Max 2 retry attempts
+      };
+
+      this.transporter = nodemailer.createTransporter(config);
+      this.isConfigured = true;
+      logger.info('Email service configured successfully');
+      
+      // Test connection immediately
+      this.testConnectionAsync();
+    } catch (error) {
+      logger.warn('Email service configuration failed:', error.message);
+      this.isConfigured = false;
+    }
+  }
+
+  async testConnectionAsync() {
+    if (!this.isConfigured) return;
+    
+    try {
+      await this.transporter.verify();
+      this.connectionHealthy = true;
+      this.failedAttempts = 0;
+      this.lastConnectionTest = new Date();
+      logger.info('✅ Email connection verified successfully');
+    } catch (error) {
+      this.connectionHealthy = false;
+      this.failedAttempts++;
+      logger.warn(`❌ Email connection test failed (attempt ${this.failedAttempts}):`, error.message);
+      
+      // If too many failures, try to reinitialize
+      if (this.failedAttempts >= this.maxFailedAttempts) {
+        logger.warn('Too many connection failures, attempting to reinitialize...');
+        this.initializeTransporter();
+      }
     }
   }
 
@@ -65,7 +131,7 @@ class EmailService {
   }
 
   /**
-   * Send email if service is configured, otherwise log the attempt
+   * Send email with enhanced error handling and fallback mechanisms
    */
   async sendEmail(mailOptions) {
     if (!this.isConfigured) {
@@ -73,20 +139,39 @@ class EmailService {
       return { messageId: 'disabled' };
     }
 
-    const maxRetries = 3;
+    // Check if connection is healthy
+    if (!this.connectionHealthy) {
+      logger.warn('Email connection not healthy, attempting to reconnect...');
+      await this.testConnectionAsync();
+    }
+
+    const maxRetries = 2; // Reduced retries for faster feedback
     let lastError;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         logger.info(`Attempting to send email (attempt ${attempt}/${maxRetries}) to ${mailOptions.to}`);
         
-        const result = await this.transporter.sendMail({
+        // Add timeout wrapper
+        const sendPromise = this.transporter.sendMail({
           ...mailOptions,
           from: `"Hungry Saver" <${process.env.EMAIL_USER}>`
         });
+
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Email send timeout')), 25000); // 25 second timeout
+        });
+
+        const result = await Promise.race([sendPromise, timeoutPromise]);
         
         logger.info(`✅ Email sent successfully to ${mailOptions.to} on attempt ${attempt}`);
         logger.info(`📧 Email details: Subject="${mailOptions.subject}", MessageId="${result.messageId}"`);
+        
+        // Reset failed attempts on success
+        this.failedAttempts = 0;
+        this.connectionHealthy = true;
+        
         return result;
       } catch (error) {
         lastError = error;
@@ -95,11 +180,18 @@ class EmailService {
           code: error.code,
           command: error.command,
           response: error.response,
-          responseCode: error.responseCode
+          responseCode: error.responseCode,
+          timeout: error.message.includes('timeout')
         });
         
+        // If it's a connection error, try to reconnect
+        if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED' || error.message.includes('timeout')) {
+          logger.warn('Connection error detected, attempting to reconnect...');
+          await this.testConnectionAsync();
+        }
+        
         if (attempt < maxRetries) {
-          const delay = attempt * 2000; // 2s, 4s, 6s delays
+          const delay = attempt * 3000; // 3s, 6s delays
           logger.info(`⏳ Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
@@ -107,7 +199,17 @@ class EmailService {
     }
 
     logger.error(`Failed to send email to ${mailOptions.to} after ${maxRetries} attempts:`, lastError);
-    throw lastError;
+    
+    // Log the email content for debugging (without sensitive data)
+    logger.error('Failed email details:', {
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      hasHtml: !!mailOptions.html,
+      htmlLength: mailOptions.html ? mailOptions.html.length : 0
+    });
+    
+    // Don't throw error to avoid breaking the main flow
+    return { messageId: 'failed', error: lastError.message };
   }
 
   /**
@@ -240,6 +342,7 @@ class EmailService {
       throw error;
     }
   }
+
   async sendUserRegistrationConfirmation(user) {
     try {
       const userTypeMessages = {
@@ -1069,7 +1172,7 @@ class EmailService {
   }
 
   /**
-   * Test email connection
+   * Test email connection with enhanced error handling
    */
   async testEmailConnection() {
     if (!this.isConfigured) {
@@ -1079,13 +1182,48 @@ class EmailService {
 
     try {
       logger.info('🔍 Testing email connection...');
-      await this.transporter.verify();
+      
+      // Add timeout to prevent hanging
+      const verifyPromise = this.transporter.verify();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Connection test timeout')), 20000); // 20 second timeout
+      });
+
+      await Promise.race([verifyPromise, timeoutPromise]);
+      
+      this.connectionHealthy = true;
+      this.failedAttempts = 0;
+      this.lastConnectionTest = new Date();
       logger.info('✅ Email connection test successful');
       return true;
     } catch (error) {
+      this.connectionHealthy = false;
+      this.failedAttempts++;
       logger.error('❌ Email connection test failed:', error);
+      
+      // Log specific error details for debugging
+      logger.error('Connection error details:', {
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        timeout: error.message.includes('timeout')
+      });
+      
       return false;
     }
+  }
+
+  /**
+   * Get email service health status
+   */
+  getHealthStatus() {
+    return {
+      configured: this.isConfigured,
+      healthy: this.connectionHealthy,
+      lastTest: this.lastConnectionTest,
+      failedAttempts: this.failedAttempts,
+      maxFailedAttempts: this.maxFailedAttempts
+    };
   }
 }
 
