@@ -73,14 +73,24 @@ class EmailService {
         retryAttempts: 2              // Max 2 retry attempts
       };
 
-      this.transporter = nodemailer.createTransporter(config);
+      this.transporter = nodemailer.createTransport(config);
       this.isConfigured = true;
       logger.info('Email service configured successfully');
       
       // Test connection immediately
       this.testConnectionAsync();
     } catch (error) {
-      logger.warn('Email service configuration failed:', error.message);
+      logger.error('Email service configuration failed:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+        config: {
+          host: process.env.EMAIL_HOST,
+          port: process.env.EMAIL_PORT,
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS ? '***HIDDEN***' : 'NOT SET'
+        }
+      });
       this.isConfigured = false;
     }
   }
@@ -124,7 +134,9 @@ class EmailService {
       EMAIL_PORT: process.env.EMAIL_PORT ? 'SET' : 'NOT SET', 
       EMAIL_USER: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
       EMAIL_PASS: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
-      hasConfig
+      hasConfig,
+      connectionHealthy: this.connectionHealthy,
+      isConfigured: this.isConfigured
     });
     
     return hasConfig;
@@ -139,10 +151,15 @@ class EmailService {
       return { messageId: 'disabled' };
     }
 
-    // Check if connection is healthy
+    // Check if connection is healthy, but don't block sending if it's not
     if (!this.connectionHealthy) {
       logger.warn('Email connection not healthy, attempting to reconnect...');
       await this.testConnectionAsync();
+      
+      // If still not healthy after retry, log warning but continue
+      if (!this.connectionHealthy) {
+        logger.warn('Email connection still not healthy, but attempting to send anyway...');
+      }
     }
 
     const maxRetries = 2; // Reduced retries for faster feedback
