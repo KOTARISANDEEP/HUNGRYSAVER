@@ -75,7 +75,14 @@ const AnnamitraCommunityForm: React.FC<AnnamitraCommunityFormProps> = ({ onSubmi
       let imageUrls: string[] = [];
       if (selectedFiles.length > 0) {
         setUploadingImage(true);
-        imageUrls = await uploadImagesToImgBB(selectedFiles);
+        try {
+          const uploadPromise = uploadImagesToImgBB(selectedFiles);
+          const timeoutPromise = new Promise<string[]>((resolve) => setTimeout(() => resolve([]), 3000));
+          imageUrls = await Promise.race([uploadPromise, timeoutPromise]);
+          if (imageUrls.length === 0) setError('Image upload timed out. Submitting without images.');
+        } catch {
+          imageUrls = [];
+        }
       }
 
       const submissionData: any = { ...formData };
@@ -83,7 +90,10 @@ const AnnamitraCommunityForm: React.FC<AnnamitraCommunityFormProps> = ({ onSubmi
         submissionData.imageUrls = imageUrls;
         submissionData.imageUrl = imageUrls[0];
       }
-      onSubmit(submissionData);
+      await Promise.race([
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+        new Promise((resolve) => { onSubmit(submissionData); resolve(null); })
+      ]);
     } catch (err) {
       console.error('Error uploading images:', err);
       setError(err instanceof Error ? err.message : 'Failed to upload images. Please try again.');

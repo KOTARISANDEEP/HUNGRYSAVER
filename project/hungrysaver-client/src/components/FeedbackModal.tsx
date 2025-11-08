@@ -58,7 +58,13 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
       // Upload image if selected
       if (selectedFile) {
         setUploadingImage(true);
-        imageUrl = await uploadImageToImgBB(selectedFile);
+        // Enforce a 3s max duration for image upload; continue without image if it takes longer
+        const uploadPromise = uploadImageToImgBB(selectedFile);
+        const timeoutPromise = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 3000));
+        imageUrl = await Promise.race([uploadPromise as unknown as Promise<string>, timeoutPromise]);
+        if (!imageUrl) {
+          setError('Image upload timed out. Submitting without the image.');
+        }
       }
 
       onSubmit(feedback.trim(), imageUrl);

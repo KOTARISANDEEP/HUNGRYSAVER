@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Calendar, User, Phone, Package, Clock, CheckCircle, AlertCircle, 
-  Award, TrendingUp, Heart, Home, List, Users, ClipboardCheck, 
-  Star, MessageCircle, Settings as SettingsIcon, Menu, X, Bell, LogOut,
-  ChevronRight, BarChart3, Gift, Building, ThumbsUp
+  Heart, Home, Users, ClipboardCheck, 
+  Star, MessageCircle, Settings as SettingsIcon, Menu, X, LogOut,
+  Gift, Building, ThumbsUp
 } from 'lucide-react';
 import { formatDateOrNow } from '../utils/date';
 import { getTasksByLocation, updateTaskStatus } from '../services/firestoreService';
 import { getVolunteerCommunityRequests, updateCommunityRequestStatus } from '../services/communityRequestService';
 import { useAuth } from '../contexts/AuthContext';
-import { Task, CommunityRequest } from '../types/formTypes';
+import { CommunityRequest } from '../types/formTypes';
 import { LiveImpactDashboard } from '../components/ImpactCounter';
 import MotivationalBanner from '../components/MotivationalBanner';
-import AnimatedEmptyState from '../components/AnimatedIllustrations';
+// import AnimatedEmptyState from '../components/AnimatedIllustrations';
 import CommunityRequestCard from '../components/CommunityRequestCard';
 import Settings from '../components/Settings';
 import SuccessMessage from '../components/SuccessMessage';
@@ -31,7 +31,7 @@ const VolunteerDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [communityRequestsLoading, setCommunityRequestsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null); // Track which action is loading
-  const [activeTab, setActiveTab] = useState<'tasks' | 'community' | 'completed'>('tasks');
+  // const [activeTab, setActiveTab] = useState<'tasks' | 'community' | 'completed'>('tasks');
   
   // Success message state
   const [successMessage, setSuccessMessage] = useState<{
@@ -47,7 +47,7 @@ const VolunteerDashboard: React.FC = () => {
 
   const [activeSection, setActiveSection] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalHelped: 25,
     thisWeek: 8,
     totalTasks: 156,
@@ -143,20 +143,31 @@ const VolunteerDashboard: React.FC = () => {
       const allTasks = await getTasksByLocation(volunteerLocation);
       
       // Transform tasks to include proper contact information
-      const transformedTasks = allTasks.map((task: any) => ({
-        ...task,
-        donorName: task.type === 'donation' ? task.donorName : undefined,
-        donorContact: task.type === 'donation' ? task.donorContact : undefined,
-        beneficiaryName: task.type === 'request' ? task.details?.contactName || task.details?.beneficiaryName : undefined,
-        beneficiaryContact: task.type === 'request' ? task.details?.contactPhone || task.details?.beneficiaryContact : undefined,
-        description: task.description || task.details?.description || 'No description provided'
-      }));
+      const transformedTasks = allTasks.map((task: any) => {
+        const isDonation = task.type === 'donation';
+        const isRequest = task.type === 'request' || (!task.type && task.initiative && !task.donorName);
+        return {
+          ...task,
+          // Normalize initiative casing
+          initiative: String(task.initiative || task.details?.initiative || '').toLowerCase() || task.initiative,
+          // Donation contact
+          donorName: isDonation ? (task.donorName || task.details?.donorName) : undefined,
+          donorContact: isDonation ? (task.donorContact || task.details?.donorContact) : undefined,
+          // Request contact
+          beneficiaryName: isRequest ? (task.beneficiaryName || task.details?.beneficiaryName || task.details?.contactName) : undefined,
+          beneficiaryContact: isRequest ? (task.beneficiaryContact || task.details?.beneficiaryContact || task.details?.contactPhone) : undefined,
+          // Normalize address fields
+          address: isRequest ? (task.address || task.details?.address) : (task.address || task.donorAddress || task.details?.donorAddress),
+          // Description
+          description: task.description || task.details?.description || 'No description provided'
+        };
+      });
       
       // Separate available and accepted tasks
       const availableTasks = transformedTasks.filter((task: any) => task.status === 'pending');
       const acceptedTasks = transformedTasks.filter((task: any) => 
         task.status !== 'pending' && 
-        (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid)
+        (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid || task.acceptedBy === userData?.uid)
       );
       
       setTasks(availableTasks);
@@ -378,7 +389,7 @@ const VolunteerDashboard: React.FC = () => {
          const availableTasks = refreshedTasks.filter((task: any) => task.status === 'pending');
          const myTasks = refreshedTasks.filter((task: any) => 
            task.status !== 'pending' && 
-           (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid)
+           (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid || task.acceptedBy === userData?.uid)
          );
          
          console.log('🔍 Task filtering details:', {
@@ -452,14 +463,23 @@ const VolunteerDashboard: React.FC = () => {
         imageUrl 
       });
       
-      const result = await updateTaskStatus(
+      // Start the completion request
+      const completionPromise = updateTaskStatus(
         feedbackModal.taskId, 
         feedbackModal.taskType, 
         'completed', 
         updateData
       );
       
-      console.log('✅ Feedback submitted and task completed:', result);
+      // Cap the perceived submit time to 3 seconds
+      await Promise.race([
+        completionPromise,
+        new Promise((resolve) => setTimeout(resolve, 3000))
+      ]);
+      
+      completionPromise
+        .then((result) => console.log('✅ Feedback submitted and task completed:', result))
+        .catch((e) => console.error('Background completion error:', e));
       
       // Close feedback modal
       setFeedbackModal({
@@ -512,27 +532,7 @@ const VolunteerDashboard: React.FC = () => {
 
 
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
-      case 'accepted': return 'bg-blue-500/20 text-blue-400 border-blue-500';
-      case 'picked': return 'bg-orange-500/20 text-orange-400 border-orange-500';
-      case 'delivered': return 'bg-green-500/20 text-green-400 border-green-500';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
-    }
-  };
-
-  const getInitiativeEmoji = (initiative: string) => {
-    const emojiMap: { [key: string]: string } = {
-      'annamitra-seva': '🍛',
-      'vidya-jyothi': '📚',
-      'suraksha-setu': '🛡️',
-      'punarasha': '🏠',
-      'raksha-jyothi': '⚡',
-      'jyothi-nilayam': '🏛️'
-    };
-    return emojiMap[initiative.toLowerCase()] || '💝';
-  };
+  // Helpers are defined within TaskCard where needed
 
   // Security check: Prevent access if not approved volunteer
   if (!userData || userData.userType !== 'volunteer' || userData.status !== 'approved') {
@@ -745,11 +745,30 @@ const VolunteerDashboard: React.FC = () => {
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-white">My Task Status</h2>
             {(() => {
-              const statusTasks = myTasks.filter(task => task.assignedTo === userData?.uid || task.volunteerId === userData?.uid);
-              const linkedRequestIds = new Set(statusTasks
-                .filter(t => t.type === 'donation' && t.communityRequestId)
-                .map(t => t.communityRequestId));
-              const deduped = statusTasks.filter(t => !(t.type === 'request' && linkedRequestIds.has(t.id)));
+              // Include only tasks that are explicitly tied to this volunteer
+              const statusTasks = myTasks.filter(task =>
+                task.assignedTo === userData?.uid ||
+                task.volunteerId === userData?.uid ||
+                task.acceptedBy === userData?.uid
+              );
+              // Build set of community request IDs that already have a linked donation card
+              const linkedRequestIds = new Set(
+                statusTasks
+                  .filter(t => t.type === 'donation' && (t.communityRequestId || t.requestId))
+                  .map(t => String(t.communityRequestId || t.requestId))
+              );
+              // Remove request cards that are represented by a linked donation
+              const deduped = statusTasks.filter(t => {
+                if (t.type !== 'request') return true;
+                const reqId = String(t.id || '');
+                // Hide request if a linked donation exists
+                if (linkedRequestIds.has(reqId)) return false;
+                // Hide requests not explicitly accepted by this volunteer
+                if (t.acceptedBy && t.acceptedBy !== userData?.uid) return false;
+                // Hide requests with insufficient details (empty shells)
+                const hasDetails = Boolean(t.description || t.beneficiaryName || t.beneficiaryContact || t.address);
+                return hasDetails;
+              });
               return (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {deduped.map((task) => (
@@ -944,7 +963,7 @@ const TaskCard: React.FC<{
   actionLoading?: string | null;
   setFeedbackModal?: (modal: { isOpen: boolean; taskId: string | null; taskType: 'donation' | 'request' | null; taskName: string }) => void;
   setImageViewer?: (viewer: { isOpen: boolean; images: string[]; initialIndex: number }) => void;
-}> = ({ task, onAction, userData, showProgress = false, actionLoading, setFeedbackModal, setImageViewer }) => {
+}> = ({ task, onAction, userData, showProgress: _showProgress, actionLoading, setFeedbackModal, setImageViewer }) => {
   const getInitiativeEmoji = (initiative: string) =>
     { const emojiMap: { [key: string]: string } = {
       'annamitra-seva': '🍛',

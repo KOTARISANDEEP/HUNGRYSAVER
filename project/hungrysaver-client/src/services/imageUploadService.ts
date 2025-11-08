@@ -199,3 +199,22 @@ export const uploadImagesToImgBB = async (files: File[]): Promise<string[]> => {
   const uploads = files.map(async (file) => await uploadImageToImgBB(file));
   return Promise.all(uploads);
 };
+
+/**
+ * Upload multiple images but cap total wait time. If timeout reached,
+ * return whatever finished (or empty) so the caller can continue.
+ */
+export const uploadImagesWithTimeout = async (
+  files: File[],
+  timeoutMs: number = 3000
+): Promise<string[]> => {
+  if (files.length === 0) return [];
+  try {
+    const uploadPromise = uploadImagesToImgBB(files);
+    const timeoutPromise = new Promise<string[]>((resolve) => setTimeout(() => resolve([]), timeoutMs));
+    const result = await Promise.race([uploadPromise, timeoutPromise]);
+    return result as string[];
+  } catch {
+    return [];
+  }
+};

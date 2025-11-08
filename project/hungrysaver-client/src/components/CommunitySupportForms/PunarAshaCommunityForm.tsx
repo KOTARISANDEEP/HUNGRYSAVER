@@ -102,7 +102,17 @@ const PunarAshaCommunityForm: React.FC<PunarAshaCommunityFormProps> = ({ onSubmi
       let imageUrls: string[] = [];
       if (selectedFiles.length > 0) {
         setUploadingImage(true);
-        imageUrls = await uploadImagesToImgBB(selectedFiles);
+        // Cap upload to 3 seconds; continue without images if it takes longer
+        try {
+          const uploadPromise = uploadImagesToImgBB(selectedFiles);
+          const timeoutPromise = new Promise<string[]>((resolve) => setTimeout(() => resolve([]), 3000));
+          imageUrls = await Promise.race([uploadPromise, timeoutPromise]);
+          if (imageUrls.length === 0) {
+            setError('Image upload is taking too long. Submitting without images.');
+          }
+        } catch {
+          imageUrls = [];
+        }
       }
 
       const submissionData: any = { ...formData };
@@ -110,7 +120,11 @@ const PunarAshaCommunityForm: React.FC<PunarAshaCommunityFormProps> = ({ onSubmi
         submissionData.imageUrls = imageUrls;
         submissionData.imageUrl = imageUrls[0];
       }
-      onSubmit(submissionData);
+      // Cap perceived submit time to ~3s
+      await Promise.race([
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+        new Promise((resolve) => { onSubmit(submissionData); resolve(null); })
+      ]);
     } catch (err) {
       console.error('Error uploading images:', err);
       setError(err instanceof Error ? err.message : 'Failed to upload images. Please try again.');

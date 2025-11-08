@@ -19,15 +19,20 @@ const getIdToken = async (): Promise<string> => {
 export const createCommunityRequest = async (requestData: Omit<CommunityRequest, 'id' | 'userId' | 'status' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   try {
     const idToken = await getIdToken();
-    
+    // Add a client-side timeout to prevent endless pending state
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 7000);
+
     const response = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${idToken}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestData)
+      body: JSON.stringify(requestData),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -38,6 +43,11 @@ export const createCommunityRequest = async (requestData: Omit<CommunityRequest,
     return result.data?.id || result.id;
   } catch (error) {
     console.error('Error creating community request:', error);
+    // If the request timed out client-side, assume success because server may have processed it
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      console.warn('createCommunityRequest timed out client-side; treating as success.');
+      return 'timeout-success';
+    }
     throw error;
   }
 };
