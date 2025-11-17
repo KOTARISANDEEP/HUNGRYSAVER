@@ -1,6 +1,7 @@
 import { collection, addDoc, query, where, getDocs, doc, updateDoc, orderBy, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { DonationData, RequestData } from '../types/formTypes';
+import { buildApiUrl } from '../utils/api';
 
 // Collection references
 export const donationsCollection = collection(db, 'donations');
@@ -38,7 +39,7 @@ export const submitDonation = async (data: DonationData): Promise<string> => {
     console.log('⏱️ Submitting donation with 8s timeout...');
     
     // Call the backend API instead of writing directly to Firestore
-    const response = await fetch('https://hungrysaver.onrender.com/api/donations', {
+    const response = await fetch(buildApiUrl('/api/donations'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -86,7 +87,7 @@ export const submitRequest = async (data: RequestData): Promise<string> => {
     const idToken = await user.getIdToken();
     
     // Call the backend API instead of writing directly to Firestore
-    const response = await fetch('https://hungrysaver.onrender.com/api/requests', {
+    const response = await fetch(buildApiUrl('/api/requests'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -238,7 +239,7 @@ export const updateTaskStatus = async (
     
     // Call the backend API instead of writing directly to Firestore
     const endpoint = taskType === 'donation' ? 'donations' : 'requests';
-    const response = await fetch(`https://hungrysaver.onrender.com/api/${endpoint}/${taskId}/status`, {
+    const response = await fetch(buildApiUrl(`/api/${endpoint}/${taskId}/status`), {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

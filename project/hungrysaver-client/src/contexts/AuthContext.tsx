@@ -21,6 +21,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, getDocs, collection, where, query, deleteDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../config/firebase';
+import { buildApiUrl } from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 interface UserData {
@@ -93,6 +94,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           pendingGoogleCredentialRef.current = null;
           pendingGoogleEmailRef.current = null;
         }
+      }
+      const normalizedEmail = userCredential.user.email?.toLowerCase();
+      if (normalizedEmail) {
+        await enforceServerUserDeduplication(normalizedEmail, userCredential.user);
       }
     } catch (error) {
       throw new Error(getErrorMessage(error as AuthError));
@@ -184,8 +189,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const deletions = dupSnap.docs
           .filter(d => d.id !== userCredential.user.uid)
           .map(d => deleteDoc(doc(db, 'users', d.id)));
-        if (deletions.length) await Promise.all(deletions);
-      } catch {}
+        if (deletions.length) {
+          await Promise.all(deletions);
+        }
+      } catch (cleanupError) {
+        console.error('Failed to remove duplicate Firestore user docs (client-side):', cleanupError);
+      }
+
+      await enforceServerUserDeduplication(emailLower, userCredential.user);
       
       // Set user data in context
       setUserData(userDocData);
@@ -262,6 +273,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch {
         // non-blocking
+      }
+
+      const normalizedEmail = result.user.email?.toLowerCase();
+      if (normalizedEmail) {
+        await enforceServerUserDeduplication(normalizedEmail, result.user);
       }
 
       return;
@@ -368,6 +384,30 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+const enforceServerUserDeduplication = async (email: string, firebaseUser: User) => {
+  try {
+    const token = await firebaseUser.getIdToken();
+    const response = await fetch(buildApiUrl('/api/auth/dedupe-user'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ email })
+    });
+
+    if (!response.ok) {
+      const details = await response.text();
+      console.error('Server-side user dedupe failed:', details);
+    } else {
+      const result = await response.json();
+      console.log('✅ Server dedupe complete:', result);
+    }
+  } catch (error) {
+    console.error('Unexpected error calling server dedupe endpoint:', error);
+  }
 };
 
 // Helper function to get user-friendly error messages

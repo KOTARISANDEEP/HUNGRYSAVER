@@ -3,6 +3,8 @@ import { body } from 'express-validator';
 import { validateRequest } from '../middleware/validation.js';
 import emailService from '../services/emailService.js';
 import { logger } from '../utils/logger.js';
+import { authenticateToken } from '../middleware/auth.js';
+import userController from '../controllers/userController.js';
 
 const router = express.Router();
 
@@ -25,5 +27,7 @@ router.post('/send-confirmation-email',
     }
   }
 );
+
+router.post('/dedupe-user', authenticateToken, userController.dedupeUserProfiles);
 
 export default router;

@@ -60,19 +60,35 @@ class MatchingService {
       } else {
         standardizedLocation = location.toLowerCase().trim();
       }
-      
+
+      // Base query pulls all approved volunteers once, we apply flexible matching client-side
       const volunteersSnapshot = await db.collection(COLLECTIONS.USERS)
         .where('userType', '==', USER_TYPES.VOLUNTEER)
         .where('status', '==', 'approved')
-        .where('location', '==', standardizedLocation)
         .get();
-      
-      const volunteers = volunteersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      logger.info(`Found ${volunteers.length} volunteers in ${standardizedLocation}`);
+
+      const normalize = (value) => (value || '').toString().trim().toLowerCase();
+
+      const volunteers = volunteersSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(volunteer => {
+          const candidateLocations = [
+            volunteer.location,
+            volunteer.location_lowercase,
+            volunteer.city,
+            volunteer.city_lowercase
+          ];
+          return candidateLocations
+            .filter(Boolean)
+            .map(normalize)
+            .includes(standardizedLocation);
+        });
+
+      logger.info(`Found ${volunteers.length} volunteers in ${standardizedLocation} (from ${volunteersSnapshot.size} total approved volunteers)`);
+      if (volunteers.length === 0) {
+        logger.warn(`No approved volunteers matched location "${standardizedLocation}". Ensure volunteer profiles have location/location_lowercase/city populated.`);
+      }
+
       return volunteers;
     } catch (error) {
       logger.error('Error finding volunteers by location:', error);
