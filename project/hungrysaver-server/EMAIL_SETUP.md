@@ -5,10 +5,24 @@ Hungry Saver supports email notifications for volunteers when new community requ
 
 ## ⚠️ Common Issues & Solutions
 
-### Connection Timeout Issues (ETIMEDOUT)
-If you're experiencing connection timeouts like `Connection timeout` or `ETIMEDOUT`, this is common in cloud environments. Here are the solutions:
+### Render free tier (SMTP blocked) – use SendGrid HTTP API (Recommended)
+Render’s free tier blocks outbound SMTP ports (25/465/587), so SMTP providers (Gmail/Outlook/Yahoo) will time out. Use SendGrid’s HTTP API instead:
+```bash
+# .env
+SENDGRID_API_KEY=your-sendgrid-api-key
+SENDGRID_FROM=notifications@yourdomain.com   # verified sender
+CLIENT_URL=https://your-client-url
+```
+Steps:
+1) Create a free SendGrid account → Email API → Create API Key (Full Access or Mail Send).
+2) Verify a Sender Identity and use that email in `SENDGRID_FROM`.
+3) Add the two env vars in Render → Environment.
+4) Deploy/restart. Logs should show “Email service configured with SendGrid HTTP API”.
 
-#### Solution 1: Use Gmail with App Password (Recommended)
+### Connection Timeout Issues (ETIMEDOUT) with SMTP
+If you still need SMTP (e.g., local dev) and see timeouts:
+
+#### Solution 1: Use Gmail with App Password
 ```bash
 # In your .env file
 EMAIL_HOST=smtp.gmail.com
@@ -58,7 +72,13 @@ CLIENT_URL=http://localhost:5173
 
 ## Email Service Options
 
-### Option 1: Gmail (Recommended for testing)
+### Option 1: SendGrid HTTP API (Best for Render)
+```bash
+SENDGRID_API_KEY=your-sendgrid-api-key
+SENDGRID_FROM=your-verified-sender@example.com
+```
+
+### Option 2: Gmail (Recommended for testing if SMTP allowed)
 ```bash
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
@@ -71,7 +91,7 @@ EMAIL_PASS=your-gmail-app-password
 2. Generate an "App Password" from Google Account settings
 3. Use the app password instead of your regular password
 
-### Option 2: Outlook/Hotmail
+### Option 3: Outlook/Hotmail
 ```bash
 EMAIL_HOST=smtp-mail.outlook.com
 EMAIL_PORT=587
@@ -79,7 +99,7 @@ EMAIL_USER=your-email@outlook.com
 EMAIL_PASS=your-password
 ```
 
-### Option 3: Custom SMTP Server
+### Option 4: Custom SMTP Server
 ```bash
 EMAIL_HOST=your-smtp-server.com
 EMAIL_PORT=587
@@ -90,15 +110,13 @@ EMAIL_PASS=your-password
 ## Cloud Platform Specific Settings
 
 ### For Render.com Deployment
-If deploying on Render.com, add these environment variables in your Render dashboard:
-
-```bash
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-gmail@gmail.com
-EMAIL_PASS=your-app-password
-NODE_ENV=production
-```
+- **Recommended**: Use SendGrid HTTP API to avoid SMTP port blocks:
+  ```bash
+  SENDGRID_API_KEY=your-sendgrid-api-key
+  SENDGRID_FROM=your-verified-sender@example.com
+  NODE_ENV=production
+  ```
+- If you must use SMTP, Render free tier will likely timeout; upgrade to a paid plan where outbound SMTP is allowed.
 
 ### For Heroku Deployment
 ```bash

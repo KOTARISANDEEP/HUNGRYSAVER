@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import { logger } from '../utils/logger.js';
 import dotenv from 'dotenv';
 
@@ -12,6 +13,7 @@ class EmailService {
     this.lastConnectionTest = null;
     this.failedAttempts = 0;
     this.maxFailedAttempts = 3;
+    this.useSendGrid = false;
     this.alternativeProviders = [
       {
         name: 'Gmail',
@@ -33,11 +35,31 @@ class EmailService {
       }
     ];
     
-    // Only initialize if email credentials are provided
-    if (this.hasEmailConfig()) {
+    // Prefer SendGrid HTTP API (works on Render free tier where SMTP is blocked)
+    if (this.hasSendGridConfig()) {
+      this.initializeSendGrid();
+    } else if (this.hasEmailConfig()) {
+      // Fallback to SMTP transport if SendGrid not configured
       this.initializeTransporter();
     } else {
       logger.info('Email service disabled - no credentials provided');
+    }
+  }
+
+  initializeSendGrid() {
+    try {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      this.useSendGrid = true;
+      this.isConfigured = true;
+      logger.info('Email service configured with SendGrid HTTP API');
+      this.testConnectionAsync();
+    } catch (error) {
+      logger.error('SendGrid configuration failed:', {
+        message: error.message,
+        stack: error.stack
+      });
+      this.useSendGrid = false;
+      this.isConfigured = false;
     }
   }
 
@@ -75,7 +97,7 @@ class EmailService {
 
       this.transporter = nodemailer.createTransport(config);
       this.isConfigured = true;
-      logger.info('Email service configured successfully');
+      logger.info('Email service configured successfully (SMTP)');
       
       // Test connection immediately
       this.testConnectionAsync();
@@ -99,7 +121,12 @@ class EmailService {
     if (!this.isConfigured) return;
     
     try {
-      await this.transporter.verify();
+      if (this.useSendGrid) {
+        await this.testSendGridConnection();
+      } else {
+        await this.transporter.verify();
+      }
+
       this.connectionHealthy = true;
       this.failedAttempts = 0;
       this.lastConnectionTest = new Date();
@@ -110,7 +137,7 @@ class EmailService {
       logger.warn(`❌ Email connection test failed (attempt ${this.failedAttempts}):`, error.message);
       
       // If too many failures, try to reinitialize
-      if (this.failedAttempts >= this.maxFailedAttempts) {
+      if (this.failedAttempts >= this.maxFailedAttempts && !this.useSendGrid) {
         logger.warn('Too many connection failures, attempting to reinitialize...');
         this.initializeTransporter();
       }
@@ -142,6 +169,22 @@ class EmailService {
     return hasConfig;
   }
 
+  hasSendGridConfig() {
+    const hasConfig = !!(
+      process.env.SENDGRID_API_KEY &&
+      (process.env.SENDGRID_FROM || process.env.EMAIL_USER)
+    );
+
+    logger.info('SendGrid config check:', {
+      SENDGRID_API_KEY: process.env.SENDGRID_API_KEY ? 'SET' : 'NOT SET',
+      SENDGRID_FROM: process.env.SENDGRID_FROM ? 'SET' : 'NOT SET',
+      EMAIL_USER: process.env.EMAIL_USER ? 'SET (fallback for from)' : 'NOT SET',
+      hasConfig
+    });
+
+    return hasConfig;
+  }
+
   /**
    * Send email with enhanced error handling and fallback mechanisms
    */
@@ -149,6 +192,10 @@ class EmailService {
     if (!this.isConfigured) {
       logger.info(`Email not sent (service disabled): To: ${mailOptions.to}, Subject: ${mailOptions.subject}`);
       return { messageId: 'disabled' };
+    }
+
+    if (this.useSendGrid) {
+      return this.sendWithSendGrid(mailOptions);
     }
 
     // Check if connection is healthy, but don't block sending if it's not
@@ -227,6 +274,80 @@ class EmailService {
     
     // Don't throw error to avoid breaking the main flow
     return { messageId: 'failed', error: lastError.message };
+  }
+
+  async sendWithSendGrid(mailOptions) {
+    const fromEmail = process.env.SENDGRID_FROM || process.env.EMAIL_USER;
+    const message = {
+      to: mailOptions.to,
+      from: fromEmail,
+      subject: mailOptions.subject,
+      html: mailOptions.html,
+      text: mailOptions.text
+    };
+
+    const maxRetries = 2;
+    let lastError;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.info(`Attempting to send email via SendGrid (attempt ${attempt}/${maxRetries}) to ${mailOptions.to}`);
+
+        const sendPromise = sgMail.send(message);
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Email send timeout')), 20000); // 20 second timeout
+        });
+
+        const [response] = await Promise.race([sendPromise, timeoutPromise]);
+        const messageId = response?.headers?.['x-message-id'] || 'sendgrid';
+
+        logger.info(`✅ Email sent successfully via SendGrid to ${mailOptions.to} on attempt ${attempt}`);
+        logger.info(`📧 Email details: Subject="${mailOptions.subject}", MessageId="${messageId}"`);
+
+        this.failedAttempts = 0;
+        this.connectionHealthy = true;
+
+        return { messageId };
+      } catch (error) {
+        lastError = error;
+        logger.warn(`❌ SendGrid send attempt ${attempt} failed for ${mailOptions.to}:`, error.message);
+        logger.warn('🔍 Error details:', {
+          code: error.code,
+          response: error.response?.body,
+          timeout: error.message.includes('timeout')
+        });
+
+        if (attempt < maxRetries) {
+          const delay = attempt * 3000;
+          logger.info(`⏳ Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    logger.error(`Failed to send email via SendGrid to ${mailOptions.to} after ${maxRetries} attempts:`, lastError);
+    logger.error('Failed email details:', {
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      hasHtml: !!mailOptions.html,
+      htmlLength: mailOptions.html ? mailOptions.html.length : 0
+    });
+
+    return { messageId: 'failed', error: lastError?.message };
+  }
+
+  async testSendGridConnection() {
+    // Hit a lightweight profile endpoint to validate API key without sending mail
+    const testPromise = sgMail.client.request({
+      method: 'GET',
+      url: '/v3/user/profile'
+    });
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Connection test timeout')), 15000); // 15 second timeout
+    });
+
+    await Promise.race([testPromise, timeoutPromise]);
   }
 
   /**
@@ -1199,15 +1320,19 @@ class EmailService {
 
     try {
       logger.info('🔍 Testing email connection...');
-      
-      // Add timeout to prevent hanging
-      const verifyPromise = this.transporter.verify();
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Connection test timeout')), 20000); // 20 second timeout
-      });
 
-      await Promise.race([verifyPromise, timeoutPromise]);
-      
+      if (this.useSendGrid) {
+        await this.testSendGridConnection();
+      } else {
+        // Add timeout to prevent hanging
+        const verifyPromise = this.transporter.verify();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Connection test timeout')), 20000); // 20 second timeout
+        });
+
+        await Promise.race([verifyPromise, timeoutPromise]);
+      }
+
       this.connectionHealthy = true;
       this.failedAttempts = 0;
       this.lastConnectionTest = new Date();
