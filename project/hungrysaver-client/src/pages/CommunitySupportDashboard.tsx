@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History, BarChart3, MessageSquare, Settings as SettingsIcon, Star, Award, Users, TrendingUp, Target, Lightbulb, LogOut, X, Recycle } from 'lucide-react';
+import { Heart, BookOpen, Shield, Home, Zap, Building, MapPin, User, Phone, Calendar, CheckCircle, Clock, AlertCircle, History, BarChart3, Settings as SettingsIcon, Star, Award, Users, TrendingUp, Target, Lightbulb, LogOut, X, Recycle, MessageCircle } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { formatDateOrNow } from '../utils/date';
 import { db } from '../config/firebase';
@@ -13,6 +13,7 @@ import PunarAshaCommunityForm from '../components/CommunitySupportForms/PunarAsh
 import RakshaJyothiCommunityForm from '../components/CommunitySupportForms/RakshaJyothiCommunityForm';
 import JyothiNilayamCommunityForm from '../components/CommunitySupportForms/JyothiNilayamCommunityForm';
 import Settings from '../components/Settings';
+import Chatbot from '../components/Chatbot';
 
 interface CommunityRequest {
   id?: string;
@@ -38,47 +39,36 @@ const CommunitySupportDashboard: React.FC = () => {
   const [selectedInitiative, setSelectedInitiative] = useState('');
   const InitiativeCard: React.FC<{ initiative: any; onClick: () => void }> = ({ initiative, onClick }) => {
     const Icon = initiative.icon;
-    const slideshowImages: string[] = initiative.images || [initiative.image];
-    const [idx, setIdx] = React.useState(0);
-    const [prevIdx, setPrevIdx] = React.useState<number | null>(null);
-    React.useEffect(() => {
-      if (!slideshowImages || slideshowImages.length <= 1) return;
-      const t = setInterval(() => {
-        setPrevIdx(idx);
-        setIdx((p) => (p + 1) % slideshowImages.length);
-      }, 8000);
-      return () => clearInterval(t);
-    }, [slideshowImages?.length]);
+    const imageSrc = initiative.image || (initiative.images && initiative.images[0]);
     return (
       <button
         onClick={onClick}
-        className="group relative w-full text-left bg-gray-900 rounded-xl p-0 transition transform hover:scale-105 hover:shadow-lg border border-gray-700 hover:border-[#eaa640] overflow-hidden hover:bg-[#eaa640]/10 active:bg-[#eaa640]/20"
+        className="group relative w-full text-left bg-gray-900 rounded-xl p-0 transition transform hover:scale-105 hover:shadow-lg border border-gray-700 hover:border-[#eaa640] overflow-hidden"
       >
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-[#eaa640] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="relative h-64 w-full">
-          {(slideshowImages || []).map((src: string, i: number) => (
-            <img
-              key={i}
-              src={src}
-              alt={initiative.title}
-              className={`absolute inset-0 w-full h-64 object-cover rounded-t-xl transition-all ease-in-out ${i === idx ? 'opacity-100' : i === prevIdx ? 'opacity-0' : 'opacity-0'} ${i === idx ? 'filter blur-0 scale-100' : i === prevIdx ? 'filter blur-md scale-[1.02]' : ''}`}
-              style={{ zIndex: i === idx ? 2 : i === prevIdx ? 1 : 0, transitionDuration: '1000ms' }}
-            />
-          ))}
-        </div>
-        <div className="p-4">
-          <div className="flex items-center space-x-2">
-            <div className={`p-2 rounded-full bg-[#eaa640]/20 group-hover:bg-[#eaa640]/30 transition-all duration-300 ring-0 group-hover:ring-4 ring-[#eaa640]/30`}>
-              <Icon className="h-4 w-4 text-white" />
+        <div className="relative w-full h-auto">
+          <img
+            src={imageSrc}
+            alt={initiative.title}
+            className="w-full h-full object-cover rounded-t-xl"
+          />
+          {/* Dark gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          
+          {/* Content overlay on image */}
+          <div className="absolute inset-0 p-4 flex flex-col justify-end rounded-t-xl">
+            <div className="flex items-center space-x-2 mb-2">
+              <div className={`p-2 rounded-full bg-[#eaa640]/20 group-hover:bg-[#eaa640]/30 transition-all duration-300 ring-0 group-hover:ring-4 ring-[#eaa640]/30`}>
+                <Icon className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">{initiative.title}</h3>
             </div>
-            <h3 className="text-lg font-semibold text-white">{initiative.title}</h3>
+            <p className="text-sm text-white/90 leading-relaxed">{initiative.description}</p>
           </div>
-          <p className="text-sm text-gray-400 mt-1">{initiative.description}</p>
         </div>
       </button>
     );
   };
-  const [activeTab, setActiveTab] = useState<'home' | 'newRequest' | 'myRequests' | 'supportHistory' | 'successStories' | 'impactHub' | 'messages' | 'feedback' | 'settings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'newRequest' | 'myRequests' | 'supportHistory' | 'successStories' | 'impactHub' | 'feedback' | 'chatbot' | 'settings'>('home');
   const { submitForm, loading, error, success, resetForm } = useFormSubmission('community');
   const [requestHistory, setRequestHistory] = useState<CommunityRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -135,12 +125,7 @@ const CommunitySupportDashboard: React.FC = () => {
       title: "🔄 PunarAsha",
       description: "Rehabilitation support to help families rebuild their lives with dignity and hope.",
       component: PunarAshaCommunityForm,
-      images: [
-        '/assets/images/punar1.png',
-        '/assets/images/punar2.png',
-        '/assets/images/punar3.png',
-        '/assets/images/punar4.png'
-      ]
+      image: '/assets/images/punarasha.png'
     },
     {
       id: 'annamitra-seva',
@@ -148,13 +133,7 @@ const CommunitySupportDashboard: React.FC = () => {
       title: "🍛 Annamitra Seva",
       description: "Request food assistance for families in need. We connect surplus food with hungry families in your community.",
       component: AnnamitraCommunityForm,
-      images: [
-        '/assets/images/annamitra1.png',
-        '/assets/images/annamitra2.png',
-        '/assets/images/annamitra3.png',
-        '/assets/images/annamitra4.png',
-        '/assets/images/annamitra5.png'
-      ]
+      image: '/assets/images/annamitramain.png'
     },
     {
       id: 'vidya-jyothi',
@@ -162,13 +141,7 @@ const CommunitySupportDashboard: React.FC = () => {
       title: "📚 Vidya Jyothi",
       description: "Educational support for children including books, fees, uniforms, and school supplies.",
       component: VidyaJyothiCommunityForm,
-      images: [
-        '/assets/images/vidya1.png',
-        '/assets/images/vidya2.png',
-        '/assets/images/vidya3.png',
-        '/assets/images/vidya4.png',
-        '/assets/images/vidya5.png'
-      ]
+      image: '/assets/images/VidyaJyothi.png'
     },
     {
       id: 'suraksha-setu',
@@ -176,12 +149,7 @@ const CommunitySupportDashboard: React.FC = () => {
       title: "🤝 Suraksha Setu",
       description: "Emergency support during crisis situations. Safety net for vulnerable community members.",
       component: SurakshaSetuCommunityForm,
-      images: [
-        '/assets/images/suraksha1.png',
-        '/assets/images/suraksha2.png',
-        '/assets/images/suraksha3.png',
-        '/assets/images/suraksha4.png'
-      ]
+      image: '/assets/images/surakshasethumainh.png'
     },
     {
       id: 'raksha-jyothi',
@@ -189,12 +157,7 @@ const CommunitySupportDashboard: React.FC = () => {
       title: "🚨 Raksha Jyothi",
       description: "Emergency response for humans and animals during critical situations requiring immediate assistance.",
       component: RakshaJyothiCommunityForm,
-      images: [
-        '/assets/images/raksha1.png',
-        '/assets/images/rakshs2.png',
-        '/assets/images/raksha3.png',
-        '/assets/images/raksha4.png'
-      ]
+      image: '/assets/images/rakshajyothimain.png'
     },
     {
       id: 'jyothi-nilayam',
@@ -202,14 +165,7 @@ const CommunitySupportDashboard: React.FC = () => {
       title: "🏛️ Jyothi Nilayam",
       description: "Support for shelters and sanctuaries caring for humans and animals.",
       component: JyothiNilayamCommunityForm,
-      images: [
-        '/assets/images/nilayam1.png',
-        '/assets/images/nilayam2.png',
-        '/assets/images/nilayam3.png',
-        '/assets/images/nilayam4.png',
-        '/assets/images/nilayam5.png',
-        '/assets/images/nilayam6.png'
-      ]
+      image: '/assets/images/jyothinilayammain.png'
     }
     // {
     //   id: 'raksha-jyothi',
@@ -248,8 +204,8 @@ const CommunitySupportDashboard: React.FC = () => {
     { key: 'supportHistory', label: 'Support History', icon: History, description: 'Past Support Records' },
     { key: 'successStories', label: 'Success Stories', icon: Award, description: 'Community Impact Stories' },
     { key: 'impactHub', label: 'Impact Hub', icon: BarChart3, description: 'Community Impact Reports' },
-    { key: 'messages', label: 'Messages', icon: MessageSquare, description: 'Communication Center' },
     { key: 'feedback', label: 'Feedback', icon: Star, description: 'Share Your Experience' },
+    { key: 'chatbot', label: 'Chatbot', icon: MessageCircle, description: 'AI Support Assistant' },
     { key: 'settings', label: 'Settings', icon: SettingsIcon, description: 'Account & Preferences' }
   ];
 
@@ -916,43 +872,6 @@ const CommunitySupportDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Messages/Chat */}
-          {activeTab === 'messages' && (
-            <div>
-              <div className="mb-8">
-                <h2 className="text-3xl font-bold text-white mb-4">Messages & Support</h2>
-                <p className="text-gray-300 max-w-2xl">
-                  Connect with our support team and volunteers for assistance with your requests.
-                </p>
-              </div>
-
-              <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg border border-[#eaa640]/30 overflow-hidden">
-                <div className="p-6 border-b border-[#eaa640]/20">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-gradient-to-r from-[#eaa640] to-[#eeb766] p-2 rounded-full">
-                      <MessageSquare className="h-5 w-5 text-black" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">Support Chat</h3>
-                      <p className="text-gray-400 text-sm">Our team is here to help • Available 24/7</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="p-6 h-96 flex items-center justify-center">
-                  <div className="text-center">
-                    <MessageSquare className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-                    <h4 className="text-lg font-semibold text-white mb-2">Chat Support Coming Soon</h4>
-                    <p className="text-gray-400 mb-4">Real-time messaging with our support team</p>
-                    <button className="bg-gradient-to-r from-[#eaa640] to-[#ecae53] hover:from-[#ecae53] to-[#eeb766] text-black px-6 py-2 rounded-lg font-medium transition-all duration-300">
-                      Start Chat
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Feedback & Ratings */}
           {activeTab === 'feedback' && (
             <div>
@@ -1025,6 +944,13 @@ const CommunitySupportDashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Chatbot */}
+          {activeTab === 'chatbot' && (
+            <div className="space-y-6">
+              <Chatbot />
             </div>
           )}
 

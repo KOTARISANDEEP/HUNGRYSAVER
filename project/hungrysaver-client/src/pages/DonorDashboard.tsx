@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Heart, BookOpen, Shield, Home, Zap, Building, Users, Calendar, MapPin, Clock, TrendingUp, Award, Star, Recycle,
   Menu, X, Bell, LogOut, User, Gift, History, BarChart3, MessageSquare, FileText, HelpCircle, Settings as SettingsIcon,
-  CheckCircle, UserPlus, Truck, Users2
+  CheckCircle, UserPlus, Truck, Users2, MessageCircle
 } from 'lucide-react';
 import { collection, query, getDocs, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -30,6 +30,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 
 import { CommunityRequest } from '../types/formTypes';
 import Settings from '../components/Settings';
+import Chatbot from '../components/Chatbot';
 
 type DonorFormData =
   | AnnamitraSevaFormData
@@ -39,7 +40,7 @@ type DonorFormData =
   | RakshaJyothiFormData
   | JyothiNilayamFormData;
 
-type ActiveSection = 'home' | 'donate' | 'contributions' | 'impact' | 'requests' | 'stories' | 'rewards' | 'notifications' | 'help' | 'settings';
+type ActiveSection = 'home' | 'donate' | 'contributions' | 'impact' | 'requests' | 'stories' | 'rewards' | 'notifications' | 'help' | 'chatbot' | 'settings';
 
 // Type for donation history items
 interface DonationHistoryItem {
@@ -65,6 +66,7 @@ const sidebarItems = [
   { key: 'rewards' as ActiveSection, label: 'Rewards & Badges', icon: Award, description: 'Gamification – Achievements' },
   { key: 'notifications' as ActiveSection, label: 'Notifications', icon: Bell, description: 'Alerts & Updates' },
   { key: 'help' as ActiveSection, label: 'Help & Support', icon: HelpCircle, description: 'Contact & Assistance' },
+  { key: 'chatbot' as ActiveSection, label: 'Chatbot', icon: MessageCircle, description: 'AI Support Assistant' },
   { key: 'settings' as ActiveSection, label: 'Profile Settings', icon: SettingsIcon, description: 'Account & Preferences' }
 ];
 
@@ -1570,6 +1572,12 @@ const DonorDashboard: React.FC = () => {
         return renderPlaceholderSection('Notifications', 'Stay updated with alerts and important messages.');
       case 'help':
         return renderPlaceholderSection('Help & Support', 'Get assistance and contact our support team.');
+      case 'chatbot':
+        return (
+          <div className="space-y-8">
+            <Chatbot />
+          </div>
+        );
       case 'settings':
         return <Settings userType="donor" />;
       default:

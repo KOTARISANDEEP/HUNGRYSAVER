@@ -19,6 +19,7 @@ import Settings from '../components/Settings';
 import SuccessMessage from '../components/SuccessMessage';
 import ImageViewerModal from '../components/ImageViewerModal';
 import FeedbackModal from '../components/FeedbackModal';
+import Chatbot from '../components/Chatbot';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -872,6 +873,13 @@ const VolunteerDashboard: React.FC = () => {
                 <TaskCard key={task.id} task={task} onAction={handleTaskAction} userData={userData} actionLoading={actionLoading} setFeedbackModal={setFeedbackModal} setImageViewer={setImageViewer} />
               ))}
             </div>
+          </div>
+        );
+
+      case 'chatbot':
+        return (
+          <div className="space-y-6">
+            <Chatbot />
           </div>
         );
 
