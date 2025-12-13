@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Send, Upload, Image } from 'lucide-react';
 import { uploadImageToImgBB, validateImageFile, formatFileSize } from '../services/imageUploadService';
 
@@ -22,6 +22,24 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState('');
+
+  // Reset state when modal opens/closes or task changes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset all state when modal closes
+      setFeedback('');
+      setSelectedFile(null);
+      setImagePreview(null);
+      setUploadingImage(false);
+      setError('');
+    } else {
+      // Reset state when modal opens (for new task)
+      setFeedback('');
+      setSelectedFile(null);
+      setImagePreview(null);
+      setError('');
+    }
+  }, [isOpen, taskName]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,15 +76,27 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
       // Upload image if selected
       if (selectedFile) {
         setUploadingImage(true);
-        // Enforce a 3s max duration for image upload; continue without image if it takes longer
-        const uploadPromise = uploadImageToImgBB(selectedFile);
-        const timeoutPromise = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 3000));
-        imageUrl = await Promise.race([uploadPromise as unknown as Promise<string>, timeoutPromise]);
-        if (!imageUrl) {
-          setError('Image upload timed out. Submitting without the image.');
+        setError(''); // Clear any previous errors
+        try {
+          // Increase timeout to 15 seconds for better reliability
+          const uploadPromise = uploadImageToImgBB(selectedFile);
+          const timeoutPromise = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 15000));
+          imageUrl = await Promise.race([uploadPromise as unknown as Promise<string>, timeoutPromise]);
+          if (!imageUrl) {
+            console.warn('Image upload timed out after 15 seconds. Submitting without the image.');
+            // Don't show error message - silently continue without image
+          }
+        } catch (uploadError) {
+          console.error('Image upload error:', uploadError);
+          // Don't show error - silently continue without image
+          imageUrl = undefined;
+        } finally {
+          setUploadingImage(false);
         }
       }
 
+      // Clear error before submitting
+      setError('');
       onSubmit(feedback.trim(), imageUrl);
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -135,6 +165,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
                 {/* File Input */}
                 <div className="relative">
                   <input
+                    key={`file-input-${taskName}-${isOpen}`}
                     type="file"
                     accept="image/*"
                     onChange={handleFileSelect}

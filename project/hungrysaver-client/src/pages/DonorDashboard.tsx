@@ -4,12 +4,11 @@ import {
   Menu, X, Bell, LogOut, User, Gift, History, BarChart3, MessageSquare, FileText, HelpCircle, Settings as SettingsIcon,
   CheckCircle, UserPlus, Truck, Users2
 } from 'lucide-react';
-import { collection, query, getDocs, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, getDocs, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useFormSubmission } from '../hooks/useFormSubmission';
 import { getApprovedCommunityRequests, claimCommunityRequest } from '../services/communityRequestService';
-import ImpactSection from '../components/ImpactSection';
 import SuccessStories from '../components/SuccessStories';
 import ImageViewerModal from '../components/ImageViewerModal';
 import AnimatedEmptyState from '../components/AnimatedIllustrations';
@@ -444,83 +443,56 @@ const DonorDashboard: React.FC = () => {
       id: 'punarasha',
       icon: Recycle,
       title: "🔄 PunarAsha",
-      description: "Donate electronics, furniture, and other items for rehabilitation support.",
+      description: "Donate clothes, furniture, and reusable household items to help individuals and families rebuild their lives with dignity and support rehabilitation needs.",
       component: PunarAshaForm,
       available: true,
       color: "from-pink-500 to-pink-600",
       impact: "45 lives rebuilt",
-      images: [
-        '/assets/images/punar1.png',
-        '/assets/images/punar2.png',
-        '/assets/images/punar3.png',
-        '/assets/images/punar4.png'
-      ]
+      image: '/assets/images/punarasha.png'
     },
     {
       id: 'annamitra-seva',
       icon: Heart,
       title: "🍛 Annamitra Seva",
-      description: "Donate surplus food to feed hungry families in your community.",
+      description: "Donate surplus food to ensure hungry families and individuals receive safe, timely meals in your local community.",
       component: AnnamitraSevaForm,
       available: true,
       color: "from-green-500 to-green-600",
       impact: "2,847 meals served",
-      images: [
-        '/assets/images/annamitra1.png',
-        '/assets/images/annamitra2.png',
-        '/assets/images/annamitra3.png',
-        '/assets/images/annamitra4.png',
-        '/assets/images/annamitra5.png'
-      ]
+      image: '/assets/images/annamitramain.png'
     },
     {
       id: 'vidya-jyothi',
       icon: BookOpen,
       title: "📚 Vidya Jyothi",
-      description: "Support education through financial assistance for fees, books, and uniforms.",
+      description: "Support education by helping children with school fees, books, uniforms, and learning materials, giving them a chance for a brighter future.",
       component: VidyaJyothiForm,
       available: true,
       color: "from-blue-500 to-blue-600",
       impact: "156 students supported",
-      images: [
-        '/assets/images/vidya1.png',
-        '/assets/images/vidya2.png',
-        '/assets/images/vidya3.png',
-        '/assets/images/vidya4.png',
-        '/assets/images/vidya5.png'
-      ]
+      image: '/assets/images/VidyaJyothi.png'
     },
     {
       id: 'suraksha-setu',
       icon: Shield,
       title: "🤝 Suraksha Setu",
-      description: "Donate items like clothing, books, and groceries for emergency support.",
+      description: "Donate wheelchairs, groceries, and essential supplies to support NGOs and families during emergencies and difficult situations.",
       component: SurakshaSetuForm,
       available: true,
       color: "from-purple-500 to-purple-600",
       impact: "89 families protected",
-      images: [
-        '/assets/images/suraksha1.png',
-        '/assets/images/suraksha2.png',
-        '/assets/images/suraksha3.png',
-        '/assets/images/suraksha4.png'
-      ]
+      image: '/assets/images/surakshasethumainh.png'
     },
     {
       id: 'raksha-jyothi',
       icon: Zap,
       title: "🚨 Raksha Jyothi",
-      description: "Provide emergency support for medical, accident, or animal emergencies.",
+      description: "Provide immediate emergency support for medical needs, accidents, animal rescue, and other urgent life-saving situations.",
       component: RakshaJyothiForm,
       available: true,
       color: "from-red-500 to-red-600",
       impact: "24/7 emergency response",
-      images: [
-        '/assets/images/raksha1.png',
-        '/assets/images/rakshs2.png',
-        '/assets/images/raksha3.png',
-        '/assets/images/raksha4.png'
-      ]
+      image: '/assets/images/rakshajyothimain.png'
     },
     {
       id: 'jyothi-nilayam',
@@ -531,14 +503,7 @@ const DonorDashboard: React.FC = () => {
       available: true,
       color: "from-orange-500 to-orange-600",
       impact: "12 shelters supported",
-      images: [
-        '/assets/images/nilayam1.png',
-        '/assets/images/nilayam2.png',
-        '/assets/images/nilayam3.png',
-        '/assets/images/nilayam4.png',
-        '/assets/images/nilayam5.png',
-        '/assets/images/nilayam6.png'
-      ]
+      image: '/assets/images/jyothinilayammain.png'
     }
     // {
     //   id: 'raksha-jyothi',
@@ -666,49 +631,98 @@ const DonorDashboard: React.FC = () => {
 
   // Add real-time listener for donation history updates
   useEffect(() => {
-    if (!userData?.uid) return;
+    if (!userData?.uid) {
+      console.log('❌ No userData.uid available, skipping donation history listener');
+      return;
+    }
     
+    console.log('🔍 Setting up donation history listener for userId:', userData.uid);
+    console.log('📊 Current userData:', { uid: userData.uid, email: userData.email, userType: userData.userType });
+    
+    // Query without orderBy first (to avoid index issues), we'll sort in JavaScript
+    // Also check both userId and donorEmail as fallback
     const q = query(
       collection(db, 'donations'),
       where('userId', '==', userData.uid)
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log(`📦 Snapshot received: ${snapshot.docs.length} donations found`);
+      console.log(`🔍 Query filter: userId == "${userData.uid}"`);
+      
+      if (snapshot.docs.length === 0) {
+        console.warn('⚠️ No donations found! Checking if userId matches...');
+        console.log('🔍 Current userData.uid:', userData.uid);
+        console.log('💡 Tip: Verify that donations in Firebase have userId field matching this uid');
+      }
+      
       const donations = snapshot.docs.map(doc => {
         const data = doc.data();
         
+        // Get status and normalize it
+        const rawStatus = data.status || 'pending';
+        const normalizedStatus = String(rawStatus).toLowerCase().trim();
+        
         // Debug logging for real-time updates
-        console.log(`🔄 Real-time update for donation ${doc.id}:`, {
+        console.log(`🔄 Processing donation ${doc.id}:`, {
+          userId: data.userId,
+          currentUserUid: userData.uid,
+          userIdMatch: data.userId === userData.uid,
           initiative: data.initiative,
-          status: data.status,
+          rawStatus: rawStatus,
+          normalizedStatus: normalizedStatus,
           volunteerName: data.volunteerName,
           volunteerContact: data.volunteerContact,
           assignedTo: data.assignedTo,
           acceptedAt: data.acceptedAt,
+          pickedAt: data.pickedAt,
+          deliveredAt: data.deliveredAt,
+          completedAt: data.completedAt,
           allFields: Object.keys(data)
         });
         
         return {
           id: doc.id,
           initiative: data.initiative || 'Unknown Initiative',
-          location_lowercase: data.city || data.location_lowercase || '',
-          status: data.status || 'pending',
+          location_lowercase: data.city || data.location_lowercase || data.location || '',
+          status: normalizedStatus as 'pending' | 'accepted' | 'picked' | 'delivered' | 'completed',
           createdAt: data.createdAt,
+          acceptedAt: data.acceptedAt,
+          pickedAt: data.pickedAt,
+          deliveredAt: data.deliveredAt,
+          completedAt: data.completedAt,
           volunteerName: data.volunteerName,
           volunteerContact: data.volunteerContact,
-          feedback: data.feedback, // Include feedback field
-          feedbackImageUrl: data.feedbackImageUrl // Include feedback image URL
+          volunteerId: data.volunteerId || data.assignedTo,
+          feedback: data.feedback,
+          feedbackImageUrl: data.feedbackImageUrl
         } as DonationHistoryItem;
       });
       
+      // Sort by creation date (newest first)
+      donations.sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.() || new Date(0);
+        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        return bTime.getTime() - aTime.getTime();
+      });
+      
+      console.log(`✅ Setting donation history: ${donations.length} donations`, donations.map(d => ({ id: d.id, status: d.status, initiative: d.initiative })));
       setDonationHistory(donations);
       setDonationHistoryLoading(false);
     }, (error) => {
-      console.error('Error listening to donation updates:', error);
+      console.error('❌ Error listening to donation updates:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
       setDonationHistoryLoading(false);
     });
     
-    return () => unsubscribe();
+    return () => {
+      console.log('🧹 Cleaning up donation history listener');
+      unsubscribe();
+    };
   }, [userData?.uid]);
 
   // remove old manual fetch functions (using realtime subscription instead)
@@ -729,34 +743,55 @@ const DonorDashboard: React.FC = () => {
       if (!userData) return;
       const q = query(
         collection(db, 'donations'),
-        where('userId', '==', userData.uid)
+        where('userId', '==', userData.uid),
+        orderBy('createdAt', 'desc')
       );
       const snapshot = await getDocs(q);
       const donations = snapshot.docs.map(doc => {
         const data = doc.data();
         
+        // Get status and normalize it
+        const rawStatus = data.status || 'pending';
+        const normalizedStatus = String(rawStatus).toLowerCase().trim();
+        
         // Debug logging to see what data is fetched
         console.log(`🔍 Donation ${doc.id} data:`, {
           initiative: data.initiative,
-          status: data.status,
+          rawStatus: rawStatus,
+          normalizedStatus: normalizedStatus,
           volunteerName: data.volunteerName,
           volunteerContact: data.volunteerContact,
           assignedTo: data.assignedTo,
           acceptedAt: data.acceptedAt,
+          pickedAt: data.pickedAt,
+          deliveredAt: data.deliveredAt,
+          completedAt: data.completedAt,
           allFields: Object.keys(data)
         });
         
         return {
           id: doc.id,
           initiative: data.initiative || 'Unknown Initiative',
-          location_lowercase: data.city || data.location_lowercase || '',
-          status: data.status || 'pending',
+          location_lowercase: data.city || data.location_lowercase || data.location || '',
+          status: normalizedStatus as 'pending' | 'accepted' | 'picked' | 'delivered' | 'completed',
           createdAt: data.createdAt,
+          acceptedAt: data.acceptedAt,
+          pickedAt: data.pickedAt,
+          deliveredAt: data.deliveredAt,
+          completedAt: data.completedAt,
           volunteerName: data.volunteerName,
           volunteerContact: data.volunteerContact,
-          feedback: data.feedback, // Include feedback field
-          feedbackImageUrl: data.feedbackImageUrl // Include feedback image URL
+          volunteerId: data.volunteerId || data.assignedTo,
+          feedback: data.feedback,
+          feedbackImageUrl: data.feedbackImageUrl
         } as DonationHistoryItem;
+      });
+      
+      // Sort by creation date (newest first)
+      donations.sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.() || new Date(0);
+        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        return bTime.getTime() - aTime.getTime();
       });
       setDonationHistory(donations);
     } catch (error) {
@@ -1145,45 +1180,35 @@ const DonorDashboard: React.FC = () => {
     </div>
   );
 
-  // Reusable initiative card with background slideshow
+  // Reusable initiative card with static image
   const InitiativeCard: React.FC<{ initiative: any; onClick: () => void }> = ({ initiative, onClick }) => {
     const Icon = initiative.icon;
-    const slideshowImages: string[] = initiative.images || [initiative.image];
-    const [idx, setIdx] = React.useState(0);
-    const [prevIdx, setPrevIdx] = React.useState<number | null>(null);
-    React.useEffect(() => {
-      if (!slideshowImages || slideshowImages.length <= 1) return;
-      const t = setInterval(() => {
-        setPrevIdx(idx);
-        setIdx((p) => (p + 1) % slideshowImages.length);
-      }, 8000);
-      return () => clearInterval(t);
-    }, [slideshowImages?.length]);
+    const imageSrc = initiative.image || (initiative.images && initiative.images[0]);
     return (
       <button
         onClick={onClick}
         className="group relative w-full text-left bg-gray-900 rounded-xl p-0 transition transform hover:scale-105 hover:shadow-lg border border-gray-700 hover:border-[#eaa640] overflow-hidden hover:bg-[#eaa640]/10 active:bg-[#eaa640]/20"
       >
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-[#eaa640] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="relative h-64 w-full">
-          {(slideshowImages || []).map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={initiative.title}
-              className={`absolute inset-0 w-full h-64 object-cover rounded-t-xl transition-all ease-in-out ${i === idx ? 'opacity-100' : i === prevIdx ? 'opacity-0' : 'opacity-0'} ${i === idx ? 'filter blur-0 scale-100' : i === prevIdx ? 'filter blur-md scale-[1.02]' : ''}`}
-              style={{ zIndex: i === idx ? 2 : i === prevIdx ? 1 : 0, transitionDuration: '1000ms' }}
-            />
-          ))}
-        </div>
-        <div className="p-4">
-          <div className="flex items-center space-x-2">
-            <div className={`p-2 rounded-full bg-[#eaa640]/20 group-hover:bg-[#eaa640]/30 transition-all duration-300 ring-0 group-hover:ring-4 ring-[#eaa640]/30`}>
-              <Icon className="h-4 w-4 text-white" />
+        <div className="relative w-full">
+          <img
+            src={imageSrc}
+            alt={initiative.title}
+            className="w-full h-auto object-cover rounded-t-xl"
+          />
+          {/* Dark gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent rounded-t-xl" />
+          
+          {/* Content overlay on image */}
+          <div className="absolute inset-0 p-4 flex flex-col justify-end rounded-t-xl">
+            <div className="flex items-center space-x-2 mb-2">
+              <div className={`p-2 rounded-full bg-[#eaa640]/20 group-hover:bg-[#eaa640]/30 transition-all duration-300 ring-0 group-hover:ring-4 ring-[#eaa640]/30`}>
+                <Icon className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">{initiative.title}</h3>
             </div>
-            <h3 className="text-lg font-semibold text-white">{initiative.title}</h3>
+            <p className="text-sm text-white/90 leading-relaxed">{initiative.description}</p>
           </div>
-          <p className="text-sm text-gray-400 mt-1">{initiative.description}</p>
         </div>
       </button>
     );
@@ -1454,23 +1479,58 @@ const DonorDashboard: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#eaa640] mx-auto mb-4"></div>
           <p className="text-gray-300">Loading your donation history...</p>
         </div>
-      ) : donationHistory.length === 0 ? (
-        <AnimatedEmptyState
-          type="donations"
-          title="No donations yet"
-          description="Your donations will appear here once you make them."
-          actionText="Make a Donation"
-          onAction={() => setActiveSection('donate')}
-        />
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {donationHistory
-            .filter((d: any) => (contribFilter === 'available' ? d.status !== 'completed' : d.status === 'completed'))
-            .map((donation: DonationHistoryItem) => (
+      ) : (() => {
+        const filteredDonations = donationHistory.filter((d: any) => {
+          const status = String(d.status || '').toLowerCase().trim();
+          console.log(`🔍 Filtering donation ${d.id}: status="${status}", filter="${contribFilter}"`);
+          if (contribFilter === 'available') {
+            // Show all non-completed donations (pending, accepted, picked, delivered)
+            const isCompleted = status === 'completed';
+            console.log(`  → Available filter: isCompleted=${isCompleted}, showing=${!isCompleted}`);
+            return !isCompleted;
+          } else {
+            // Show only completed donations
+            const isCompleted = status === 'completed';
+            console.log(`  → Completed filter: isCompleted=${isCompleted}, showing=${isCompleted}`);
+            return isCompleted;
+          }
+        });
+        
+        console.log(`📊 Filtered donations: ${filteredDonations.length} out of ${donationHistory.length} total`, {
+          filter: contribFilter,
+          total: donationHistory.length,
+          filtered: filteredDonations.length,
+          statuses: donationHistory.map((d: any) => ({ id: d.id, status: d.status, normalized: String(d.status || '').toLowerCase().trim() }))
+        });
+        
+        if (filteredDonations.length === 0) {
+          return (
+            <AnimatedEmptyState
+              type="donations"
+              title={contribFilter === 'available' ? 'No in-progress donations' : 'No completed donations yet'}
+              description={contribFilter === 'available' 
+                ? 'Your in-progress donations will appear here.' 
+                : 'Your completed donations will appear here once they are finished.'}
+              actionText={contribFilter === 'available' ? 'View Completed' : 'Make a Donation'}
+              onAction={() => {
+                if (contribFilter === 'available') {
+                  setContribFilter('completed');
+                } else {
+                  setActiveSection('donate');
+                }
+              }}
+            />
+          );
+        }
+        
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {filteredDonations.map((donation: DonationHistoryItem) => (
               <DonationStatusCard key={donation.id} donation={donation} onOpenImage={(images, idx = 0) => setImageViewer({ isOpen: true, images, initialIndex: idx })} />
             ))}
-        </div>
-      )}
+          </div>
+        );
+      })()}
     </div>
   );
 
@@ -1662,9 +1722,6 @@ const DonorDashboard: React.FC = () => {
               <div className="mb-8">
                 <h1 className="text-3xl font-bold text-white mb-2">Welcome back, {userData?.firstName || 'Donor'}!</h1>
                 <p className="text-gray-300">Here's your impact dashboard and latest community updates.</p>
-              </div>
-              <div className="mb-8">
-                <ImpactSection />
               </div>
             </>
           )}

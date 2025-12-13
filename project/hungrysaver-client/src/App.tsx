@@ -1,6 +1,6 @@
 import './config/firebase';
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -24,28 +24,17 @@ const CommunitySupportDashboard = React.lazy(() => import('./pages/CommunitySupp
 const DonorDashboard = React.lazy(() => import('./pages/DonorDashboard'));
 const PendingApproval = React.lazy(() => import('./pages/PendingApproval'));
 
-function App() {
-  // Removed unused token and error state
-  // Removed unused handleGetToken function
-
-  window.getFirebaseToken = () => {
-    const auth = getAuth();
-    if (auth.currentUser) {
-      auth.currentUser.getIdToken(true).then(token => {
-        console.log("Firebase ID Token:", token);
-      });
-    } else {
-      console.log("No user is signed in.");
-    }
-  };
+function AppContent() {
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
+  const isLoginPage = location.pathname === '/login';
+  const isPendingApprovalPage = location.pathname === '/pending-approval';
 
   return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-gray-900">
-          {/* Removed token fetch UI for debugging */}
-          <Navbar />
-          <Suspense fallback={<LoadingSpinner />}>
+    <div className="min-h-screen bg-gray-900">
+      {/* Navbar hidden on Home, Login, and Pending Approval pages */}
+      {!isHomePage && !isLoginPage && !isPendingApprovalPage && <Navbar />}
+      <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
@@ -103,6 +92,28 @@ function App() {
             </Routes>
           </Suspense>
         </div>
+  );
+}
+
+function App() {
+  // Removed unused token and error state
+  // Removed unused handleGetToken function
+
+  window.getFirebaseToken = () => {
+    const auth = getAuth();
+    if (auth.currentUser) {
+      auth.currentUser.getIdToken(true).then(token => {
+        console.log("Firebase ID Token:", token);
+      });
+    } else {
+      console.log("No user is signed in.");
+    }
+  };
+
+  return (
+    <AuthProvider>
+      <Router>
+        <AppContent />
       </Router>
     </AuthProvider>
   );

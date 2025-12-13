@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Heart, Users, BookOpen, Shield, Home, Zap, Building } from 'lucide-react';
 import { LiveImpactDashboard } from '../components/ImpactCounter';
 import SuccessStories from '../components/SuccessStories';
-import ImpactSection from '../components/ImpactSection';
 import MapSection from '../components/MapSection';
 import '../index.css'; // Ensure global styles are loaded
 
@@ -99,61 +98,71 @@ const HomePage: React.FC = () => {
         
         {/* Hero Section */}
         <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden px-4">
+          {/* Top-right CTA Button */}
+          <Link 
+            to="/login" 
+            className="absolute top-4 right-4 md:top-[28px] md:right-[28px] z-20 bg-gradient-to-r from-[#EAA640] to-[#EAA64D] text-white px-4 py-2 md:px-5 md:py-2.5 rounded-full font-semibold text-xs md:text-sm shadow-md hover:shadow-lg hover:brightness-110 transition-all duration-300 flex items-center gap-1.5"
+          >
+            Help Now
+            <ArrowRight className="h-3 w-3 md:h-4 md:w-4" />
+          </Link>
+
           {/* Hero Image */}
           <div className="absolute inset-0 z-0 flex items-center justify-center">
             <div className="relative" style={{ width: 'calc(100% - 2rem)', height: '100%', maxWidth: 'calc(100vw - 2rem)', maxHeight: '115vh' }}>
-              <img src="/assets/images/Annamitra.png" alt="Community helping each other" className="w-full h-full object-cover rounded-lg border-4 border-white shadow-2xl" />
+              {/* Desktop Image */}
+              <img 
+                src="/assets/images/Annamitra.png" 
+                alt="Community helping each other" 
+                className="hidden md:block w-full h-full object-cover rounded-lg border-4 border-white shadow-2xl" 
+              />
+              {/* Mobile Image */}
+              <img 
+                src="/assets/images/mobile staer.png" 
+                alt="Community helping each other" 
+                className="block md:hidden w-full h-full object-cover rounded-lg border-4 border-white shadow-2xl" 
+              />
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70 rounded-lg" />
             </div>
           </div>
 
           {/* Hero Content */}
-          <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-3xl mx-auto text-white py-12">
-            <div className="relative flex items-center justify-center mb-6" style={{ minHeight: '320px' }}>
-              <img src="/assets/images/circle_rotation-removebg-preview.png" alt="Rotating ring" className="w-64 h-64 animate-spin-slow" />
-              <img src="/assets/images/logo.png" alt="Hungry Saver Logo" className="absolute left-1/2 top-1/2 w-60 h-60 -translate-x-1/2 -translate-y-1/2 rounded-full object-contain shadow-xl" />
+          <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-3xl mx-auto text-white py-8 md:py-12">
+            <div className="relative flex items-center justify-center mb-4 md:mb-6 min-h-[200px] md:min-h-[320px]">
+              <img src="/assets/images/circle_rotation-removebg-preview.png" alt="Rotating ring" className="w-40 h-40 md:w-64 md:h-64 animate-spin-slow" />
+              <img src="/assets/images/logo.png" alt="Hungry Saver Logo" className="absolute left-1/2 top-1/2 w-36 h-36 md:w-60 md:h-60 -translate-x-1/2 -translate-y-1/2 rounded-full object-contain shadow-xl" />
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-8 leading-tight text-center">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-4 md:mb-8 leading-tight text-center px-4">
               Connecting Surplus Resources with <span style={{ color: '#A16D28' }}>Those in Need</span>
             </h1>
 
             {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center mb-8 w-full">
-              <div className="bg-white/10 rounded-xl shadow-lg p-6">
-                <p className="text-2xl font-bold text-[#EAA640]">2,847</p>
-                <p className="text-sm">Lives Touched Today</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 text-center mb-4 md:mb-8 w-full px-4">
+              <div className="bg-white/10 rounded-xl shadow-lg p-4 md:p-6">
+                <p className="text-xl md:text-2xl font-bold text-[#EAA640]">2,847</p>
+                <p className="text-xs md:text-sm">Lives Touched Today</p>
               </div>
-              <div className="bg-white/10 rounded-xl shadow-lg p-6">
-                <p className="text-2xl font-bold text-[#F9CB99]">156</p>
-                <p className="text-sm">Families Helped</p>
+              <div className="bg-white/10 rounded-xl shadow-lg p-4 md:p-6">
+                <p className="text-xl md:text-2xl font-bold text-[#F9CB99]">156</p>
+                <p className="text-xs md:text-sm">Families Helped</p>
               </div>
-              <div className="bg-white/10 rounded-xl shadow-lg p-6">
-                <p className="text-2xl font-bold text-[#BFA893]">89</p>
-                <p className="text-sm">Active Volunteers</p>
+              <div className="bg-white/10 rounded-xl shadow-lg p-4 md:p-6">
+                <p className="text-xl md:text-2xl font-bold text-[#BFA893]">89</p>
+                <p className="text-xs md:text-sm">Active Volunteers</p>
               </div>
             </div>
 
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-              <Link to="/register" className="bg-gradient-to-r from-[#C78A3B] to-[#EAA64D] text-white px-6 py-2 rounded-full font-semibold flex items-center justify-center">
-                Join Our Mission <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-              <Link to="/login" className="border border-white text-white hover:bg-white hover:text-[#333] px-6 py-2 rounded-full font-semibold flex items-center justify-center">
-                Already a Member? Login
+            {/* CTA Button */}
+            <div className="flex justify-center w-full">
+              <Link to="/register" className="bg-gradient-to-r from-[#C78A3B] to-[#EAA64D] text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                Join Hungry Saver <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </div>
           </div>
         </section>
 
         {/* Existing motivational banner below stays; only images were updated in its component. */}
-
-        {/* Impact Section */}
-        <section className="py-12 relative z-10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <ImpactSection />
-          </div>
-        </section>
 
         {/* Live Impact */}
         <section className="py-12 relative z-10">

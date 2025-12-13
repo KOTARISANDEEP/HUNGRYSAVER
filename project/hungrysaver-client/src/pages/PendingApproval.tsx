@@ -148,47 +148,47 @@ const PendingApproval: React.FC = () => {
       title: "🍛 Annamitra Seva",
       description: "You'll help distribute surplus food to hungry families, ensuring no meal goes to waste while fighting hunger in your community.",
       impact: "Feed 50+ families daily",
-      image: "https://images.pexels.com/photos/6646917/pexels-photo-6646917.jpeg"
+      image: "/assets/images/annamitramain.png"
     },
     {
       icon: BookOpen,
       title: "📚 Vidya Jyothi",
       description: "Support students by delivering educational materials, books, and helping with school fee payments for deserving children.",
       impact: "Educate 100+ children monthly",
-      image: "https://images.pexels.com/photos/8535230/pexels-photo-8535230.jpeg"
+      image: "/assets/images/VidyaJyothi.png"
     },
     {
       icon: Shield,
       title: "🛡️ Suraksha Setu",
       description: "Provide emergency support to vulnerable communities during crisis situations, being their safety net when needed most.",
       impact: "Support 200+ families in emergencies",
-      image: "https://images.pexels.com/photos/6646918/pexels-photo-6646918.jpeg"
+      image: "/assets/images/surakshasethumainh.png"
     },
     {
       icon: Home,
       title: "🏠 PunarAsha",
       description: "Help families rebuild their lives through rehabilitation programs, providing dignity and hope for a better future.",
       impact: "Rebuild 30+ lives annually",
-      image: "https://images.pexels.com/photos/5029857/pexels-photo-5029857.jpeg"
+      image: "/assets/images/punarasha.png"
     },
     {
       icon: Zap,
       title: "⚡ Raksha Jyothi",
       description: "Respond to emergency situations for both humans and animals, providing rapid assistance during critical moments.",
       impact: "Emergency response 24/7",
-      image: "https://images.pexels.com/photos/6646919/pexels-photo-6646919.jpeg"
+      image: "/assets/images/rakshajyothimain.png"
     },
     {
       icon: Building,
       title: "🏛️ Jyothi Nilayam",
       description: "Support shelters for humans and animals in need, creating safe sanctuaries of hope and care.",
       impact: "Support 10+ shelters",
-      image: "https://images.pexels.com/photos/5029851/pexels-photo-5029851.jpeg"
+      image: "/assets/images/jyothinilayammain.png"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900 pt-20 pb-12">
+    <div className="min-h-screen bg-gray-900 pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header Section */}
         <div className="text-center mb-12">

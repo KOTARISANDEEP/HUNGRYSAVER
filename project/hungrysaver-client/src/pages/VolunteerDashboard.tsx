@@ -19,6 +19,8 @@ import Settings from '../components/Settings';
 import SuccessMessage from '../components/SuccessMessage';
 import ImageViewerModal from '../components/ImageViewerModal';
 import FeedbackModal from '../components/FeedbackModal';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 
 const VolunteerDashboard: React.FC = () => {
@@ -99,7 +101,7 @@ const VolunteerDashboard: React.FC = () => {
     }
 
     if (location) {
-      fetchTasks();
+      setupRealTimeTaskListeners();
       fetchCommunityRequests();
     }
   }, [location, userData]);
@@ -123,67 +125,148 @@ const VolunteerDashboard: React.FC = () => {
     }
   }, [sidebarOpen]);
 
-  const fetchTasks = async () => {
-    try {
-      // Only fetch tasks if volunteer is approved and in correct location
-      if (!userData || userData.status !== 'approved' || !userData.location) {
-        setTasks([]);
-        setLoading(false);
-        return;
-      }
+  // Setup real-time listeners for tasks
+  const setupRealTimeTaskListeners = () => {
+    if (!userData || userData.status !== 'approved' || !userData.location) {
+      setTasks([]);
+      setMyTasks([]);
+      setLoading(false);
+      return () => {}; // Return empty cleanup function
+    }
 
-      // Ensure we're only fetching tasks for the volunteer's assigned location
-      const volunteerLocation = userData.location.toLowerCase();
-      if (location && location.toLowerCase() !== volunteerLocation) {
-        setTasks([]);
-        setLoading(false);
-        return;
-      }
+    const volunteerLocation = userData.location.toLowerCase();
+    if (location && location.toLowerCase() !== volunteerLocation) {
+      setTasks([]);
+      setMyTasks([]);
+      setLoading(false);
+      return () => {}; // Return empty cleanup function
+    }
 
-      const allTasks = await getTasksByLocation(volunteerLocation);
+    setLoading(true);
+
+    // Helper function to transform task
+    const transformTask = (task: any, type: 'donation' | 'request') => {
+      const isDonation = type === 'donation';
+      const isRequest = type === 'request';
       
-      // Transform tasks to include proper contact information
-      const transformedTasks = allTasks.map((task: any) => {
-        const isDonation = task.type === 'donation';
-        const isRequest = task.type === 'request' || (!task.type && task.initiative && !task.donorName);
-        return {
-          ...task,
-          // Normalize initiative casing
-          initiative: String(task.initiative || task.details?.initiative || '').toLowerCase() || task.initiative,
-          // Donation contact
-          donorName: isDonation ? (task.donorName || task.details?.donorName) : undefined,
-          donorContact: isDonation ? (task.donorContact || task.details?.donorContact) : undefined,
-          // Request contact
-          beneficiaryName: isRequest ? (task.beneficiaryName || task.details?.beneficiaryName || task.details?.contactName) : undefined,
-          beneficiaryContact: isRequest ? (task.beneficiaryContact || task.details?.beneficiaryContact || task.details?.contactPhone) : undefined,
-          // Normalize address fields
-          address: isRequest ? (task.address || task.details?.address) : (task.address || task.donorAddress || task.details?.donorAddress),
-          // Description
-          description: task.description || task.details?.description || 'No description provided'
-        };
+      // Normalize status
+      const rawStatus = task.status || 'pending';
+      const normalizedStatus = String(rawStatus).toLowerCase().trim();
+      
+      return {
+        ...task,
+        type: type,
+        // Normalize status to lowercase
+        status: normalizedStatus,
+        // Normalize initiative casing
+        initiative: String(task.initiative || task.details?.initiative || '').toLowerCase() || task.initiative,
+        // Donation contact
+        donorName: isDonation ? (task.donorName || task.details?.donorName) : undefined,
+        donorContact: isDonation ? (task.donorContact || task.details?.donorContact) : undefined,
+        // Request contact
+        beneficiaryName: isRequest ? (task.beneficiaryName || task.details?.beneficiaryName || task.details?.contactName) : undefined,
+        beneficiaryContact: isRequest ? (task.beneficiaryContact || task.details?.beneficiaryContact || task.details?.contactPhone) : undefined,
+        // Normalize address fields
+        address: isRequest ? (task.address || task.details?.address) : (task.address || task.donorAddress || task.details?.donorAddress),
+        // Description
+        description: task.description || task.details?.description || 'No description provided'
+      };
+    };
+
+    // State to hold both donations and requests
+    let donationsData: any[] = [];
+    let requestsData: any[] = [];
+
+    // Function to update tasks when either donations or requests change
+    const updateTasks = () => {
+      // Combine all tasks
+      const allTasks = [...donationsData, ...requestsData].sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.() || new Date(0);
+        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        return bTime.getTime() - aTime.getTime();
+      });
+
+      // Separate available and accepted tasks
+      const availableTasks = allTasks.filter((task: any) => {
+        const taskStatus = String(task.status || '').toLowerCase().trim();
+        const isPending = taskStatus === 'pending';
+        console.log(`🔍 Task ${task.id}: status="${task.status}" (normalized="${taskStatus}"), isPending=${isPending}, type=${task.type}`);
+        return isPending;
       });
       
-      // Separate available and accepted tasks
-      const availableTasks = transformedTasks.filter((task: any) => task.status === 'pending');
-      const acceptedTasks = transformedTasks.filter((task: any) => 
-        task.status !== 'pending' && 
-        (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid || task.acceptedBy === userData?.uid)
-      );
-      
+      const acceptedTasks = allTasks.filter((task: any) => {
+        const taskStatus = String(task.status || '').toLowerCase().trim();
+        const isNotPending = taskStatus !== 'pending';
+        const isAssignedToMe = task.assignedTo === userData?.uid || task.volunteerId === userData?.uid || task.acceptedBy === userData?.uid;
+        return isNotPending && isAssignedToMe;
+      });
+
       setTasks(availableTasks);
       setMyTasks(acceptedTasks);
-      
-      console.log('📊 Task filtering results:', {
-        total: transformedTasks.length,
+      setLoading(false);
+
+      console.log('📊 Real-time task update:', {
+        total: allTasks.length,
         available: availableTasks.length,
         accepted: acceptedTasks.length,
-        userUid: userData?.uid
+        userUid: userData?.uid,
+        sampleTasks: allTasks.slice(0, 3).map((t: any) => ({ 
+          id: t.id, 
+          status: t.status, 
+          normalizedStatus: String(t.status || '').toLowerCase().trim(),
+          type: t.type,
+          initiative: t.initiative 
+        }))
       });
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    // Real-time listener for donations (without orderBy to avoid index issues, we sort in JS)
+    const donationsQuery = query(
+      collection(db, 'donations'),
+      where('location_lowercase', '==', volunteerLocation)
+    );
+
+    const unsubscribeDonations = onSnapshot(
+      donationsQuery,
+      (snapshot) => {
+        donationsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...transformTask(doc.data(), 'donation')
+        }));
+        updateTasks();
+      },
+      (error) => {
+        console.error('Error in donations listener:', error);
+        setLoading(false);
+      }
+    );
+
+    // Real-time listener for requests (without orderBy to avoid index issues, we sort in JS)
+    const requestsQuery = query(
+      collection(db, 'community_requests'),
+      where('location_lowercase', '==', volunteerLocation)
+    );
+
+    const unsubscribeRequests = onSnapshot(
+      requestsQuery,
+      (requestsSnapshot) => {
+        requestsData = requestsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...transformTask(doc.data(), 'request')
+        }));
+        updateTasks();
+      },
+      (error) => {
+        console.error('Error in requests listener:', error);
+        setLoading(false);
+      }
+    );
+
+    // Return cleanup function
+    return () => {
+      unsubscribeDonations();
+      unsubscribeRequests();
+    };
   };
 
   const fetchCommunityRequests = async () => {
@@ -976,13 +1059,30 @@ const TaskCard: React.FC<{
     return emojiMap[initiative.toLowerCase()] || '💝'; };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const normalizedStatus = String(status || '').toLowerCase().trim();
+    switch (normalizedStatus) {
       case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
-      case 'accepted': return 'bg-blue-500/20 text-blue-400 border-blue-500';
+      case 'accepted':
+      case 'volunteer_accepted':
+      case 'approved_by_volunteer': return 'bg-blue-500/20 text-blue-400 border-blue-500';
       case 'picked': return 'bg-orange-500/20 text-orange-400 border-orange-500';
       case 'delivered': return 'bg-green-500/20 text-green-400 border-green-500';
       case 'completed': return 'bg-green-600/20 text-green-300 border-green-600';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500';
+    }
+  };
+  
+  const getDisplayStatus = (status: string) => {
+    const normalizedStatus = String(status || '').toLowerCase().trim();
+    switch (normalizedStatus) {
+      case 'volunteer_accepted':
+      case 'approved_by_volunteer': return 'Accepted';
+      case 'pending': return 'Pending';
+      case 'accepted': return 'Accepted';
+      case 'picked': return 'Picked';
+      case 'delivered': return 'Delivered';
+      case 'completed': return 'Completed';
+      default: return String(status || 'Pending').toUpperCase();
     }
   };
 
@@ -997,8 +1097,8 @@ const TaskCard: React.FC<{
         <div className="flex items-center space-x-3">
           <div className="text-2xl">{getInitiativeEmoji(task.initiative || '')}</div>
           <div>
-            <h3 className="text-lg font-semibold text-white capitalize">{task.initiative?.replace('-', ' ') || 'Donation'}</h3>
-            <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getStatusColor(task.status)}`}>{(task.status || 'pending').toUpperCase()}</span>
+            <h3 className="text-lg font-semibold text-white capitalize">{task.initiative?.replace('-', ' ') || (task.type === 'request' ? 'Community Request' : 'Donation')}</h3>
+            <span className={`px-2 py-1 rounded-full text-xs border font-medium ${getStatusColor(task.status)}`}>{getDisplayStatus(task.status)}</span>
           </div>
         </div>
       </div>
@@ -1101,11 +1201,46 @@ const TaskCard: React.FC<{
         </div>
       )}
 
-      <div className="space-y-2 mb-4">
-        <div className="flex items-center space-x-2 text-sm text-gray-400">
-          <MapPin className="h-4 w-4" />
-          <span>{task.address}</span>
+      {/* Request-specific details section */}
+      {task.type === 'request' && (task.beneficiaryName || task.beneficiaryContact || task.address) && (
+        <div className="mb-4 bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+          <div className="flex items-center space-x-2 text-sm text-purple-300 mb-2">
+            <Users className="h-4 w-4" />
+            <span className="font-medium">Requester Details</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            {task.beneficiaryName && (
+              <div className="flex items-center space-x-2 text-gray-300">
+                <User className="h-4 w-4 text-[#eaa640]" />
+                <span>{task.beneficiaryName}</span>
+              </div>
+            )}
+            {task.beneficiaryContact && (
+              <div className="flex items-center space-x-2 text-gray-300">
+                <Phone className="h-4 w-4 text-[#eaa640]" />
+                <a href={`tel:${task.beneficiaryContact}`} className="text-blue-300 hover:text-blue-200 underline">{task.beneficiaryContact}</a>
+              </div>
+            )}
+            {task.address && (
+              <div className="md:col-span-2 flex items-start justify-between text-gray-300">
+                <div className="flex items-start space-x-2">
+                  <MapPin className="h-4 w-4 text-[#eaa640] mt-0.5" />
+                  <span>{task.address}</span>
+                </div>
+                <button onClick={() => copyToClipboard(task.address)} className="ml-3 px-2 py-1 text-xs rounded-md bg-gray-700 hover:bg-gray-600 text-gray-200">Copy</button>
+              </div>
+            )}
+          </div>
         </div>
+      )}
+
+      <div className="space-y-2 mb-4">
+        {task.address && (
+          <div className="flex items-center space-x-2 text-sm text-gray-400">
+            <MapPin className="h-4 w-4" />
+            <span>{task.address}</span>
+          </div>
+        )}
         {/* Show hostel information for Kalasalingam Academy donations */}
         {task.type === 'donation' && task.location?.toLowerCase() === 'kalasalingam academy of research and education' && task.hostel && (
           <div className="flex items-center space-x-2 text-sm text-[#eaa640]">
@@ -1113,10 +1248,12 @@ const TaskCard: React.FC<{
             <span className="font-medium">Hostel: {task.hostel}</span>
           </div>
         )}
-        <div className="flex items-center space-x-2 text-sm text-gray-400">
-          <Phone className="h-4 w-4" />
-          <span>{task.type === 'donation' ? task.donorContact : task.beneficiaryContact}</span>
-        </div>
+        {(task.type === 'donation' ? task.donorContact : task.beneficiaryContact) && (
+          <div className="flex items-center space-x-2 text-sm text-gray-400">
+            <Phone className="h-4 w-4" />
+            <span>{task.type === 'donation' ? task.donorContact : task.beneficiaryContact}</span>
+          </div>
+        )}
         <div className="flex items-center space-x-2 text-sm text-gray-400">
           <Clock className="h-4 w-4" />
           <span>{formatDateOrNow(task.createdAt)}</span>
@@ -1125,7 +1262,10 @@ const TaskCard: React.FC<{
 
       {/* Action Buttons */}
       <div className="flex space-x-2">
-                 {task.status === 'pending' && (
+                 {(() => {
+                   const normalizedStatus = String(task.status || '').toLowerCase().trim();
+                   return normalizedStatus === 'pending' || normalizedStatus === '';
+                 })() && (
            <>
              <button
                onClick={() => onAction(task.id, 'accept', task.type)}
@@ -1152,7 +1292,11 @@ const TaskCard: React.FC<{
            </>
          )}
         
-                          {task.status === 'accepted' && (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid) && (
+                          {(() => {
+                            const normalizedStatus = String(task.status || '').toLowerCase().trim();
+                            return (normalizedStatus === 'accepted' || normalizedStatus === 'volunteer_accepted' || normalizedStatus === 'approved_by_volunteer') && 
+                                   (task.assignedTo === userData?.uid || task.volunteerId === userData?.uid || task.acceptedBy === userData?.uid);
+                          })() && (
            <button
              onClick={() => onAction(task.id, 'picked', task.type)}
              disabled={actionLoading === `${task.id}-picked`}
